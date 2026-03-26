@@ -187,7 +187,11 @@ function saveBest(key, score) {
 }
 function getBest(key) { return loadBench()[key] || 0; }
 
-const DEF_SETTINGS = { sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true, crosshairColor:'#00ff88', crosshairSize:28, crosshairThickness:2, crosshairStyle:'cross', theme:'default', roomTheme:'clean_grey' };
+const DEF_SETTINGS = { sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
+  xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
+  xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
+  xhOuterLen:2, xhOuterThick:2, xhOuterGap:10, xhOuterShow:false,
+  theme:'default', roomTheme:'clean_grey' };
 function loadSettings() { try { return {...DEF_SETTINGS,...JSON.parse(localStorage.getItem('visc_settings'))}; } catch { return {...DEF_SETTINGS}; } }
 function saveSettings(p) { const s = loadSettings(); Object.assign(s, p); localStorage.setItem('visc_settings', JSON.stringify(s)); }
 
@@ -200,10 +204,20 @@ function applySettings() {
   G.cm360 = s.cm360 || 34;
   $('#opt-diff').value = s.difficulty; $('#opt-duration').value = s.duration;
   $('#opt-sound').checked = s.soundOn;
-  $('#opt-xhair-color').value = s.crosshairColor;
-  $('#opt-xhair-size').value = s.crosshairSize; $('#xhair-size-val').textContent = s.crosshairSize;
-  $('#opt-xhair-thick').value = s.crosshairThickness; $('#xhair-thick-val').textContent = s.crosshairThickness;
-  $('#opt-xhair-style').value = s.crosshairStyle;
+  // Crosshair Valorant settings
+  if ($('#xh-color')) $('#xh-color').value = s.xhColor || '#00ff88';
+  if ($('#xh-opacity')) { $('#xh-opacity').value = s.xhOpacity ?? 1; $('#xh-opacity-val').textContent = s.xhOpacity ?? 1; }
+  if ($('#xh-outline')) { $('#xh-outline').value = s.xhOutline ?? 1; $('#xh-outline-val').textContent = s.xhOutline ?? 1; }
+  if ($('#xh-dot')) $('#xh-dot').checked = s.xhDot === true;
+  if ($('#xh-dot-size')) { $('#xh-dot-size').value = s.xhDotSize ?? 2; $('#xh-dot-size-val').textContent = s.xhDotSize ?? 2; }
+  if ($('#xh-inner-show')) $('#xh-inner-show').checked = s.xhInnerShow !== false;
+  if ($('#xh-inner-len')) { $('#xh-inner-len').value = s.xhInnerLen ?? 6; $('#xh-inner-len-val').textContent = s.xhInnerLen ?? 6; }
+  if ($('#xh-inner-thick')) { $('#xh-inner-thick').value = s.xhInnerThick ?? 2; $('#xh-inner-thick-val').textContent = s.xhInnerThick ?? 2; }
+  if ($('#xh-inner-gap')) { $('#xh-inner-gap').value = s.xhInnerGap ?? 3; $('#xh-inner-gap-val').textContent = s.xhInnerGap ?? 3; }
+  if ($('#xh-outer-show')) $('#xh-outer-show').checked = s.xhOuterShow === true;
+  if ($('#xh-outer-len')) { $('#xh-outer-len').value = s.xhOuterLen ?? 2; $('#xh-outer-len-val').textContent = s.xhOuterLen ?? 2; }
+  if ($('#xh-outer-thick')) { $('#xh-outer-thick').value = s.xhOuterThick ?? 2; $('#xh-outer-thick-val').textContent = s.xhOuterThick ?? 2; }
+  if ($('#xh-outer-gap')) { $('#xh-outer-gap').value = s.xhOuterGap ?? 10; $('#xh-outer-gap-val').textContent = s.xhOuterGap ?? 10; }
   $('#opt-theme').value = s.theme;
   if ($('#opt-room-theme')) $('#opt-room-theme').value = s.roomTheme || 'clean_grey';
   applyCrosshair(); applyTheme(s.theme); applyRoomTheme();
@@ -211,20 +225,58 @@ function applySettings() {
 
 function applyCrosshair() {
   const s = loadSettings();
-  const { crosshairColor:c, crosshairSize:sz, crosshairThickness:th, crosshairStyle:style } = s;
-  const h = sz/2, gap = sz*0.2;
-  let svg = `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">`;
-  if (style==='cross'||style==='crossdot') {
-    svg += `<line x1="${h}" y1="${th}" x2="${h}" y2="${h-gap}" stroke="${c}" stroke-width="${th}"/>`;
-    svg += `<line x1="${h}" y1="${h+gap}" x2="${h}" y2="${sz-th}" stroke="${c}" stroke-width="${th}"/>`;
-    svg += `<line x1="${th}" y1="${h}" x2="${h-gap}" y2="${h}" stroke="${c}" stroke-width="${th}"/>`;
-    svg += `<line x1="${h+gap}" y1="${h}" x2="${sz-th}" y2="${h}" stroke="${c}" stroke-width="${th}"/>`;
+  const c = s.xhColor || '#00ff88';
+  const op = s.xhOpacity ?? 1;
+  const ol = s.xhOutline ?? 0;
+  const olOp = s.xhOutlineOpacity ?? 0.5;
+  const iLen = s.xhInnerLen ?? 6;
+  const iTh = s.xhInnerThick ?? 2;
+  const iGap = s.xhInnerGap ?? 3;
+  const iShow = s.xhInnerShow !== false;
+  const oLen = s.xhOuterLen ?? 2;
+  const oTh = s.xhOuterThick ?? 2;
+  const oGap = s.xhOuterGap ?? 10;
+  const oShow = s.xhOuterShow === true;
+  const dot = s.xhDot === true;
+  const dotSz = s.xhDotSize ?? 2;
+
+  // Calculate SVG size to fit all elements
+  const maxR = Math.max(iGap + iLen, oShow ? oGap + oLen : 0, 4) + ol + 2;
+  const sz = maxR * 2;
+  const cx = maxR, cy = maxR;
+
+  let svg = `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">`;
+
+  function drawLine(x1,y1,x2,y2,thick,color,opacity) {
+    if (ol > 0) svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(0,0,0,${olOp})" stroke-width="${thick+ol*2}" stroke-linecap="round"/>`;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" opacity="${opacity}"/>`;
   }
-  if (style==='crossdot'||style==='dot') svg += `<circle cx="${h}" cy="${h}" r="${th}" fill="${c}"/>`;
-  if (style==='circle') { svg += `<circle cx="${h}" cy="${h}" r="${sz*0.3}" fill="none" stroke="${c}" stroke-width="${th}"/>`; svg += `<circle cx="${h}" cy="${h}" r="${th*0.5}" fill="${c}"/>`; }
+
+  // Inner lines
+  if (iShow) {
+    drawLine(cx, cy-iGap, cx, cy-iGap-iLen, iTh, c, op); // top
+    drawLine(cx, cy+iGap, cx, cy+iGap+iLen, iTh, c, op); // bottom
+    drawLine(cx-iGap, cy, cx-iGap-iLen, cy, iTh, c, op); // left
+    drawLine(cx+iGap, cy, cx+iGap+iLen, cy, iTh, c, op); // right
+  }
+
+  // Outer lines
+  if (oShow) {
+    drawLine(cx, cy-oGap, cx, cy-oGap-oLen, oTh, c, op);
+    drawLine(cx, cy+oGap, cx, cy+oGap+oLen, oTh, c, op);
+    drawLine(cx-oGap, cy, cx-oGap-oLen, cy, oTh, c, op);
+    drawLine(cx+oGap, cy, cx+oGap+oLen, cy, oTh, c, op);
+  }
+
+  // Center dot
+  if (dot) {
+    if (ol > 0) svg += `<circle cx="${cx}" cy="${cy}" r="${dotSz+ol}" fill="rgba(0,0,0,${olOp})"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${dotSz}" fill="${c}" opacity="${op}"/>`;
+  }
+
   svg += '</svg>';
   $('#crosshair-overlay').innerHTML = svg;
-  $('#crosshair-overlay').style.filter = `drop-shadow(0 0 4px ${c}66)`;
+  $('#crosshair-overlay').style.filter = 'none';
 }
 function applyTheme(t) { document.documentElement.dataset.theme = t; }
 
@@ -1010,10 +1062,33 @@ $('#opt-dpi').addEventListener('input',e=>{
 $('#opt-diff').addEventListener('change',e=>saveSettings({difficulty:e.target.value}));
 $('#opt-duration').addEventListener('change',e=>saveSettings({duration:parseInt(e.target.value)}));
 $('#opt-sound').addEventListener('change',e=>saveSettings({soundOn:e.target.checked}));
-$('#opt-xhair-color').addEventListener('input',e=>{saveSettings({crosshairColor:e.target.value});applyCrosshair();});
-$('#opt-xhair-size').addEventListener('input',e=>{$('#xhair-size-val').textContent=e.target.value;saveSettings({crosshairSize:parseInt(e.target.value)});applyCrosshair();});
-$('#opt-xhair-thick').addEventListener('input',e=>{$('#xhair-thick-val').textContent=e.target.value;saveSettings({crosshairThickness:parseFloat(e.target.value)});applyCrosshair();});
-$('#opt-xhair-style').addEventListener('change',e=>{saveSettings({crosshairStyle:e.target.value});applyCrosshair();});
+// Crosshair Valorant settings
+function xhBind(id, key, parse, valId) {
+  const el = $(id); if(!el) return;
+  el.addEventListener('input', e => {
+    const v = parse ? parse(e.target.value) : e.target.value;
+    if (valId) $(valId).textContent = v;
+    saveSettings({[key]: v});
+    applyCrosshair();
+  });
+}
+function xhCheck(id, key) {
+  const el = $(id); if(!el) return;
+  el.addEventListener('change', e => { saveSettings({[key]: e.target.checked}); applyCrosshair(); });
+}
+xhBind('#xh-color','xhColor',null,null);
+xhBind('#xh-opacity','xhOpacity',parseFloat,'#xh-opacity-val');
+xhBind('#xh-outline','xhOutline',parseFloat,'#xh-outline-val');
+xhCheck('#xh-dot','xhDot');
+xhBind('#xh-dot-size','xhDotSize',parseFloat,'#xh-dot-size-val');
+xhCheck('#xh-inner-show','xhInnerShow');
+xhBind('#xh-inner-len','xhInnerLen',parseInt,'#xh-inner-len-val');
+xhBind('#xh-inner-thick','xhInnerThick',parseFloat,'#xh-inner-thick-val');
+xhBind('#xh-inner-gap','xhInnerGap',parseInt,'#xh-inner-gap-val');
+xhCheck('#xh-outer-show','xhOuterShow');
+xhBind('#xh-outer-len','xhOuterLen',parseInt,'#xh-outer-len-val');
+xhBind('#xh-outer-thick','xhOuterThick',parseFloat,'#xh-outer-thick-val');
+xhBind('#xh-outer-gap','xhOuterGap',parseInt,'#xh-outer-gap-val');
 $('#opt-theme').addEventListener('change',e=>{saveSettings({theme:e.target.value});applyTheme(e.target.value);});
 $('#opt-room-theme').addEventListener('change',e=>{saveSettings({roomTheme:e.target.value});applyRoomTheme();});
 document.addEventListener('contextmenu',e=>{if(G.running)e.preventDefault();});

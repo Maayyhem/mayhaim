@@ -101,12 +101,28 @@
           <label>Son: <input type="checkbox" id="opt-sound" checked></label>
         </div>
         <div class="settings-row" style="margin-top:10px">
-          <label>Viseur: <select id="opt-xhair-style"><option value="cross">Cross</option><option value="crossdot">Cross + Dot</option><option value="dot">Dot</option><option value="circle">Circle</option></select></label>
-          <label>Couleur: <input type="color" id="opt-xhair-color" value="#00ff88"></label>
-          <label>Taille: <input type="range" id="opt-xhair-size" min="16" max="48" value="28" step="2"><span id="xhair-size-val">28</span></label>
-          <label>Epaisseur: <input type="range" id="opt-xhair-thick" min="1" max="5" value="2" step="0.5"><span id="xhair-thick-val">2</span></label>
           <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
           <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option></select></label>
+        </div>
+        <h2 class="section-title" style="margin-top:20px">Crosshair</h2>
+        <div class="settings-row">
+          <label>Couleur: <input type="color" id="xh-color" value="#00ff88"></label>
+          <label>Opacite: <input type="range" id="xh-opacity" min="0" max="1" value="1" step="0.1"><span id="xh-opacity-val">1</span></label>
+          <label>Outline: <input type="range" id="xh-outline" min="0" max="3" value="1" step="0.5"><span id="xh-outline-val">1</span></label>
+          <label>Dot: <input type="checkbox" id="xh-dot"></label>
+          <label>Dot Size: <input type="range" id="xh-dot-size" min="1" max="6" value="2" step="0.5"><span id="xh-dot-size-val">2</span></label>
+        </div>
+        <div class="settings-row" style="margin-top:6px">
+          <label>Inner: <input type="checkbox" id="xh-inner-show" checked></label>
+          <label>Longueur: <input type="range" id="xh-inner-len" min="1" max="20" value="6" step="1"><span id="xh-inner-len-val">6</span></label>
+          <label>Epaisseur: <input type="range" id="xh-inner-thick" min="1" max="6" value="2" step="0.5"><span id="xh-inner-thick-val">2</span></label>
+          <label>Gap: <input type="range" id="xh-inner-gap" min="0" max="15" value="3" step="1"><span id="xh-inner-gap-val">3</span></label>
+        </div>
+        <div class="settings-row" style="margin-top:6px">
+          <label>Outer: <input type="checkbox" id="xh-outer-show"></label>
+          <label>Longueur: <input type="range" id="xh-outer-len" min="1" max="10" value="2" step="1"><span id="xh-outer-len-val">2</span></label>
+          <label>Epaisseur: <input type="range" id="xh-outer-thick" min="1" max="6" value="2" step="0.5"><span id="xh-outer-thick-val">2</span></label>
+          <label>Gap: <input type="range" id="xh-outer-gap" min="3" max="25" value="10" step="1"><span id="xh-outer-gap-val">10</span></label>
         </div>
       </div>
     </div>
