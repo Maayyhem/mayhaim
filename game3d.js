@@ -1,0 +1,1022 @@
+// ===================== MayhAim - Aim Trainer & Viscose Benchmark =====================
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// Sensitivity system: convert any game sens + DPI to cm/360, then to radians/pixel
+// cm/360 = 2.54 * 360 / (gameSens * yawRate * DPI)
+// yawRate per game:
+const YAW_RATES = { valorant:0.07, cs2:0.022, overwatch:0.0066, apex:0.022, fortnite:0.5555 };
+
+function getDPI() { return parseFloat($('#opt-dpi')?.value) || 800; }
+
+function gameSensToCm360(mode, val) {
+  if (mode === 'cm360') return val;
+  const yaw = YAW_RATES[mode];
+  return 2.54 * 360 / (val * yaw * getDPI());
+}
+function cm360ToGameSens(mode, cm360) {
+  if (mode === 'cm360') return cm360;
+  const yaw = YAW_RATES[mode];
+  return 2.54 * 360 / (cm360 * yaw * getDPI());
+}
+
+const SENS_DEFAULTS = { cm360:{step:0.5,def:34}, valorant:{step:0.01,def:0.48}, cs2:{step:0.01,def:1.53}, overwatch:{step:0.1,def:5.09}, apex:{step:0.01,def:1.53}, fortnite:{step:0.1,def:6} };
+
+function cm360ToRad(cm360) { return (2 * Math.PI * 2.54) / (cm360 * getDPI()); }
+
+const DIFF = {
+  easy:   { tR:[0.5,0.7], sp:[4,3], spd:1.5, gR:0.55, pR:[0.25,0.35] },
+  medium: { tR:[0.35,0.5], sp:[5,3.5], spd:2.8, gR:0.42, pR:[0.18,0.28] },
+  hard:   { tR:[0.12,0.22], sp:[8,5.5], spd:7.5, gR:0.22, pR:[0.07,0.14] },
+};
+
+// ============================================================
+// VISCOSE BENCHMARK - Medium + Hard tiers
+// Medium: 8 thresholds, Hard: 6 thresholds per scenario
+// ============================================================
+const RANK_COLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5','#2dbe73','#ff4655'];
+
+// th = Medium (8), thH = Hard (6), thE = Easier (8)
+const SCENARIOS = {
+  // ═══ CONTROL TRACKING - Arm ═══
+  whisphereraw:   { cat:'control_tracking', sub:'arm', type:'track', label:'WhisphereRawControl', labelH:'WhisphereRawCtrl 30% Small', labelE:'WhisphereRawCtrl Larger',
+    th:[5300,6700,7600,8800,10000,10900,11800,13000], thH:[7100,7700,8300,8900,9900,11000], thE:[5500,6700,7800,8700,9600,10500,11400,12500] },
+  whisphere:      { cat:'control_tracking', sub:'arm', type:'track', label:'Whisphere', labelH:'Whisphere Small & Slow', labelE:'Whisphere 80%',
+    th:[5750,8250,10750,13250,15250,17250,19250,20500], thH:[14000,15250,16500,18000,19500,20500], thE:[6300,7700,9000,10000,11000,12000,13000,14500] },
+  smoothbot:      { cat:'control_tracking', sub:'arm', type:'track', label:'SmoothBot Goated', labelH:'SmoothBot Goated Smaller', labelE:'SmoothBot Goated 75%',
+    th:[1700,2200,2750,3250,3800,4300,4650,5000], thH:[2700,3200,3450,3850,4200,4450], thE:[1800,2250,2650,2900,3150,3400,3650,4000] },
+  // ═══ CONTROL TRACKING - Wrist ═══
+  leaptrack:      { cat:'control_tracking', sub:'wrist', type:'track', label:'Leaptrack Goated', labelH:'Leaptrack Goated 80%', labelE:'Leaptrack Goated 60% Larger',
+    th:[1400,1750,2000,2250,2500,2750,3000,3275], thH:[2500,2625,2750,2850,3000,3200], thE:[850,1200,1500,1700,1900,2100,2250,2450] },
+  ctrlsphere_aim: { cat:'control_tracking', sub:'wrist', type:'track', label:'Controlsphere rAim', labelH:'Controlsphere rAim', labelE:'Controlsphere rAim Easy 90%',
+    th:[7400,8500,9600,10700,11900,13100,14300,15100], thH:[9100,9850,10700,11300,11900,12350], thE:[6100,6950,7700,8400,9100,9800,10500,11500] },
+  vt_ctrlsphere:  { cat:'control_tracking', sub:'wrist', type:'track', label:'VT Controlsphere', labelH:'VT Controlsphere Hard', labelE:'VT Controlsphere 80%',
+    th:[2100,2500,2950,3250,3550,3800,4100,4400], thH:[2850,3200,3500,3800,4000,4200], thE:[1850,2300,2700,3000,3300,3600,3850,4100] },
+  // ═══ CONTROL TRACKING - Fingertip ═══
+  air_angelic:    { cat:'control_tracking', sub:'fingertip', type:'track', label:'Air Angelic 4', labelH:'Air Angelic 4 Voltaic', labelE:'Air Angelic 4 Easy 80%',
+    th:[1900,2300,2650,3000,3400,3750,4100,4450], thH:[3300,3650,3850,4100,4225,4350], thE:[1050,1600,2000,2400,2700,3000,3300,3600] },
+  cloverraw:      { cat:'control_tracking', sub:'fingertip', type:'track', label:'Cloverrawcontrol Easy', labelH:'Cloverrawcontrol', labelE:'Cloverrawcontrol Easy 80%',
+    th:[5000,6100,7000,8100,9200,10100,10900,11700], thH:[7000,7650,8200,8650,9200,10100], thE:[3900,4550,5200,5700,6200,6700,7200,7700] },
+  ctrlsphere_far: { cat:'control_tracking', sub:'fingertip', type:'track', label:'Controlsphere Far', labelH:'Controlsphere Far', labelE:'Controlsphere Far Larger 90%',
+    th:[7800,8600,9300,10000,10800,11700,12700,13600], thH:[8600,9200,9800,10600,11200,12000], thE:[7600,8150,8700,9200,9800,10200,10900,11500] },
+  // ═══ CONTROL TRACKING - Blending ═══
+  pgti:           { cat:'control_tracking', sub:'blending', type:'track', label:'PGTI Voltaic Easy', labelH:'PGTI Voltaic', labelE:'PGTI Voltaic Easy 80%',
+    th:[800,1100,1400,1700,2000,2300,2750,3200], thH:[1350,1650,1900,2150,2400,2700], thE:[350,550,850,1100,1350,1600,1900,2250] },
+  air_celestial:  { cat:'control_tracking', sub:'blending', type:'track_pct', label:'Air CELESTIAL', labelH:'Air CELESTIAL', labelE:'Air CELESTIAL Slowed',
+    th:[825,840,855,865,881,890,902,908], thH:[867,875,885,890,894,897], thE:[820,835,850,861,870,878,884,890] },
+  whisphere_slow: { cat:'control_tracking', sub:'blending', type:'track', label:'Whisphere Slow', labelH:'Whisphere Extra Small', labelE:'Whisphere Slow 55%',
+    th:[5500,7500,9500,11500,13500,15500,17500,19000], thH:[8500,10300,11000,12500,13500,14500], thE:[6000,7500,9000,10000,10750,11500,12250,13500] },
+
+  // ═══ REACTIVE TRACKING ═══
+  ground_plaza:   { cat:'reactive_tracking', sub:'control', type:'track_pct', label:'Ground Plaza Sparky', labelH:'Ground Plaza Thin', labelE:'Air Voltaic Inv 7 Easy 80%',
+    th:[862,872,882,888,894,900,905,909], thH:[881,886,891,895,898,901], thE:[750,1200,1600,1900,2200,2500,2800,3200] },
+  ctrlsphere_ow:  { cat:'reactive_tracking', sub:'control', type:'track', label:'Controlsphere OW', labelH:'Controlsphere OW 150%', labelE:'Controlsphere OW Long 90%',
+    th:[4800,5700,6400,7300,8100,8900,9800,10500], thH:[6900,7600,8100,8525,8950,9500], thE:[5400,6100,6700,7200,7600,8000,8300,8700] },
+  flicker_plaza:  { cat:'reactive_tracking', sub:'speed', type:'track_pct', label:'Flicker Plaza rAim', labelH:'Flicker Plaza', labelE:'Flicker Plaza Less Blinks',
+    th:[860,870,881,891,900,908,913,917], thH:[890,896,901,905,910,914], thE:[858,871,883,890,895,900,904,909] },
+  polarized_hell: { cat:'reactive_tracking', sub:'speed', type:'track', label:'Polarized Hell', labelH:'Polarized Hell 20% Slower', labelE:'Polarized Hell 40% Slower',
+    th:[1600,1850,2100,2350,2600,2850,3150,3350], thH:[2550,2700,2850,3000,3150,3300], thE:[750,1100,1400,1600,1800,2000,2150,2500] },
+  air_pure:       { cat:'reactive_tracking', sub:'reading', type:'track_pct', label:'Air Pure', labelH:'Air Pure', labelE:'Air Pure Slower No UFO',
+    th:[847,862,876,886,895,902,906,910], thH:[884,890,895,900,905,909], thE:[860,874,886,893,901,907,911,916] },
+  air_voltaic:    { cat:'reactive_tracking', sub:'reading', type:'track', label:'Air Voltaic', labelH:'Air Voltaic Invincible 4', labelE:'Air Voltaic Easy 80%',
+    th:[1800,2150,2500,2950,3350,3750,4150,4450], thH:[2800,3150,3450,3700,3900,4100], thE:[1100,1600,2100,2450,2800,3150,3400,3800] },
+
+  // ═══ FLICK TECH ═══
+  pokeball_frenzy:{ cat:'flick_tech', sub:'speed', type:'click', label:'Pokeball Frenzy', labelH:'Pokeball Frenzy TE Wide', labelE:'Pokeball Frenzy TE Wide',
+    th:[1950,2250,2550,2850,3150,3400,3600,3800], thH:[3550,3725,3850,4000,4100,4200], thE:[650,950,1250,1500,1750,2000,2300,2700] },
+  w1w3ts_reload:  { cat:'flick_tech', sub:'speed', type:'click', label:'1w3ts Reload', labelH:'1w2ts Reload', labelE:'1w3ts Reload Larger',
+    th:[66,76,86,96,106,116,126,135], thH:[106,114,121,127,133,138], thE:[36,43,50,58,70,82,92,102] },
+  vox_ts2:        { cat:'flick_tech', sub:'speed', type:'click', label:'voxTargetSwitch 2', labelH:'voxTS 2 20% Smaller', labelE:'voxTargetSwitch 2 Large',
+    th:[78,88,98,107,116,123,130,136], thH:[103,111,116,121,127,133], thE:[67,78,87,95,103,110,117,123] },
+  beants:         { cat:'flick_tech', sub:'stability', type:'click', label:'BeanTS', labelH:'BeanTS 30% Smaller', labelE:'BeanTS Larger',
+    th:[88,103,115,127,136,143,149,156], thH:[119,127,134,139,143,147], thE:[65,78,90,100,110,120,130,142] },
+  floatts:        { cat:'flick_tech', sub:'stability', type:'click', label:'FloatTS Angelic', labelH:'FloatTS Angelic', labelE:'FloatTS Angelic Easy Larger',
+    th:[70,79,86,93,100,107,115,123], thH:[94,100,105,110,114,118], thE:[65,74,81,88,95,101,106,111] },
+  waldots:        { cat:'flick_tech', sub:'micro', type:'click', label:'WaldoTS', labelH:'WaldoTS', labelE:'WaldoTS Novice',
+    th:[108,117,126,135,144,153,162,170], thH:[145,153,160,166,173,178], thE:[65,78,90,100,110,120,130,140] },
+  devts:          { cat:'flick_tech', sub:'micro', type:'click', label:'devTS Goated 5Bot', labelH:'devTS Static Small 5Bot', labelE:'devTS Goated 5Bot',
+    th:[600,650,705,760,810,840,870,900], thH:[750,775,800,825,850,870], thE:[350,400,450,500,550,600,640,680] },
+  domiswitch:     { cat:'flick_tech', sub:'postflick', type:'click', label:'domiSwitch', labelH:'domiSwitch', labelE:'domiSwitch Easy Slower',
+    th:[4200,4700,5200,5700,6150,6600,7100,7600], thH:[5550,5950,6250,6550,6850,7200], thE:[3200,3700,4200,4600,5000,5400,5800,6300] },
+  tamts:          { cat:'flick_tech', sub:'postflick', type:'click', label:'tamTargetSwitch', labelH:'tamTS Smooth', labelE:'tamTS Smooth Easy',
+    th:[22,26,29,32,34,36,38,41], thH:[32,35,37,39,42,45], thE:[7,11,15,18,21,24,26,28] },
+
+  // ═══ CLICK TIMING ═══
+  pasu_reload:    { cat:'click_timing', sub:'reading', type:'click', label:'Pasu Reload', labelH:'Pasu Reload Goated', labelE:'Pasu Slow',
+    th:[70,85,100,115,130,142,155,165], thH:[110,120,130,140,150,160], thE:[76,88,100,110,120,130,140,150] },
+  vt_bounceshot:  { cat:'click_timing', sub:'reading', type:'click', label:'VT Bounceshot', labelH:'VT Bounceshot Advanced', labelE:'B180 Voltaic Easy',
+    th:[550,640,720,780,850,900,980,1060], thH:[730,790,850,910,950,1000], thE:[26,38,50,58,65,72,78,87] },
+  ctrlsphere_clk: { cat:'click_timing', sub:'reading', type:'click', label:'Controlsphere Click', labelH:'Ctrlsphere Click Smaller', labelE:'Controlsphere Click Easy',
+    th:[27,33,39,45,50,56,61,67], thH:[39,45,51,56,60,64], thE:[15,21,27,33,39,45,50,55] },
+  popcorn_mv:     { cat:'click_timing', sub:'precision', type:'click', label:'Popcorn MV', labelH:'Popcorn MV Advanced', labelE:'Popcorn MV Novice',
+    th:[150,190,240,280,330,380,430,480], thH:[290,330,370,420,460,500], thE:[50,100,150,190,230,270,300,330] },
+  pasu_angelic:   { cat:'click_timing', sub:'precision', type:'click', label:'Pasu Angelic', labelH:'Pasu Angelic', labelE:'Pasu Angelic 20% Larger 80%',
+    th:[72,79,85,90,96,103,110,115], thH:[87,94,102,110,118,125], thE:[51,58,65,72,78,84,90,97] },
+  pasu_perfected: { cat:'click_timing', sub:'precision', type:'click', label:'1w2ts Pasu Perfected', labelH:'1w2ts Pasu 30% Smaller', labelE:'1w2ts Pasu Perfected Easy',
+    th:[60,70,80,88,96,101,107,112], thH:[75,82,87,93,98,103], thE:[58,69,80,87,93,99,105,110] },
+  pasu_micro:     { cat:'click_timing', sub:'ct_stability', type:'click', label:'1w3ts Pasu Micro', labelH:'1w3ts Pasu Micro Goated', labelE:'1w3ts Pasu Micro Larger 80%',
+    th:[900,1000,1100,1200,1300,1400,1500,1600], thH:[1100,1200,1300,1400,1500,1560], thE:[600,700,800,900,1000,1100,1200,1300] },
+  floatheads_t:   { cat:'click_timing', sub:'ct_stability', type:'click', label:'Floating Heads Timing', labelH:'Floating Heads Fixed', labelE:'Floating Heads 400% Larger',
+    th:[1950,2300,2650,3000,3350,3650,3900,4200], thH:[3200,3484,3648,3848,4048,4248], thE:[400,700,1000,1350,1700,2050,2400,2750] },
+  vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', label:'voxTargetClick', labelH:'voxTargetClick Small', labelE:'voxTargetSwitch Click',
+    th:[62,72,80,87,95,102,108,116], thH:[90,96,101,106,111,115], thE:[49,59,67,74,81,88,94,100] },
+};
+
+// Current tier: 'easier', 'medium', or 'hard'
+let currentTier = 'medium';
+
+const CAT_LABELS = {
+  control_tracking:'Control Tracking', reactive_tracking:'Reactive Tracking',
+  flick_tech:'Flick Tech', click_timing:'Click Timing'
+};
+const SUB_LABELS = {
+  arm:'Arm', wrist:'Wrist', fingertip:'Fingertip', blending:'Blending',
+  control:'Control', speed:'Speed', reading:'Reading',
+  stability:'Stability', micro:'Micro', postflick:'Post-Flick',
+  precision:'Precision', ct_stability:'Stability'
+};
+
+// ---- THREADS CALCULATION ----
+function getTh(key) {
+  if (currentTier==='hard') return SCENARIOS[key].thH || SCENARIOS[key].th;
+  if (currentTier==='easier') return SCENARIOS[key].thE || SCENARIOS[key].th;
+  return SCENARIOS[key].th;
+}
+function getMaxThreads() { return currentTier === 'hard' ? 6 : 8; }
+function getLabel(key) {
+  if (currentTier==='hard') return SCENARIOS[key].labelH || SCENARIOS[key].label;
+  if (currentTier==='easier') return SCENARIOS[key].labelE || SCENARIOS[key].label;
+  return SCENARIOS[key].label;
+}
+
+function calcThreads(key, score) {
+  const th = getTh(key);
+  for (let i = th.length - 1; i >= 0; i--) { if (score >= th[i]) return i + 1; }
+  return 0;
+}
+function calcSubThreads(sub) {
+  const entries = Object.entries(SCENARIOS).filter(([,v]) => v.sub === sub);
+  return entries.reduce((sum,[k]) => sum + calcThreads(k, getBest(k)), 0);
+}
+function calcMaxSubThreads(sub) {
+  return Object.values(SCENARIOS).filter(v => v.sub === sub).length * getMaxThreads();
+}
+function calcTotalThreads() {
+  return Object.keys(SCENARIOS).reduce((sum, k) => sum + calcThreads(k, getBest(k)), 0);
+}
+function calcMaxTotal() { return Object.keys(SCENARIOS).length * getMaxThreads(); }
+function calcRankFromThreads(threads) {
+  const total = Object.keys(SCENARIOS).length * 8; // 256
+  const pct = threads / total;
+  if (pct >= 0.9) return { label:'Mythic', color:'#ff4655' };
+  if (pct >= 0.75) return { label:'Legendary', color:'#d882f5' };
+  if (pct >= 0.6) return { label:'Diamond', color:'#59c5c7' };
+  if (pct >= 0.45) return { label:'Platinum', color:'#2dbe73' };
+  if (pct >= 0.3) return { label:'Gold', color:'#e8c56d' };
+  if (pct >= 0.18) return { label:'Silver', color:'#c0c0c0' };
+  if (pct >= 0.08) return { label:'Bronze', color:'#b97450' };
+  if (threads > 0) return { label:'Iron', color:'#7c8389' };
+  return { label:'Unranked', color:'#555' };
+}
+
+// ---- PERSISTENCE (per tier) ----
+function loadBench() { try { return JSON.parse(localStorage.getItem('visc_bench_'+currentTier)) || {}; } catch { return {}; } }
+function saveBest(key, score) {
+  const b = loadBench(); if (!b[key] || score > b[key]) b[key] = score;
+  localStorage.setItem('visc_bench_'+currentTier, JSON.stringify(b));
+}
+function getBest(key) { return loadBench()[key] || 0; }
+
+const DEF_SETTINGS = { sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true, crosshairColor:'#00ff88', crosshairSize:28, crosshairThickness:2, crosshairStyle:'cross', theme:'default', roomTheme:'clean_grey' };
+function loadSettings() { try { return {...DEF_SETTINGS,...JSON.parse(localStorage.getItem('visc_settings'))}; } catch { return {...DEF_SETTINGS}; } }
+function saveSettings(p) { const s = loadSettings(); Object.assign(s, p); localStorage.setItem('visc_settings', JSON.stringify(s)); }
+
+function applySettings() {
+  const s = loadSettings();
+  $('#opt-dpi').value = s.dpi || 800;
+  $('#opt-sens-mode').value = s.sensMode || 'cm360';
+  $('#opt-sens-val').value = s.sensVal || 34;
+  $('#opt-sens-val').step = (SENS_DEFAULTS[s.sensMode]||SENS_DEFAULTS.cm360).step;
+  G.cm360 = s.cm360 || 34;
+  $('#opt-diff').value = s.difficulty; $('#opt-duration').value = s.duration;
+  $('#opt-sound').checked = s.soundOn;
+  $('#opt-xhair-color').value = s.crosshairColor;
+  $('#opt-xhair-size').value = s.crosshairSize; $('#xhair-size-val').textContent = s.crosshairSize;
+  $('#opt-xhair-thick').value = s.crosshairThickness; $('#xhair-thick-val').textContent = s.crosshairThickness;
+  $('#opt-xhair-style').value = s.crosshairStyle;
+  $('#opt-theme').value = s.theme;
+  if ($('#opt-room-theme')) $('#opt-room-theme').value = s.roomTheme || 'clean_grey';
+  applyCrosshair(); applyTheme(s.theme); applyRoomTheme();
+}
+
+function applyCrosshair() {
+  const s = loadSettings();
+  const { crosshairColor:c, crosshairSize:sz, crosshairThickness:th, crosshairStyle:style } = s;
+  const h = sz/2, gap = sz*0.2;
+  let svg = `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">`;
+  if (style==='cross'||style==='crossdot') {
+    svg += `<line x1="${h}" y1="${th}" x2="${h}" y2="${h-gap}" stroke="${c}" stroke-width="${th}"/>`;
+    svg += `<line x1="${h}" y1="${h+gap}" x2="${h}" y2="${sz-th}" stroke="${c}" stroke-width="${th}"/>`;
+    svg += `<line x1="${th}" y1="${h}" x2="${h-gap}" y2="${h}" stroke="${c}" stroke-width="${th}"/>`;
+    svg += `<line x1="${h+gap}" y1="${h}" x2="${sz-th}" y2="${h}" stroke="${c}" stroke-width="${th}"/>`;
+  }
+  if (style==='crossdot'||style==='dot') svg += `<circle cx="${h}" cy="${h}" r="${th}" fill="${c}"/>`;
+  if (style==='circle') { svg += `<circle cx="${h}" cy="${h}" r="${sz*0.3}" fill="none" stroke="${c}" stroke-width="${th}"/>`; svg += `<circle cx="${h}" cy="${h}" r="${th*0.5}" fill="${c}"/>`; }
+  svg += '</svg>';
+  $('#crosshair-overlay').innerHTML = svg;
+  $('#crosshair-overlay').style.filter = `drop-shadow(0 0 4px ${c}66)`;
+}
+function applyTheme(t) { document.documentElement.dataset.theme = t; }
+
+// ---- ROOM THEMES (KovaaK's style) ----
+const ROOM_THEMES = {
+  clean_grey: { label:'Clean Grey', bg:0xb8b8b8, floor:0xc0c0c0, wall:0xd0d0d0, wallBack:0xc8c8c8, ceil:0xd8d8d8, trim:0x999999, grid:[0x999999,0xaaaaaa], target:0x111111, targetE:0.15, ambient:0.5, sunColor:0xfff8f0, sunInt:1.0 },
+  pure_dark:  { label:'Pure Dark', bg:0x0a0a0a, floor:0x111111, wall:0x151515, wallBack:0x121212, ceil:0x181818, trim:0x222222, grid:[0x1a1a1a,0x141414], target:0xff4444, targetE:0.5, ambient:0.3, sunColor:0xffffff, sunInt:0.8 },
+  neon:       { label:'Neon', bg:0x08001a, floor:0x0a0018, wall:0x0d0022, wallBack:0x0a001a, ceil:0x10002a, trim:0x6600ff, grid:[0x2200aa,0x110066], target:0xff00ff, targetE:0.7, ambient:0.2, sunColor:0x8844ff, sunInt:0.6 },
+  sunset:     { label:'Sunset', bg:0x4a2010, floor:0x5a3020, wall:0x6a3828, wallBack:0x553020, ceil:0x704030, trim:0xcc6633, grid:[0x553322,0x442211], target:0x111111, targetE:0.15, ambient:0.4, sunColor:0xffaa55, sunInt:1.2 },
+  arctic:     { label:'Arctic', bg:0xd8e8f0, floor:0xe0eef5, wall:0xe8f2fa, wallBack:0xdcecf5, ceil:0xf0f8ff, trim:0x88bbdd, grid:[0xaaccdd,0xbbddee], target:0x1a1a2a, targetE:0.15, ambient:0.6, sunColor:0xeef4ff, sunInt:1.1 },
+  matrix:     { label:'Matrix', bg:0x000a00, floor:0x001100, wall:0x001500, wallBack:0x001200, ceil:0x001a00, trim:0x00ff00, grid:[0x004400,0x002200], target:0x00ff00, targetE:0.6, ambient:0.15, sunColor:0x22ff22, sunInt:0.5 },
+  oxide:      { label:'Oxide', bg:0x2a1a15, floor:0x3a2218, wall:0x442a1e, wallBack:0x382218, ceil:0x4a3020, trim:0x885533, grid:[0x332211,0x221100], target:0x111111, targetE:0.15, ambient:0.4, sunColor:0xffcc88, sunInt:0.9 },
+  synthwave:  { label:'Synthwave', bg:0x1a0033, floor:0x220044, wall:0x2a0055, wallBack:0x240048, ceil:0x300060, trim:0xff0088, grid:[0x440066,0x330055], target:0x00ffff, targetE:0.6, ambient:0.2, sunColor:0xff44aa, sunInt:0.7 },
+  clover_alt: { label:'Clover Alt', bg:0x0a1a12, floor:0x0d1f16, wall:0x10261b, wallBack:0x0e2118, ceil:0x132b1f, trim:0x1a5c3a, grid:[0x0e3320,0x0a2818], target:0x44ffaa, targetE:0.5, ambient:0.25, sunColor:0x66ffaa, sunInt:0.6 },
+};
+
+function applyRoomTheme() {
+  const s = loadSettings();
+  const t = ROOM_THEMES[s.roomTheme] || ROOM_THEMES.clean_grey;
+  // Update materials
+  M.floor.color.setHex(t.floor);
+  M.wall.color.setHex(t.wall);
+  M.wallBack.color.setHex(t.wallBack);
+  M.ceiling.color.setHex(t.ceil);
+  M.trim.color.setHex(t.trim);
+  // Update all target materials
+  [M.t1,M.t2,M.t3,M.t4,M.t5,M.t6].forEach(m => {
+    m.color.setHex(t.target);
+    m.emissive.setHex(t.target);
+    m.emissiveIntensity = t.targetE;
+  });
+  // Scene background
+  if (scene) scene.background = new THREE.Color(t.bg);
+}
+
+// ---- STATE ----
+const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false };
+
+// ---- THREE.JS ----
+let scene, camera, renderer, clock, roomGroup, targetsGroup;
+const raycaster = new THREE.Raycaster();
+const center = new THREE.Vector2(0,0);
+
+function initThree() {
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0xb8b8b8);
+  camera = new THREE.PerspectiveCamera(73, innerWidth/innerHeight, 0.1, 200);
+  camera.position.set(0,1.7,0);
+  renderer = new THREE.WebGLRenderer({ canvas:$('#game-canvas'), antialias:true });
+  renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
+  clock = new THREE.Clock(); setupLights();
+  roomGroup = new THREE.Group(); scene.add(roomGroup);
+  targetsGroup = new THREE.Group(); scene.add(targetsGroup);
+  addEventListener('resize', () => { camera.aspect = innerWidth/innerHeight; updateFOV(); renderer.setSize(innerWidth,innerHeight); });
+}
+function setupLights() {
+  scene.children.filter(c=>c.isLight).forEach(l=>scene.remove(l));
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun = new THREE.DirectionalLight(0xfff8f0,1); sun.position.set(5,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xaaccff,0x444422,0.4));
+}
+function updateFOV() { const h=103*Math.PI/180; camera.fov=2*Math.atan(Math.tan(h/2)/camera.aspect)*180/Math.PI; camera.updateProjectionMatrix(); }
+
+const M = {
+  floor: new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:0.85}),
+  wall: new THREE.MeshStandardMaterial({color:0xd0d0d0,roughness:0.75}),
+  wallBack: new THREE.MeshStandardMaterial({color:0xc8c8c8,roughness:0.8}),
+  ceiling: new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:0.85}),
+  trim: new THREE.MeshStandardMaterial({color:0x999999,roughness:0.5,metalness:0.2}),
+  t1: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  t2: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  t3: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  t4: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  t5: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  t6: new THREE.MeshStandardMaterial({color:0x111111,emissive:0x111111,emissiveIntensity:0.15}),
+  tDim: new THREE.MeshStandardMaterial({color:0x333333,emissive:0x222222,emissiveIntensity:0.08}),
+};
+
+function clearScene() { while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); while(targetsGroup.children.length) targetsGroup.remove(targetsGroup.children[0]); scene.fog=null; applyRoomTheme(); setupRoomLights(); }
+
+function setupRoomLights() {
+  scene.children.filter(c=>c.isLight).forEach(l=>scene.remove(l));
+  const s = loadSettings();
+  const t = ROOM_THEMES[s.roomTheme] || ROOM_THEMES.clean_grey;
+  scene.add(new THREE.AmbientLight(0xffffff, t.ambient));
+  const sun = new THREE.DirectionalLight(t.sunColor, t.sunInt); sun.position.set(5,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xaaccff,0x444422,0.3));
+}
+
+function buildRoom(w,h,d) {
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M.floor); fl.rotation.x=-Math.PI/2; fl.receiveShadow=true; roomGroup.add(fl);
+  const rt=ROOM_THEMES[loadSettings().roomTheme]||ROOM_THEMES.clean_grey; const gr=new THREE.GridHelper(w,w,rt.grid[0],rt.grid[1]); gr.position.y=0.01; roomGroup.add(gr);
+  const bw=new THREE.Mesh(new THREE.PlaneGeometry(w,h),M.wallBack); bw.position.set(0,h/2,-d/2); roomGroup.add(bw);
+  const s1=new THREE.Mesh(new THREE.PlaneGeometry(d,h),M.wall); s1.position.set(-w/2,h/2,0); s1.rotation.y=Math.PI/2; roomGroup.add(s1);
+  const s2=new THREE.Mesh(new THREE.PlaneGeometry(d,h),M.wall); s2.position.set(w/2,h/2,0); s2.rotation.y=-Math.PI/2; roomGroup.add(s2);
+  const cl=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M.ceiling); cl.position.set(0,h,0); cl.rotation.x=Math.PI/2; roomGroup.add(cl);
+  const lG=new THREE.BoxGeometry(2,0.05,0.3), lM=new THREE.MeshBasicMaterial({color:0xddeeff});
+  for(let x=-w/3;x<=w/3;x+=w/3){const l=new THREE.Mesh(lG,lM);l.position.set(x,h-0.05,-d/4);roomGroup.add(l);}
+}
+
+function mkSphere(x,y,z,r,mat) { const g=new THREE.SphereGeometry(r,16,12),m=new THREE.Mesh(g,mat||M.t1); m.position.set(x,y,z); m.castShadow=true; targetsGroup.add(m); return m; }
+function rand(a,b) { return a+Math.random()*(b-a); }
+
+// ============================================================
+// SCENARIO SPAWN/UPDATE IMPLEMENTATIONS
+// Each scenario creates targets with specific movement patterns
+// ============================================================
+
+let trackTarget = null;
+let switchTargets = [];
+
+// ---- Helper: Tracking target factory ----
+function mkTrackTarget(x,y,z,r,mat,props) {
+  const mesh = mkSphere(x,y,z,r,mat||M.t4);
+  trackTarget = { mesh, alive:true, x,y,z, ...props };
+  G.targets.push(trackTarget);
+}
+
+// ---- Helper: Switch targets factory ----
+function mkSwitchTargets(positions, r, props) {
+  switchTargets = [];
+  positions.forEach((p,i) => {
+    const mat = i===0 ? M.t4 : M.tDim;
+    const mesh = mkSphere(p[0],p[1],p[2],r,mat);
+    const t = { mesh, alive:true, x:p[0],y:p[1],z:p[2], idx:i, ...props, phase:rand(0,Math.PI*2), phaseY:rand(0,Math.PI*2) };
+    switchTargets.push(t); G.targets.push(t);
+  });
+  G.switchActiveIdx=0; G.switchTimer=0;
+}
+
+// ═══ CONTROL TRACKING SPAWNS ═══
+
+// Arm: smooth sinusoidal, large range
+function spawn_whisphereraw() { mkTrackTarget(0,1.7,-10,0.35,M.t4,{mv:'whisphereraw'}); }
+function spawn_whisphere() { mkTrackTarget(0,1.7,-10,0.5,M.t4,{mv:'whisphere'}); }
+function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,0.5,M.t3,{mv:'smoothbot'}); }
+
+// Wrist: tighter, faster direction changes
+function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,0.45,M.t6,{mv:'leaptrack',phase:0,jumpTimer:0}); }
+function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,0.4,M.t4,{mv:'ctrlsphere_aim'}); }
+function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,0.4,M.t5,{mv:'vt_ctrlsphere'}); }
+
+// Fingertip: tiny movements, small targets
+function spawn_air_angelic() { mkTrackTarget(0,2,-10,0.35,M.t5,{mv:'air_angelic'}); }
+function spawn_cloverraw() { mkTrackTarget(0,1.7,-10,0.35,M.t3,{mv:'cloverraw'}); }
+function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,0.4,M.t4,{mv:'ctrlsphere_far'}); }
+
+// Blending: mixed movement patterns
+function spawn_pgti() { mkTrackTarget(0,1.7,-10,0.4,M.t4,{mv:'pgti'}); }
+function spawn_air_celestial() { mkTrackTarget(0,2,-10,0.45,M.t5,{mv:'air_celestial'}); }
+function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,0.5,M.t6,{mv:'whisphere_slow'}); }
+
+// ═══ REACTIVE TRACKING SPAWNS ═══
+function spawn_ground_plaza() { mkTrackTarget(0,0.8,-10,0.5,M.t3,{mv:'ground_plaza',vx:2,vy:0,ct:0,nc:0.8}); }
+function spawn_ctrlsphere_ow() { mkTrackTarget(0,1.7,-10,0.45,M.t4,{mv:'ctrlsphere_ow',vx:1.5,vy:0.8,ct:0,nc:1}); }
+function spawn_flicker_plaza() { mkTrackTarget(0,1.7,-10,0.45,M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:0.5}); }
+function spawn_polarized_hell() { mkTrackTarget(0,1.7,-10,0.5,M.t1,{mv:'polarized_hell',vx:2,vy:1.5,ct:0,nc:0.7}); }
+function spawn_air_pure() { mkTrackTarget(0,2,-10,0.4,M.t5,{mv:'air_pure',vx:1,vy:1,ct:0,nc:1.2}); }
+function spawn_air_voltaic() { mkTrackTarget(0,2,-10,0.45,M.t4,{mv:'air_voltaic',vx:2,vy:1.5,ct:0,nc:0.6}); }
+
+// ═══ FLICK TECH SPAWNS (click-based switching) ═══
+function spawn_pokeball_frenzy() {
+  mkSwitchTargets([[-3,1.7,-10],[0,2.5,-11],[3,1.5,-10]], 0.4, {mv:'switch_move', spd:2});
+  G.switchInterval = 1.5;
+}
+function spawn_w1w3ts_reload() {
+  // 3 targets on wall, click any, respawns
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  while(G.targets.filter(t=>t.alive).length < 3) {
+    const r=rand(0.25,0.4), x=rand(-5,5), y=rand(0.8,3.5);
+    const mesh=mkSphere(x,y,-12,r,M.t1);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now()});
+  }
+}
+function spawn_vox_ts2() {
+  mkSwitchTargets([[-4,1.7,-10],[-1,2.5,-11],[2,1.2,-10],[4.5,2,-11]], 0.35, {mv:'switch_move', spd:1.5});
+  G.switchInterval = 1.2;
+}
+function spawn_beants() {
+  mkSwitchTargets([[-3,2,-10],[3,2,-10]], 0.4, {mv:'switch_bounce', spd:1.8});
+  G.switchInterval = 2;
+}
+function spawn_floatts() {
+  mkSwitchTargets([[-2,2.5,-10],[2,1.5,-10]], 0.45, {mv:'switch_float', spd:1.2});
+  G.switchInterval = 2.5;
+}
+function spawn_waldots() {
+  mkSwitchTargets([[-3,1.5,-10],[0,2.8,-11],[3,1.8,-10]], 0.3, {mv:'switch_micro', spd:0.8});
+  G.switchInterval = 1.8;
+}
+function spawn_devts() {
+  // 5 static bots, click active one
+  const pos = [[-4,1.7,-10],[-2,2.5,-11],[0,1.5,-10],[2,2.5,-11],[4,1.7,-10]];
+  mkSwitchTargets(pos, 0.35, {mv:'static', spd:0});
+  G.switchInterval = 1;
+}
+function spawn_domiswitch() {
+  mkSwitchTargets([[-3,1.7,-10],[3,1.7,-10]], 0.45, {mv:'switch_move', spd:2.5});
+  G.switchInterval = 2;
+}
+function spawn_tamts() {
+  mkSwitchTargets([[-2,2,-10],[2,2,-10]], 0.4, {mv:'switch_smooth', spd:1});
+  G.switchInterval = 3;
+}
+
+// ═══ CLICK TIMING SPAWNS ═══
+function spawn_pasu_reload() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  const d=DIFF[G.diff];
+  while(G.targets.filter(t=>t.alive).length < 5) {
+    const r=rand(d.pR[0],d.pR[1]), x=rand(-5,5), y=rand(0.8,3.8);
+    const mesh=mkSphere(x,y,-13,r,M.t3);
+    const vx=rand(-2,2)*d.spd*0.3, vy=rand(-1.5,1.5)*d.spd*0.3;
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
+  }
+}
+function spawn_vt_bounceshot() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  const d=DIFF[G.diff];
+  while(G.targets.filter(t=>t.alive).length < 4) {
+    const r=rand(d.pR[0],d.pR[1]), x=rand(-5,5), y=rand(1,3);
+    const mesh=mkSphere(x,y,-12,r,M.t2);
+    const vx=rand(-3,3)*d.spd*0.2, vy=rand(-2,2)*d.spd*0.2;
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true,bounce:true});
+  }
+}
+function spawn_ctrlsphere_clk() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const r=rand(0.3,0.4), x=rand(-4,4), y=rand(1,3);
+  const mesh=mkSphere(x,y,-11,r,M.t4);
+  // Orbiting click target
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),dynamic:true,orbit:true,phase:rand(0,6.28),ox:x,oy:y});
+}
+function spawn_popcorn_mv() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  const d=DIFF[G.diff];
+  if(G.targets.filter(t=>t.alive).length >= 5) return;
+  const r=rand(d.pR[0],d.pR[1]);
+  const x=rand(-5,5), baseY=rand(0.5,1.5);
+  const mesh=mkSphere(x,baseY,rand(-11,-13),r,M.t2);
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vy:rand(3,6),vx:rand(-1,1),dynamic:true,ttl:rand(0.8,1.8),age:0,pop:true});
+}
+function spawn_pasu_angelic() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  while(G.targets.filter(t=>t.alive).length < 4) {
+    const r=rand(0.15,0.25), x=rand(-4,4), y=rand(1,3.5);
+    const mesh=mkSphere(x,y,-13,r,M.t5);
+    const vx=rand(-1.5,1.5), vy=rand(-1,1);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
+  }
+}
+function spawn_pasu_perfected() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  while(G.targets.filter(t=>t.alive).length < 3) {
+    const r=rand(0.12,0.2), x=rand(-4,4), y=rand(1,3.5);
+    const mesh=mkSphere(x,y,-14,r,M.t6);
+    const vx=rand(-1,1), vy=rand(-0.8,0.8);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
+  }
+}
+function spawn_pasu_micro() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  while(G.targets.filter(t=>t.alive).length < 4) {
+    const r=rand(0.2,0.3), x=rand(-5,5), y=rand(0.8,3.5);
+    const mesh=mkSphere(x,y,-12,r,M.t1);
+    const vx=rand(-2,2), vy=rand(-1.5,1.5);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
+  }
+}
+function spawn_floatheads_t() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 5) return;
+  const r=rand(0.2,0.35), x=rand(-5,5);
+  const mesh=mkSphere(x,0.3,rand(-11,-13),r,M.t1);
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vy:rand(0.8,2),vx:rand(-0.3,0.3),dynamic:true,floater:true});
+}
+function spawn_vox_click() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  while(G.targets.filter(t=>t.alive).length < 3) {
+    const r=rand(0.18,0.28), x=rand(-5,5), y=rand(0.8,3.5);
+    const mesh=mkSphere(x,y,-12,r,M.t6);
+    const vx=rand(-1.5,1.5), vy=rand(-1,1);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
+  }
+}
+
+// Free play only
+function spawn_gridshot() {
+  if(!G.running) return;
+  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
+  G.targets=[];
+  const d=DIFF[G.diff], r=d.gR, cols=5, rows=4;
+  for(let row=0;row<rows;row++) for(let col=0;col<cols;col++) {
+    const x=-(cols-1)*2.2/2+col*2.2+rand(-0.3,0.3), y=0.8+row*1.4+rand(-0.2,0.2);
+    const mesh=mkSphere(x,y,-11.5,r,M.t2);
+    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now()});
+  }
+}
+function spawn_speedflick() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const d=DIFF[G.diff], r=rand(d.tR[0],d.tR[1]);
+  const a=rand(-1.2,1.2), va=rand(-0.4,0.5), dist=rand(8,16);
+  const x=Math.sin(a)*dist, y=1.7+Math.tan(va)*dist, z=-Math.cos(a)*dist;
+  const mesh=mkSphere(x,Math.max(0.5,y),z,r,M.t1);
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now()});
+}
+
+// ============================================================
+// UPDATE FUNCTIONS
+// ============================================================
+
+function updateTrackTarget(dt) {
+  if(!trackTarget||!trackTarget.alive) return;
+  const t=trackTarget, d=DIFF[G.diff], spd=d.spd;
+  t.phase = (t.phase||0) + dt;
+
+  switch(t.mv) {
+    // Control Tracking - Arm (large, smooth)
+    case 'whisphereraw':
+      t.x = Math.sin(t.phase*spd*0.2)*4 + Math.sin(t.phase*spd*0.13)*2;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.17)*1.2;
+      t.z = -10 + Math.cos(t.phase*spd*0.1)*1.5;
+      break;
+    case 'whisphere':
+      t.x = Math.sin(t.phase*spd*0.25)*5;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1.5;
+      t.z = -10 + Math.cos(t.phase*spd*0.15)*2;
+      break;
+    case 'smoothbot':
+      t.x = Math.sin(t.phase*spd*0.22)*4.5 + Math.cos(t.phase*spd*0.31)*1.5;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.18)*1.3;
+      t.z = -10 + Math.sin(t.phase*spd*0.12)*1.8;
+      break;
+    // Wrist (tighter, quicker)
+    case 'leaptrack':
+      t.jumpTimer = (t.jumpTimer||0) + dt;
+      if(t.jumpTimer > 1.5/spd) { t.jumpTimer=0; t.x+=rand(-2,2); t.y+=rand(-1,1); }
+      t.x = Math.max(-5,Math.min(5,t.x + Math.sin(t.phase*spd*0.4)*0.3));
+      t.y = Math.max(0.5,Math.min(3.5, t.y));
+      break;
+    case 'ctrlsphere_aim':
+      t.x = Math.sin(t.phase*spd*0.3)*3;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.25)*1.2;
+      t.z = -10 + Math.sin(t.phase*spd*0.2)*1.5;
+      break;
+    case 'vt_ctrlsphere':
+      t.x = Math.sin(t.phase*spd*0.35)*2.5 + Math.cos(t.phase*spd*0.5)*1;
+      t.y = 1.7 + Math.cos(t.phase*spd*0.3)*1;
+      t.z = -10 + Math.sin(t.phase*spd*0.25)*1.2;
+      break;
+    // Fingertip (micro movements)
+    case 'air_angelic':
+      t.x = Math.sin(t.phase*spd*0.4)*1.5 + Math.sin(t.phase*spd*0.7)*0.5;
+      t.y = 2 + Math.sin(t.phase*spd*0.35)*0.8 + Math.cos(t.phase*spd*0.55)*0.3;
+      t.z = -10 + Math.cos(t.phase*spd*0.25)*0.8;
+      break;
+    case 'cloverraw':
+      // Clover/figure-8 pattern
+      t.x = Math.sin(t.phase*spd*0.3)*2 * Math.cos(t.phase*spd*0.15);
+      t.y = 1.7 + Math.cos(t.phase*spd*0.3)*1 * Math.sin(t.phase*spd*0.15);
+      t.z = -10 + Math.sin(t.phase*spd*0.2)*0.5;
+      break;
+    case 'ctrlsphere_far':
+      t.x = Math.sin(t.phase*spd*0.25)*2;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1;
+      t.z = -14 + Math.sin(t.phase*spd*0.18)*1;
+      break;
+    // Blending (mixed)
+    case 'pgti':
+      t.x = Math.sin(t.phase*spd*0.3)*4 + Math.sin(t.phase*spd*0.5)*1;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.25)*1.5;
+      t.z = -10 + Math.cos(t.phase*spd*0.2)*2;
+      break;
+    case 'air_celestial':
+      t.x = Math.sin(t.phase*spd*0.35)*3 + Math.cos(t.phase*spd*0.6)*1;
+      t.y = 2 + Math.sin(t.phase*spd*0.3)*1.2 + Math.sin(t.phase*spd*0.7)*0.4;
+      t.z = -10 + Math.cos(t.phase*spd*0.2)*1.5;
+      break;
+    case 'whisphere_slow':
+      t.x = Math.sin(t.phase*spd*0.12)*5;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.1)*1.5;
+      t.z = -10 + Math.cos(t.phase*spd*0.08)*2;
+      break;
+    // Reactive Tracking (sudden direction changes)
+    case 'ground_plaza': case 'ctrlsphere_ow': case 'flicker_plaza':
+    case 'polarized_hell': case 'air_pure': case 'air_voltaic':
+      t.ct = (t.ct||0)+dt;
+      if(t.ct >= (t.nc||1)) { t.ct=0; t.nc=0.3+Math.random()*(t.mv==='flicker_plaza'?0.8:1.5); t.vx=rand(-1,1)*spd*(t.mv==='flicker_plaza'?1.2:0.8); t.vy=rand(-0.5,0.5)*spd*0.5; }
+      t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
+      if(t.mv==='ground_plaza') { t.y = 0.8 + Math.sin(Date.now()*0.003)*0.2; }
+      t.x=Math.max(-6,Math.min(6,t.x)); t.y=Math.max(0.4,Math.min(3.5,t.y));
+      break;
+  }
+
+  t.mesh.position.set(t.x, Math.max(0.3,t.y), t.z);
+
+  raycaster.setFromCamera(center,camera);
+  const hits = raycaster.intersectObject(t.mesh);
+  G.trackFrames++;
+  if(hits.length>0) { G.trackOnTarget++; G.score+=1; }
+  const pct = G.trackFrames>0 ? Math.round(G.trackOnTarget/G.trackFrames*100) : 0;
+  $('#tracking-fill').style.width = pct+'%';
+  $('#tracking-pct').textContent = pct+'%';
+  updateHUD();
+}
+
+function updateSwitchTargets(dt) {
+  if(switchTargets.length<2) return;
+  const d=DIFF[G.diff], spd=d.spd;
+
+  switchTargets.forEach(t => {
+    if(!t.alive) return;
+    if(t.mv==='static') return;
+
+    if(t.mv==='switch_bounce') {
+      t.vx = t.vx || rand(1,3)*(t.idx===0?1:-1)*spd*0.2;
+      t.vy = t.vy || rand(1,2)*spd*0.2;
+      t.x += t.vx*dt; t.y += t.vy*dt;
+      if(t.x<-6||t.x>6){t.vx*=-1; t.x=Math.max(-6,Math.min(6,t.x));}
+      if(t.y<0.5||t.y>3.5){t.vy*=-1; t.y=Math.max(0.5,Math.min(3.5,t.y));}
+    } else if(t.mv==='switch_float') {
+      t.phase += dt*(t.spd||1)*0.3;
+      t.phaseY += dt*(t.spd||1)*0.35;
+      const bx = t.idx===0?-2:2;
+      t.x = bx+Math.sin(t.phase)*3; t.y=2+Math.sin(t.phaseY)*1.5; t.z=-10+Math.sin(t.phase*0.5)*2;
+    } else if(t.mv==='switch_micro') {
+      t.phase += dt*(t.spd||1)*0.5;
+      const bx = [-3,0,3][t.idx]||0;
+      t.x = bx+Math.sin(t.phase)*0.8; t.y=(t.idx===1?2.8:1.5)+Math.cos(t.phase*1.3)*0.4;
+    } else if(t.mv==='switch_smooth') {
+      t.phase += dt*(t.spd||1)*0.2;
+      const bx = t.idx===0?-2:2;
+      t.x = bx+Math.sin(t.phase)*2; t.y=2+Math.sin(t.phase*0.7)*0.8;
+    } else {
+      // switch_move (default)
+      t.phase += dt*(t.spd||2)*0.3;
+      t.phaseY += dt*(t.spd||2)*0.2;
+      const bx = [-3,0,3,4.5][t.idx]||0;
+      t.x = bx+Math.sin(t.phase)*2.5; t.y=(t.y||1.7)+Math.sin(t.phaseY)*0.02; // minimal y drift in loop
+      t.z = -10+Math.cos(t.phase*0.6)*1;
+    }
+    t.mesh.position.set(t.x,Math.max(0.3,t.y),t.z);
+  });
+
+  // Switch active target on click-based modes
+  G.switchTimer += dt;
+  if(G.switchTimer >= G.switchInterval) {
+    G.switchTimer=0;
+    G.switchActiveIdx = (G.switchActiveIdx+1) % switchTargets.length;
+    switchTargets.forEach((t,i) => { t.mesh.material = i===G.switchActiveIdx ? M.t4 : M.tDim; });
+    audioEngine.play('countdown');
+  }
+}
+
+function updateDynamic(dt) {
+  G.targets.forEach(t => {
+    if(!t.alive||!t.dynamic) return;
+    if(t.pop) {
+      t.vy -= 6*dt; t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += t.vy*dt;
+      t.age += dt;
+      if(t.age > t.ttl || t.mesh.position.y < -1) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+    } else if(t.floater) {
+      t.mesh.position.y += t.vy*dt; t.mesh.position.x += (t.vx||0)*dt;
+      if(t.mesh.position.y > 5) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+    } else if(t.orbit) {
+      t.phase += dt*1.5;
+      t.mesh.position.x = t.ox + Math.sin(t.phase)*1.5;
+      t.mesh.position.y = t.oy + Math.cos(t.phase)*1;
+    } else if(t.bounce) {
+      t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += (t.vy||0)*dt;
+      if(t.mesh.position.x<-5.5||t.mesh.position.x>5.5) t.vx*=-1;
+      if(t.mesh.position.y<0.5||t.mesh.position.y>4) t.vy*=-1;
+      t.mesh.position.x=Math.max(-5.5,Math.min(5.5,t.mesh.position.x));
+      t.mesh.position.y=Math.max(0.5,Math.min(4,t.mesh.position.y));
+    } else {
+      // Default Pasu-style diagonal
+      t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += (t.vy||0)*dt;
+      if(t.mesh.position.x<-5.5||t.mesh.position.x>5.5) t.vx*=-1;
+      if(t.mesh.position.y<0.5||t.mesh.position.y>4) t.vy*=-1;
+      t.mesh.position.x=Math.max(-5.5,Math.min(5.5,t.mesh.position.x));
+      t.mesh.position.y=Math.max(0.5,Math.min(4,t.mesh.position.y));
+    }
+  });
+}
+
+// ---- Determine scenario type ----
+function isTrackMode(m) { const s=SCENARIOS[m]; return s && (s.type==='track'||s.type==='track_pct'); }
+function isSwitchMode(m) {
+  return ['pokeball_frenzy','vox_ts2','beants','floatts','waldots','devts','domiswitch','tamts'].includes(m);
+}
+function isDynamicMode(m) {
+  return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click'].includes(m);
+}
+
+// ---- SHOOTING ----
+function shoot() {
+  if(!G.running) return;
+  if(isTrackMode(G.mode)) return; // tracking modes don't click
+
+  // Switch modes: click = check if crosshair on active target
+  if(isSwitchMode(G.mode)) {
+    raycaster.setFromCamera(center,camera);
+    const active = switchTargets[G.switchActiveIdx];
+    if(active && active.alive) {
+      const hits = raycaster.intersectObject(active.mesh);
+      if(hits.length > 0) {
+        G.hits++; G.combo++; G.bestCombo=Math.max(G.bestCombo,G.combo);
+        const rt=Date.now()-active.spawnTime; G.reactionTimes.push(rt);
+        let pts=100*Math.min(1+G.combo*0.1,3);
+        if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
+        pts=Math.round(pts); G.score+=pts;
+        showHitmarker(); addPopup(pts);
+        audioEngine.play(G.combo%5===0&&G.combo>0?'combo':'hit');
+        // Switch to next immediately
+        G.switchTimer=0;
+        G.switchActiveIdx=(G.switchActiveIdx+1)%switchTargets.length;
+        switchTargets.forEach((t,i)=>{t.mesh.material=i===G.switchActiveIdx?M.t4:M.tDim;});
+        updateHUD(); return;
+      }
+    }
+    G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
+  }
+
+  // Click modes
+  raycaster.setFromCamera(center,camera);
+  const meshes=G.targets.filter(t=>t.alive).map(t=>t.mesh);
+  const intersects=raycaster.intersectObjects(meshes);
+  if(intersects.length>0) {
+    const hm=intersects[0].object;
+    const tgt=G.targets.find(t=>t.alive&&t.mesh===hm);
+    if(tgt) { hitTarget(tgt); return; }
+  }
+  G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
+}
+
+function hitTarget(t) {
+  const rt=Date.now()-t.spawnTime; G.reactionTimes.push(rt);
+  G.hits++; G.combo++; G.bestCombo=Math.max(G.bestCombo,G.combo);
+  let pts=100*Math.min(1+G.combo*0.1,3);
+  if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
+  pts=Math.round(pts); G.score+=pts;
+  showHitmarker(); addPopup(pts);
+  audioEngine.play(G.combo%5===0&&G.combo>0?'combo':'hit');
+  t.alive=false;
+  const mesh=t.mesh; let a=0;
+  const anim=()=>{a+=0.08;mesh.scale.setScalar(Math.max(0,1-a*3));if(a<0.35)requestAnimationFrame(anim);else targetsGroup.remove(mesh);};
+  anim(); updateHUD();
+
+  // Respawn for specific modes
+  if(G.mode==='gridshot'&&G.targets.filter(t=>t.alive).length<=3) setTimeout(()=>spawn_gridshot(),150);
+  else if(G.mode==='speedflick') setTimeout(()=>spawn_speedflick(),80);
+  else if(G.mode==='ctrlsphere_clk') setTimeout(()=>spawn_ctrlsphere_clk(),50);
+}
+
+function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
+function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color='#e8c56d';f.appendChild(e);setTimeout(()=>e.remove(),1500); }
+
+// ---- MOUSE ----
+function onMouseMove(e) { if(!G.locked||!G.running) return; const mx=Math.max(-150,Math.min(150,e.movementX)),my=Math.max(-150,Math.min(150,e.movementY)),s=cm360ToRad(G.cm360); G.yaw-=mx*s; G.pitch-=my*s; G.pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,G.pitch)); camera.rotation.order='YXZ'; camera.rotation.y=G.yaw; camera.rotation.x=G.pitch; }
+function lockPointer() { const c=$('#game-canvas');(c.requestPointerLock||c.mozRequestPointerLock).call(c); }
+document.addEventListener('pointerlockchange',()=>{ G.locked=!!document.pointerLockElement; if(!G.locked&&G.running)$('#click-to-start').classList.remove('hidden'); });
+
+// ---- GAME LOOP ----
+function gameLoop() {
+  G.animFrame=requestAnimationFrame(gameLoop);
+  const dt=clock.getDelta();
+  if(G.running) {
+    if(isTrackMode(G.mode)) updateTrackTarget(dt);
+    if(isSwitchMode(G.mode)) updateSwitchTargets(dt);
+    if(isDynamicMode(G.mode)) updateDynamic(dt);
+  }
+  renderer.render(scene,camera);
+}
+
+function updateHUD() { const t=G.hits+G.misses,a=t>0?Math.round(G.hits/t*100):100; $('#hud-score').textContent=G.score.toLocaleString(); $('#hud-combo').textContent='x'+G.combo; $('#hud-acc').textContent=a+'%'; }
+
+function startTimer() { G.timeLeft=G.duration;$('#hud-timer').textContent=G.timeLeft;$('#hud-timer').classList.remove('urgent');G.timerInterval=setInterval(()=>{G.timeLeft--;$('#hud-timer').textContent=G.timeLeft;if(G.timeLeft<=10)$('#hud-timer').classList.add('urgent');if(G.timeLeft<=0)endGame();},1000); }
+
+// ---- SPAWN MAP ----
+const SPAWN_MAP = {
+  whisphereraw:spawn_whisphereraw, whisphere:spawn_whisphere, smoothbot:spawn_smoothbot,
+  leaptrack:spawn_leaptrack, ctrlsphere_aim:spawn_ctrlsphere_aim, vt_ctrlsphere:spawn_vt_ctrlsphere,
+  air_angelic:spawn_air_angelic, cloverraw:spawn_cloverraw, ctrlsphere_far:spawn_ctrlsphere_far,
+  pgti:spawn_pgti, air_celestial:spawn_air_celestial, whisphere_slow:spawn_whisphere_slow,
+  ground_plaza:spawn_ground_plaza, ctrlsphere_ow:spawn_ctrlsphere_ow,
+  flicker_plaza:spawn_flicker_plaza, polarized_hell:spawn_polarized_hell,
+  air_pure:spawn_air_pure, air_voltaic:spawn_air_voltaic,
+  pokeball_frenzy:spawn_pokeball_frenzy, w1w3ts_reload:spawn_w1w3ts_reload, vox_ts2:spawn_vox_ts2,
+  beants:spawn_beants, floatts:spawn_floatts, waldots:spawn_waldots, devts:spawn_devts,
+  domiswitch:spawn_domiswitch, tamts:spawn_tamts,
+  pasu_reload:spawn_pasu_reload, vt_bounceshot:spawn_vt_bounceshot, ctrlsphere_clk:spawn_ctrlsphere_clk,
+  popcorn_mv:spawn_popcorn_mv, pasu_angelic:spawn_pasu_angelic, pasu_perfected:spawn_pasu_perfected,
+  pasu_micro:spawn_pasu_micro, floatheads_t:spawn_floatheads_t, vox_click:spawn_vox_click,
+  gridshot:spawn_gridshot, speedflick:spawn_speedflick,
+};
+
+// Modes that need interval respawn
+const INTERVAL_MODES = {
+  w1w3ts_reload:200, pasu_reload:300, vt_bounceshot:300, ctrlsphere_clk:100,
+  popcorn_mv:400, pasu_angelic:300, pasu_perfected:300, pasu_micro:200,
+  floatheads_t:600, vox_click:250,
+};
+
+function startGame(mode) {
+  G.mode=mode;
+  if(G.benchmarkMode) { G.diff=currentTier==='easier'?'easy':currentTier==='hard'?'hard':'medium'; G.duration=60; }
+  else { G.diff=$('#opt-diff').value; G.duration=parseInt($('#opt-duration').value); }
+  const sMode=$('#opt-sens-mode').value, sVal=parseFloat($('#opt-sens-val').value)||34;
+  const dpi=parseInt($('#opt-dpi').value)||800;
+  G.cm360=gameSensToCm360(sMode, sVal);
+  G.soundOn=$('#opt-sound').checked;
+  audioEngine.enabled=G.soundOn; audioEngine.init();
+  saveSettings({sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,difficulty:G.diff,duration:G.duration,soundOn:G.soundOn});
+
+  G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];
+  G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;trackTarget=null;switchTargets=[];
+  G.switchActiveIdx=0;G.switchTimer=0;
+
+  const sc=SCENARIOS[mode];
+  $('#hud-mode').textContent = sc ? sc.label : mode;
+  $('#hud-diff').textContent = G.benchmarkMode?'Benchmark':G.diff;
+  $('#hud-score').textContent='0'; $('#hud-combo').textContent='x0'; $('#hud-acc').textContent='100%';
+  $('#kill-feed').innerHTML='';
+
+  const showBar = isTrackMode(mode);
+  $('#tracking-bar').classList.toggle('hidden',!showBar);
+  if(showBar){$('#tracking-fill').style.width='0%';$('#tracking-pct').textContent='0%';}
+
+  showScreen('game-screen');
+  clearScene(); camera.position.set(0,1.7,0);
+  buildRoom(20,8,30);
+  updateFOV(); camera.rotation.order='YXZ'; camera.rotation.set(0,0,0);
+  setTimeout(()=>{renderer.setSize(innerWidth,innerHeight);updateFOV();},50);
+
+  $('#click-to-start').classList.remove('hidden');
+  const handler=()=>{ $('#click-to-start').removeEventListener('click',handler); lockPointer(); $('#click-to-start').classList.add('hidden'); doCountdown(()=>{G.running=true;startTimer();doSpawn();}); };
+  const resume=()=>{ if(!G.running)return; lockPointer(); $('#click-to-start').classList.add('hidden'); };
+  $('#click-to-start').addEventListener('click',handler);
+  $('#click-to-start').addEventListener('click',resume);
+}
+
+function doCountdown(cb) {
+  let c=3; const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8rem;font-weight:900;color:#ff4655;text-shadow:0 0 60px rgba(255,70,85,0.6);z-index:300;pointer-events:none;';
+  document.body.appendChild(el); el.textContent=c; audioEngine.play('countdown');
+  const ci=setInterval(()=>{c--;if(c>0){el.textContent=c;audioEngine.play('countdown');}else{el.textContent='GO!';audioEngine.play('start');clearInterval(ci);setTimeout(()=>{el.remove();cb();},300);}},700);
+}
+
+function doSpawn() {
+  const fn=SPAWN_MAP[G.mode]; if(fn) fn();
+  const iv=INTERVAL_MODES[G.mode];
+  if(iv) G.spawnTimer=setInterval(()=>{const f=SPAWN_MAP[G.mode];if(f)f();}, iv);
+}
+
+function endGame() {
+  G.running=false; clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer=null;
+  if(document.exitPointerLock) document.exitPointerLock();
+  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
+  G.targets=[]; trackTarget=null; switchTargets=[];
+  audioEngine.play('end');
+
+  const total=G.hits+G.misses;
+  let acc;
+  if(isTrackMode(G.mode)) acc = G.trackFrames>0?Math.round(G.trackOnTarget/G.trackFrames*100):0;
+  else acc = total>0?Math.round(G.hits/total*100):0;
+  const avgR=G.reactionTimes.length>0?Math.round(G.reactionTimes.reduce((a,b)=>a+b)/G.reactionTimes.length):0;
+
+  $('#r-score').textContent=G.score.toLocaleString();
+  $('#r-acc').textContent=acc+'%'; $('#r-hits').textContent=G.hits;
+  $('#r-misses').textContent=G.misses; $('#r-react').textContent=avgR>0?avgR+'ms':'N/A';
+  $('#r-combo').textContent=G.bestCombo;
+
+  const rk=$('#res-rank'), tw=$('#res-threads-wrap');
+
+  if(G.benchmarkMode && SCENARIOS[G.mode]) {
+    saveBest(G.mode, G.score);
+    const threads = calcThreads(G.mode, G.score);
+    rk.textContent = threads+'/8 Threads';
+    rk.style.color = RANK_COLORS[Math.min(threads,7)]; rk.style.borderColor = RANK_COLORS[Math.min(threads,7)];
+    tw.classList.remove('hidden');
+    $('#r-threads').textContent = threads+'/8';
+    $('#btn-menu').textContent='Benchmark';
+    $('#btn-menu').onclick=()=>{showScreen('benchmark-screen');renderBenchmark();};
+  } else {
+    const r=calcRankFromThreads(Math.round(G.score/100));
+    rk.textContent=r.label; rk.style.color=r.color; rk.style.borderColor=r.color;
+    tw.classList.add('hidden');
+    $('#btn-menu').textContent='Menu'; $('#btn-menu').onclick=()=>showScreen('menu-screen');
+  }
+
+  saveCareer(G.score, acc); showScreen('results-screen');
+}
+
+function showScreen(id) { $$('.screen').forEach(s=>s.classList.remove('active')); $(`#${id}`).classList.add('active'); }
+
+// ---- CAREER ----
+function loadCareer() { try{return JSON.parse(localStorage.getItem('visc_career'))||{best:0,acc:0,games:0};}catch{return{best:0,acc:0,games:0};} }
+function saveCareer(score,accuracy) { const s=loadCareer(); s.best=Math.max(s.best,score); s.acc=s.games>0?((s.acc*s.games)+accuracy)/(s.games+1):accuracy; s.games++; localStorage.setItem('visc_career',JSON.stringify(s)); updateMenuStats(); }
+function updateMenuStats() { const s=loadCareer(); $('#menu-best').textContent=s.best.toLocaleString(); $('#menu-acc').textContent=Math.round(s.acc)+'%'; $('#menu-games').textContent=s.games; }
+
+// ============================================================
+// BENCHMARK DASHBOARD
+// ============================================================
+function renderBenchmark() {
+  const total=calcTotalThreads(), max=calcMaxTotal();
+  const rank=calcRankFromThreads(total);
+  $('#bench-overall-rank').textContent=rank.label; $('#bench-overall-rank').style.color=rank.color;
+  $('#bench-overall-threads').textContent=total+' / '+max+' Threads';
+  // Update tier selector
+  if($('#opt-tier')) $('#opt-tier').value=currentTier;
+  const tierLabel = currentTier==='hard'?'Hard':'Medium';
+  $('.bench-title').innerHTML=`Viscose Benchmark <small>${tierLabel}</small>`;
+
+  const container=$('#bench-categories'); container.innerHTML='';
+  const cats=['control_tracking','reactive_tracking','flick_tech','click_timing'];
+
+  cats.forEach(catKey => {
+    const col=document.createElement('div'); col.className='bench-cat';
+    col.innerHTML=`<div class="bench-cat-title">${CAT_LABELS[catKey]}</div>`;
+    const subs=[...new Set(Object.values(SCENARIOS).filter(v=>v.cat===catKey).map(v=>v.sub))];
+
+    subs.forEach(sub => {
+      const subTh=calcSubThreads(sub), subMax=calcMaxSubThreads(sub);
+      const div=document.createElement('div'); div.className='bench-sub';
+      div.innerHTML=`<div class="bench-sub-title"><span>${SUB_LABELS[sub]||sub}</span><span class="bench-sub-threads" style="color:${RANK_COLORS[Math.min(Math.floor(subTh/subMax*7),7)]}">${subTh}/${subMax}</span></div>`;
+
+      Object.entries(SCENARIOS).filter(([,v])=>v.cat===catKey&&v.sub===sub).forEach(([key,sc])=>{
+        const best=getBest(key), threads=calcThreads(key,best);
+        const pct=Math.min(100,threads/getMaxThreads()*100);
+        const row=document.createElement('div'); row.className='bench-scenario';
+        row.onclick=()=>{G.benchmarkMode=true;startGame(key);};
+        const mt=getMaxThreads();
+        row.innerHTML=`<span class="bench-scenario-name">${getLabel(key)}</span><span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span><div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div><span class="bench-scenario-threads">${threads}/${mt}</span>`;
+        div.appendChild(row);
+      });
+      col.appendChild(div);
+    });
+    container.appendChild(col);
+  });
+}
+
+// ---- EVENTS ----
+document.addEventListener('mousemove',onMouseMove);
+document.addEventListener('mousedown',e=>{if(e.button===0&&G.running&&G.locked)shoot();});
+$$('.mode-card').forEach(c=>c.addEventListener('click',()=>{G.benchmarkMode=false;startGame(c.dataset.mode);}));
+$('#btn-retry').addEventListener('click',()=>startGame(G.mode));
+$('#btn-menu').addEventListener('click',()=>showScreen('menu-screen'));
+$('#btn-benchmark').addEventListener('click',()=>{showScreen('benchmark-screen');renderBenchmark();});
+$('#btn-bench-back').addEventListener('click',()=>showScreen('menu-screen'));
+$('#opt-tier').addEventListener('change',e=>{currentTier=e.target.value;renderBenchmark();});
+
+$('#opt-sens-mode').addEventListener('change',e=>{
+  const mode=e.target.value;
+  const newVal = cm360ToGameSens(mode, G.cm360);
+  $('#opt-sens-val').value = Math.round(newVal*100)/100;
+  $('#opt-sens-val').step = (SENS_DEFAULTS[mode]||SENS_DEFAULTS.cm360).step;
+  saveSettings({sensMode:mode,sensVal:newVal,cm360:G.cm360});
+});
+$('#opt-sens-val').addEventListener('input',e=>{
+  const mode=$('#opt-sens-mode').value, val=parseFloat(e.target.value)||34;
+  G.cm360=gameSensToCm360(mode, val);
+  saveSettings({sensMode:mode,sensVal:val,cm360:G.cm360});
+});
+$('#opt-dpi').addEventListener('input',e=>{
+  const dpi=parseInt(e.target.value)||800;
+  const mode=$('#opt-sens-mode').value, val=parseFloat($('#opt-sens-val').value)||34;
+  G.cm360=gameSensToCm360(mode, val);
+  saveSettings({dpi:dpi,cm360:G.cm360});
+});
+$('#opt-diff').addEventListener('change',e=>saveSettings({difficulty:e.target.value}));
+$('#opt-duration').addEventListener('change',e=>saveSettings({duration:parseInt(e.target.value)}));
+$('#opt-sound').addEventListener('change',e=>saveSettings({soundOn:e.target.checked}));
+$('#opt-xhair-color').addEventListener('input',e=>{saveSettings({crosshairColor:e.target.value});applyCrosshair();});
+$('#opt-xhair-size').addEventListener('input',e=>{$('#xhair-size-val').textContent=e.target.value;saveSettings({crosshairSize:parseInt(e.target.value)});applyCrosshair();});
+$('#opt-xhair-thick').addEventListener('input',e=>{$('#xhair-thick-val').textContent=e.target.value;saveSettings({crosshairThickness:parseFloat(e.target.value)});applyCrosshair();});
+$('#opt-xhair-style').addEventListener('change',e=>{saveSettings({crosshairStyle:e.target.value});applyCrosshair();});
+$('#opt-theme').addEventListener('change',e=>{saveSettings({theme:e.target.value});applyTheme(e.target.value);});
+$('#opt-room-theme').addEventListener('change',e=>{saveSettings({roomTheme:e.target.value});applyRoomTheme();});
+document.addEventListener('contextmenu',e=>{if(G.running)e.preventDefault();});
+
+// ---- INIT ----
+initThree(); gameLoop(); applySettings(); updateMenuStats();
