@@ -115,6 +115,19 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 @media (max-width:900px) { .bench-categories{grid-template-columns:1fr} }
 @media (max-width:768px) { .mode-grid{grid-template-columns:repeat(2,1fr)} .results-grid{grid-template-columns:repeat(2,1fr)} .logo{font-size:2.5rem} }
 
+/* ============ GLOBAL AUTH SCREEN ============ */
+#auth-screen { flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--bg) 0%,var(--card) 50%,var(--bg) 100%); padding:30px 20px; }
+.auth-wrap { max-width:450px; width:100%; text-align:center; }
+
+/* User bar in menu */
+.menu-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:4px; }
+.user-bar { display:flex; align-items:center; gap:10px; }
+.user-name { font-weight:700; font-size:0.9rem; }
+.user-role-badge { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 10px; border-radius:4px; }
+.role-admin { background:rgba(255,70,85,0.3); color:#ff8a95; }
+.role-coach { background:rgba(129,140,248,0.3); color:#a5b4fc; }
+.role-student { background:rgba(0,229,160,0.2); color:var(--green); }
+
 /* ============ COACHING HUB ============ */
 #coaching-screen { flex-direction:column; align-items:center; overflow-y:auto; padding:30px 20px; background:linear-gradient(135deg,var(--bg) 0%,var(--card) 50%,var(--bg) 100%); }
 .ch-wrap { max-width:1200px; width:100%; }

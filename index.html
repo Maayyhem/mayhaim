@@ -10,10 +10,47 @@
 <body>
   <div id="app">
 
-    <!-- MENU -->
-    <div id="menu-screen" class="screen active">
-      <div class="menu-wrap">
+    <!-- GLOBAL AUTH SCREEN -->
+    <div id="auth-screen" class="screen active">
+      <div class="auth-wrap">
         <h1 class="logo">Mayh<span>Aim</span></h1>
+        <p class="subtitle" style="margin-bottom:30px">Viscose Benchmark - Aim Trainer</p>
+        <div class="ch-auth-box">
+          <div id="auth-login-form">
+            <h2 style="text-align:center;margin-bottom:6px">Connexion</h2>
+            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Connecte-toi pour acceder a MayhAim</p>
+            <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-login-email" placeholder="ton@email.com"></div>
+            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-login-password" placeholder="Mot de passe"></div>
+            <button id="auth-login-btn" class="btn-primary" style="width:100%;margin-top:12px">Connexion</button>
+            <div id="auth-login-error" class="ch-auth-error"></div>
+            <div class="ch-auth-toggle">Pas de compte ? <a id="auth-toggle-register">S'inscrire</a></div>
+          </div>
+          <div id="auth-register-form" style="display:none">
+            <h2 style="text-align:center;margin-bottom:6px">Inscription</h2>
+            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Cree ton compte pour commencer</p>
+            <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="auth-reg-username" placeholder="Ton pseudo"></div>
+            <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-reg-email" placeholder="ton@email.com"></div>
+            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 6 caracteres"></div>
+            <div class="ch-auth-field"><label>Confirmer</label><input type="password" id="auth-reg-password2" placeholder="Confirmer"></div>
+            <button id="auth-register-btn" class="btn-primary" style="width:100%;margin-top:12px">S'inscrire</button>
+            <div id="auth-reg-error" class="ch-auth-error"></div>
+            <div class="ch-auth-toggle">Deja un compte ? <a id="auth-toggle-login">Se connecter</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div id="menu-screen" class="screen">
+      <div class="menu-wrap">
+        <div class="menu-header">
+          <h1 class="logo">Mayh<span>Aim</span></h1>
+          <div class="user-bar">
+            <span id="menu-user-name" class="user-name"></span>
+            <span id="menu-user-role" class="user-role-badge"></span>
+            <button id="btn-logout" class="btn-back" style="font-size:0.75rem;padding:5px 12px">Deconnexion</button>
+          </div>
+        </div>
         <p class="subtitle">Viscose Benchmark - Aim Trainer</p>
 
         <div class="stats-bar">
@@ -38,12 +75,12 @@
 
         <h2 class="section-title">Free Play</h2>
         <div class="mode-grid">
-          <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">🎯</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
-          <button class="mode-card" data-mode="gridshot"><div class="mode-icon">⚡</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
-          <button class="mode-card" data-mode="whisphere"><div class="mode-icon">🔄</div><h3>Whisphere</h3><p>Control tracking smooth.</p><span class="mode-tag">Tracking</span></button>
-          <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">💥</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
-          <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">🌀</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
-          <button class="mode-card" data-mode="speedflick"><div class="mode-icon">🎯</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
+          <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">&#127919;</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
+          <button class="mode-card" data-mode="gridshot"><div class="mode-icon">&#9889;</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
+          <button class="mode-card" data-mode="whisphere"><div class="mode-icon">&#128260;</div><h3>Whisphere</h3><p>Control tracking smooth.</p><span class="mode-tag">Tracking</span></button>
+          <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">&#128165;</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
+          <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">&#127744;</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
+          <button class="mode-card" data-mode="speedflick"><div class="mode-icon">&#127919;</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
         </div>
 
         <div class="settings-row">
@@ -69,7 +106,7 @@
           <label>Taille: <input type="range" id="opt-xhair-size" min="16" max="48" value="28" step="2"><span id="xhair-size-val">28</span></label>
           <label>Epaisseur: <input type="range" id="opt-xhair-thick" min="1" max="5" value="2" step="0.5"><span id="xhair-thick-val">2</span></label>
           <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
-          <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
+          <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option></select></label>
         </div>
       </div>
     </div>
@@ -78,7 +115,7 @@
     <div id="benchmark-screen" class="screen">
       <div class="bench-wrap">
         <div class="bench-header">
-          <button id="btn-bench-back" class="btn-back">← Menu</button>
+          <button id="btn-bench-back" class="btn-back">&larr; Menu</button>
           <h1 class="bench-title">Viscose Benchmark <small>Medium</small></h1>
           <select id="opt-tier" class="tier-select">
             <option value="easier">Easier</option>
@@ -127,109 +164,89 @@
         </div>
       </div>
     </div>
+
     <!-- COACHING HUB -->
     <div id="coaching-screen" class="screen">
       <div class="ch-wrap">
         <div class="ch-header">
           <button id="btn-coaching-back" class="btn-back">&larr; Menu</button>
           <h1>Coaching <span>Hub</span></h1>
-          <div id="ch-auth-logged" class="ch-auth-logged">
+          <div class="user-bar">
             <span id="ch-user-info"></span>
-            <button id="ch-logout-btn" class="btn-secondary" style="padding:6px 14px;font-size:0.8rem">Deconnexion</button>
           </div>
         </div>
 
-        <!-- Auth Gate (shown when not logged in) -->
-        <div id="ch-auth-gate" class="ch-auth-gate">
-          <div class="ch-auth-box">
-            <h2>Connexion requise</h2>
-            <p>Connecte-toi pour acceder au Coaching Hub</p>
-            <div id="ch-auth-forms">
-              <div id="ch-login-form">
-                <div class="ch-auth-field"><label>Email</label><input type="email" id="ch-login-email" placeholder="ton@email.com"></div>
-                <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="ch-login-password" placeholder="Mot de passe"></div>
-                <button id="ch-login-btn" class="btn-primary" style="width:100%;margin-top:12px">Connexion</button>
-                <div id="ch-login-error" class="ch-auth-error"></div>
-                <div class="ch-auth-toggle">Pas de compte ? <a id="ch-toggle-register">S'inscrire</a></div>
-              </div>
-              <div id="ch-register-form" style="display:none">
-                <div class="ch-auth-field"><label>Email</label><input type="email" id="ch-reg-email" placeholder="ton@email.com"></div>
-                <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="ch-reg-username" placeholder="Ton pseudo"></div>
-                <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="ch-reg-password" placeholder="Min. 6 caracteres"></div>
-                <div class="ch-auth-field"><label>Confirmer</label><input type="password" id="ch-reg-password2" placeholder="Confirmer"></div>
-                <button id="ch-register-btn" class="btn-primary" style="width:100%;margin-top:12px">S'inscrire</button>
-                <div id="ch-reg-error" class="ch-auth-error"></div>
-                <div class="ch-auth-toggle">Deja un compte ? <a id="ch-toggle-login">Se connecter</a></div>
-              </div>
-            </div>
+        <div class="ch-tabs">
+          <button class="ch-tab-btn active" data-tab="ch-dashboard">Dashboard</button>
+          <button class="ch-tab-btn" data-tab="ch-scenarios">Scenarios</button>
+          <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
+          <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
+          <button class="ch-tab-btn ch-admin-only" data-tab="ch-students" style="display:none">Eleves</button>
+          <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="ch-dashboard" class="ch-panel active">
+          <h2 class="ch-section-title">Dashboard</h2>
+          <div class="ch-stats-grid">
+            <div class="ch-stat-card"><h3>Sessions</h3><div class="ch-stat-val" id="ch-dash-sessions">0</div></div>
+            <div class="ch-stat-card"><h3>Scenarios Completes</h3><div class="ch-stat-val" id="ch-dash-scenarios">0</div></div>
+            <div class="ch-stat-card"><h3>Meilleure Precision</h3><div class="ch-stat-val" id="ch-dash-accuracy">0%</div></div>
+            <div class="ch-stat-card"><h3>VODs Regardees</h3><div class="ch-stat-val" id="ch-dash-vods">0</div></div>
           </div>
         </div>
 
-        <!-- Content (hidden until logged in) -->
-        <div id="ch-content" style="display:none">
-          <div class="ch-tabs">
-            <button class="ch-tab-btn active" data-tab="ch-dashboard">Dashboard</button>
-            <button class="ch-tab-btn" data-tab="ch-scenarios">Scenarios</button>
-            <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
-            <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
-          </div>
-
-          <!-- DASHBOARD -->
-          <div id="ch-dashboard" class="ch-panel active">
-            <h2 class="ch-section-title">Dashboard</h2>
-            <div class="ch-stats-grid">
-              <div class="ch-stat-card"><h3>Sessions</h3><div class="ch-stat-val" id="ch-dash-sessions">0</div></div>
-              <div class="ch-stat-card"><h3>Scenarios Completes</h3><div class="ch-stat-val" id="ch-dash-scenarios">0</div></div>
-              <div class="ch-stat-card"><h3>Meilleure Precision</h3><div class="ch-stat-val" id="ch-dash-accuracy">0%</div></div>
-              <div class="ch-stat-card"><h3>VODs Regardees</h3><div class="ch-stat-val" id="ch-dash-vods">0</div></div>
+        <!-- SCENARIOS -->
+        <div id="ch-scenarios" class="ch-panel">
+          <h2 class="ch-section-title">Coaching Scenarios</h2>
+          <div class="ch-filters">
+            <div class="ch-filter-group"><label>Rang</label>
+              <select id="ch-rank-filter"><option value="">Tous</option><option value="IRON">IRON</option><option value="BRONZE">BRONZE</option><option value="SILVER">SILVER</option><option value="GOLD">GOLD</option><option value="PLATINUM">PLATINUM</option><option value="DIAMOND">DIAMOND</option><option value="IMMORTAL">IMMORTAL</option><option value="RADIANT">RADIANT</option></select>
+            </div>
+            <div class="ch-filter-group"><label>Map</label>
+              <select id="ch-map-filter"><option value="">Toutes</option><option value="Ascent">Ascent</option><option value="Bind">Bind</option><option value="Breeze">Breeze</option><option value="Fracture">Fracture</option><option value="Haven">Haven</option><option value="Icebox">Icebox</option><option value="Lotus">Lotus</option><option value="Pearl">Pearl</option><option value="Split">Split</option><option value="Sunset">Sunset</option></select>
+            </div>
+            <div class="ch-filter-group"><label>Type</label>
+              <select id="ch-type-filter"><option value="">Tous</option><option value="attack">Attaque</option><option value="defense">Defense</option><option value="retake">Retake</option></select>
             </div>
           </div>
+          <div class="ch-cards-grid" id="ch-scenarios-list"></div>
+        </div>
 
-          <!-- SCENARIOS -->
-          <div id="ch-scenarios" class="ch-panel">
-            <h2 class="ch-section-title">Coaching Scenarios</h2>
-            <div class="ch-filters">
-              <div class="ch-filter-group"><label>Rang</label>
-                <select id="ch-rank-filter"><option value="">Tous</option><option value="IRON">IRON</option><option value="BRONZE">BRONZE</option><option value="SILVER">SILVER</option><option value="GOLD">GOLD</option><option value="PLATINUM">PLATINUM</option><option value="DIAMOND">DIAMOND</option><option value="IMMORTAL">IMMORTAL</option><option value="RADIANT">RADIANT</option></select>
-              </div>
-              <div class="ch-filter-group"><label>Map</label>
-                <select id="ch-map-filter"><option value="">Toutes</option><option value="Ascent">Ascent</option><option value="Bind">Bind</option><option value="Breeze">Breeze</option><option value="Fracture">Fracture</option><option value="Haven">Haven</option><option value="Icebox">Icebox</option><option value="Lotus">Lotus</option><option value="Pearl">Pearl</option><option value="Split">Split</option><option value="Sunset">Sunset</option></select>
-              </div>
-              <div class="ch-filter-group"><label>Type</label>
-                <select id="ch-type-filter"><option value="">Tous</option><option value="attack">Attaque</option><option value="defense">Defense</option><option value="retake">Retake</option></select>
-              </div>
+        <!-- AGENTS -->
+        <div id="ch-agents" class="ch-panel">
+          <h2 class="ch-section-title">Agents & Playstyle</h2>
+          <div class="ch-filters">
+            <div class="ch-filter-group"><label>Role</label>
+              <select id="ch-agent-role-filter"><option value="">Tous</option><option value="Duelist">Duelist</option><option value="Controller">Controller</option><option value="Initiator">Initiator</option><option value="Sentinel">Sentinel</option></select>
             </div>
-            <div class="ch-cards-grid" id="ch-scenarios-list"></div>
+            <div class="ch-filter-group"><label>Rechercher</label><input type="text" id="ch-agent-search" placeholder="Nom d'agent..."></div>
           </div>
+          <div class="ch-cards-grid" id="ch-agents-list"></div>
+        </div>
 
-          <!-- AGENTS -->
-          <div id="ch-agents" class="ch-panel">
-            <h2 class="ch-section-title">Agents & Playstyle</h2>
-            <div class="ch-filters">
-              <div class="ch-filter-group"><label>Role</label>
-                <select id="ch-agent-role-filter"><option value="">Tous</option><option value="Duelist">Duelist</option><option value="Controller">Controller</option><option value="Initiator">Initiator</option><option value="Sentinel">Sentinel</option></select>
-              </div>
-              <div class="ch-filter-group"><label>Rechercher</label><input type="text" id="ch-agent-search" placeholder="Nom d'agent..."></div>
-            </div>
-            <div class="ch-cards-grid" id="ch-agents-list"></div>
+        <!-- VODS -->
+        <div id="ch-vods" class="ch-panel">
+          <h2 class="ch-section-title">VODs Library</h2>
+          <div class="ch-filters">
+            <div class="ch-filter-group"><label>Joueur</label><select id="ch-vod-player-filter"><option value="">Tous</option></select></div>
+            <div class="ch-filter-group"><label>Agent</label><select id="ch-vod-agent-filter"><option value="">Tous</option></select></div>
+            <div class="ch-filter-group"><label>Map</label><select id="ch-vod-map-filter"><option value="">Toutes</option></select></div>
           </div>
+          <div class="ch-cards-grid" id="ch-vods-list"></div>
+        </div>
 
-          <!-- VODS -->
-          <div id="ch-vods" class="ch-panel">
-            <h2 class="ch-section-title">VODs Library</h2>
-            <div class="ch-filters">
-              <div class="ch-filter-group"><label>Joueur</label>
-                <select id="ch-vod-player-filter"><option value="">Tous</option><option value="S0m">S0m</option><option value="Oxy">Oxy</option><option value="Demon1">Demon1</option><option value="Zander">Zander</option><option value="Zekken">Zekken</option><option value="WoOt">WoOt</option><option value="nAts">nAts</option><option value="Jinggg">Jinggg</option><option value="Kajaak">Kajaak</option><option value="Brawk">Brawk</option><option value="Aleksander">Aleksander</option><option value="TenZ">TenZ</option><option value="Aspas">Aspas</option><option value="Chronicle">Chronicle</option><option value="Derke">Derke</option></select>
-              </div>
-              <div class="ch-filter-group"><label>Agent</label>
-                <select id="ch-vod-agent-filter"><option value="">Tous</option><option value="Astra">Astra</option><option value="Chamber">Chamber</option><option value="Cypher">Cypher</option><option value="Fade">Fade</option><option value="Iso">Iso</option><option value="Jett">Jett</option><option value="Omen">Omen</option><option value="Raze">Raze</option><option value="Sage">Sage</option><option value="Tejo">Tejo</option><option value="Viper">Viper</option><option value="Waylay">Waylay</option></select>
-              </div>
-              <div class="ch-filter-group"><label>Map</label>
-                <select id="ch-vod-map-filter"><option value="">Toutes</option><option value="Ascent">Ascent</option><option value="Bind">Bind</option><option value="Breeze">Breeze</option><option value="Fracture">Fracture</option><option value="Haven">Haven</option><option value="Lotus">Lotus</option><option value="Pearl">Pearl</option><option value="Split">Split</option><option value="Sunset">Sunset</option></select>
-              </div>
-            </div>
-            <div class="ch-cards-grid" id="ch-vods-list"></div>
-          </div>
+        <!-- STUDENTS (admin/coach only) -->
+        <div id="ch-students" class="ch-panel">
+          <h2 class="ch-section-title">Gestion des Eleves</h2>
+          <div class="ch-cards-grid" id="ch-students-list"></div>
+        </div>
+
+        <!-- MANAGE SCENARIOS (coach/admin only) -->
+        <div id="ch-manage-scenarios" class="ch-panel">
+          <h2 class="ch-section-title">Gestion des Scenarios</h2>
+          <button id="ch-add-scenario-btn" class="btn-primary" style="margin-bottom:20px">+ Ajouter un scenario</button>
+          <div class="ch-cards-grid" id="ch-manage-scenarios-list"></div>
         </div>
       </div>
     </div>
@@ -264,6 +281,34 @@
           <button id="ch-sm-train-btn" class="btn-primary" style="flex:1">S'entrainer</button>
           <button id="ch-sm-complete-btn" class="btn-secondary" style="flex:1">Marquer comme complete</button>
         </div>
+      </div>
+    </div>
+
+    <!-- SCENARIO EDIT MODAL (coach/admin) -->
+    <div id="ch-scenario-edit-modal" class="ch-modal">
+      <div class="ch-modal-content">
+        <span class="ch-modal-close" onclick="coachingCloseEditModal()">&times;</span>
+        <h3 style="color:var(--gold);margin-bottom:16px" id="ch-se-modal-title">Editer le scenario</h3>
+        <div class="ch-auth-field"><label>Titre</label><input type="text" id="ch-se-title"></div>
+        <div class="ch-auth-field"><label>Rang</label>
+          <select id="ch-se-rank" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px"><option value="IRON">IRON</option><option value="BRONZE">BRONZE</option><option value="SILVER">SILVER</option><option value="GOLD">GOLD</option><option value="PLATINUM">PLATINUM</option><option value="DIAMOND">DIAMOND</option><option value="IMMORTAL">IMMORTAL</option><option value="RADIANT">RADIANT</option></select>
+        </div>
+        <div class="ch-auth-field"><label>Map</label><input type="text" id="ch-se-map"></div>
+        <div class="ch-auth-field"><label>Type</label>
+          <select id="ch-se-type" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px"><option value="attack">Attaque</option><option value="defense">Defense</option><option value="retake">Retake</option></select>
+        </div>
+        <div class="ch-auth-field"><label>Difficulte (1-5)</label><input type="number" id="ch-se-diff" min="1" max="5" value="3"></div>
+        <div class="ch-auth-field"><label>Description</label><textarea id="ch-se-desc" rows="2" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:var(--font);resize:vertical"></textarea></div>
+        <div class="ch-auth-field"><label>Guide (etapes)</label><textarea id="ch-se-guide" rows="5" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:var(--font);resize:vertical"></textarea></div>
+        <div class="ch-auth-field"><label>Tips</label><textarea id="ch-se-tips" rows="3" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:var(--font);resize:vertical"></textarea></div>
+        <div class="ch-auth-field"><label>Mode aim training</label>
+          <select id="ch-se-aim-mode" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px"><option value="">Aucun</option><option value="pasu_reload">Pasu Reload</option><option value="gridshot">Gridshot</option><option value="whisphere">Whisphere</option><option value="pokeball_frenzy">Pokeball Frenzy</option><option value="air_angelic">Air Angelic</option><option value="speedflick">Speed Flick</option></select>
+        </div>
+        <div class="ch-auth-field"><label>Difficulte aim</label>
+          <select id="ch-se-aim-diff" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>
+        </div>
+        <div id="ch-se-error" class="ch-auth-error"></div>
+        <button id="ch-se-save-btn" class="btn-primary" style="width:100%;margin-top:12px">Sauvegarder</button>
       </div>
     </div>
 
