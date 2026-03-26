@@ -199,6 +199,13 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ch-empty { color:var(--dim); grid-column:1/-1; text-align:center; padding:36px; }
 .ch-howto { font-size:0.75rem; color:var(--txt); line-height:1.6; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; border-left:3px solid var(--accent); margin-top:10px; }
 
+/* Tactical Map */
+.map-step-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+.map-step-btn { padding:5px 10px; font-size:0.7rem; font-weight:600; background:var(--bg); border:1px solid var(--border); color:var(--dim); border-radius:6px; cursor:pointer; font-family:var(--font); transition:all 0.12s; }
+.map-step-btn:hover { border-color:var(--accent); color:var(--txt); }
+.map-step-btn.active { background:var(--red-g); border-color:var(--accent); color:var(--accent); font-weight:700; }
+.map-svg-wrap { background:var(--bg); border-radius:8px; border:1px solid var(--border); padding:8px; }
+
 /* Auth box */
 .ch-auth-box { background:var(--card); padding:32px; border-radius:14px; border:1px solid var(--accent); max-width:420px; width:100%; margin:0 auto; box-shadow:0 12px 40px rgba(0,0,0,0.3); }
 .ch-auth-box h2 { font-size:1.4rem; font-weight:900; color:var(--txt); text-align:center; margin-bottom:4px; }

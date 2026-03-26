@@ -365,6 +365,8 @@ function coachingOpenScenarioModal(s) {
   document.getElementById('ch-sm-meta').textContent = `${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'defense' ? 'Defense' : 'Retake'} \u00b7 Difficulte ${s.difficulty || 3}/5`;
   document.getElementById('ch-sm-guide').textContent = s.guide || 'Guide non disponible.';
   document.getElementById('ch-sm-tips').textContent = s.tips || '';
+  // Render tactical map if available
+  if (typeof renderTacticalMap === 'function') renderTacticalMap('ch-sm-map', s.id, 0);
 
   const trainBtn = document.getElementById('ch-sm-train-btn');
   const aimMode = s.aim_mode || s.aimMode;
