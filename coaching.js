@@ -355,6 +355,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-agents') coachingRenderAgents();
   if (tabId === 'ch-vods') coachingRenderVods();
   if (tabId === 'ch-students') coachingRenderStudents();
+  if (tabId === 'ch-cours') coachingRenderCours();
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
 }
@@ -737,6 +738,314 @@ async function saveScenario() {
     err.style.display = 'block';
   }
 }
+
+// ============ COURS & EXERCICES ============
+
+const COURS_DATA = [
+  {
+    id: 'crosshair_placement',
+    title: 'Crosshair Placement',
+    icon: '&#10010;',
+    tag: 'Fondamental',
+    desc: 'Le placement du viseur est LA skill qui separe les joueurs Gold des Immortal. Apprends a toujours avoir ton crosshair au niveau de la tete, pre-aim les angles, et minimiser tes ajustements.',
+    sections: [
+      {
+        title: 'Pourquoi c\'est important',
+        content: `<p>Le crosshair placement consiste a <strong>toujours garder ton viseur la ou la tete de l'ennemi va apparaitre</strong>. Un bon placement signifie que tu n'as presque pas besoin de bouger ta souris pour tuer — tu cliques juste.</p>
+        <div class="cours-tip">Un joueur avec un bon crosshair placement et une aim mediocre battra TOUJOURS un joueur avec une aim incroyable mais un mauvais placement.</div>`
+      },
+      {
+        title: 'Les 3 regles d\'or',
+        content: `<ul>
+          <li><strong>Hauteur de tete :</strong> Ton viseur doit TOUJOURS etre a hauteur de tete. Utilise les reperes visuels sur les murs (lignes, caisses, cadres de porte). Sur Valorant, la tete est a environ 70% de la hauteur du modele.</li>
+          <li><strong>Pre-aim les angles :</strong> Avant de peek un angle, place ton crosshair exactement la ou l'ennemi pourrait se trouver. Ne peek JAMAIS un angle avec le viseur au milieu de nulle part.</li>
+          <li><strong>Suis les murs :</strong> Quand tu te deplaces, garde ton crosshair colle au mur/coin le plus proche d'ou un ennemi peut sortir. Ajuste la distance du mur selon ta vitesse de reaction.</li>
+        </ul>`
+      },
+      {
+        title: 'Erreurs courantes',
+        content: `<ul>
+          <li><strong>Regarder le sol</strong> — L'erreur #1. Force-toi a garder le viseur en haut.</li>
+          <li><strong>Crosshair au centre de l'ecran sans but</strong> — Ton viseur doit toujours viser un angle specifique.</li>
+          <li><strong>Ne pas ajuster a la distance</strong> — Plus tu es loin, plus ton crosshair doit etre colle au mur (car l'ennemi apparait plus vite dans ton champ de vision).</li>
+          <li><strong>Oublier l'elevation</strong> — Ajuste ton viseur si l'ennemi est sur une plateforme elevee (Heaven, Box, etc).</li>
+        </ul>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'crosshair_drill', diff: 'easy', name: 'Head Level Drill', desc: 'Cibles fixes a hauteur de tete — clique le plus vite possible' },
+          { mode: 'crosshair_drill', diff: 'medium', name: 'Pre-aim Angles', desc: 'Cibles qui apparaissent aux coins — pre-aim et clique' },
+          { mode: 'crosshair_drill', diff: 'hard', name: 'Speed Placement', desc: 'Cibles rapides multi-angles, reaction pure' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'deadzoning',
+    title: 'Deadzoning',
+    icon: '&#9678;',
+    tag: 'Avance',
+    desc: 'Le deadzoning consiste a maintenir ton viseur dans la "zone morte" autour de la cible pendant le tracking, minimisant tes micro-corrections inutiles pour un tracking plus smooth et precis.',
+    sections: [
+      {
+        title: 'Qu\'est-ce que le deadzoning ?',
+        content: `<p>La <strong>deadzone</strong> est une zone imaginaire autour de ta cible. Tant que ton viseur reste dans cette zone, tu n'as pas besoin de corriger. L'idee est de <strong>bouger ta souris de maniere fluide</strong> en suivant le mouvement general de la cible, plutot que de faire des micro-ajustements frenetiques.</p>
+        <div class="cours-tip">Pense au tracking comme a conduire une voiture : tu ne tournes pas le volant de maniere saccadee, tu fais des ajustements progressifs et fluides. Le deadzoning, c'est accepter que tu n'as pas besoin d'etre pixel-perfect a chaque frame.</div>`
+      },
+      {
+        title: 'Comment pratiquer',
+        content: `<ul>
+          <li><strong>Phase 1 — Large deadzone :</strong> Commence par simplement suivre la direction generale de la cible. Accepte que ton viseur soit a cote parfois.</li>
+          <li><strong>Phase 2 — Reduire la zone :</strong> Progressivement, resserre ta zone de confort. Tes mouvements deviennent plus precis naturellement.</li>
+          <li><strong>Phase 3 — Smooth tracking :</strong> Concentre-toi sur la fluidite. Un mouvement smooth > des corrections saccadees meme si elles sont precises.</li>
+        </ul>
+        <div class="cours-tip">Baisse ta sensibilite si tu n'arrives pas a etre smooth. Un cm/360 entre 30-45cm est ideal pour le tracking.</div>`
+      },
+      {
+        title: 'Application en jeu',
+        content: `<p>Le deadzoning s'applique quand tu :</p>
+        <ul>
+          <li>Track un ennemi qui strafe (A-D spam)</li>
+          <li>Suis un ennemi qui court avec ta mire</li>
+          <li>Spray transfer entre 2 ennemis</li>
+          <li>Tiens un angle ou un ennemi peut jiggle peek</li>
+        </ul>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'deadzone_drill', diff: 'easy', name: 'Smooth Track Easy', desc: 'Cible lente et large — reste dans la zone' },
+          { mode: 'deadzone_drill', diff: 'medium', name: 'Reactive Track', desc: 'Cible qui change de direction — anticipe' },
+          { mode: 'deadzone_drill', diff: 'hard', name: 'Micro Deadzone', desc: 'Petite cible rapide — precision maximale' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'burst_control',
+    title: 'Burst & Spray Control',
+    icon: '&#9632;',
+    tag: 'Fondamental',
+    desc: 'Maitriser le burst (tirs par rafales) et le spray control est essentiel pour gagner des gunfights. Apprends quand burst, quand spray, et comment controler le recul.',
+    sections: [
+      {
+        title: 'Burst vs Spray vs Tap',
+        content: `<ul>
+          <li><strong>Tap (1 balle) :</strong> Longue distance. Clique une fois, attend que le recul se reset, reclique. Vandal/Guardian a 30m+.</li>
+          <li><strong>Burst (2-5 balles) :</strong> Moyenne distance. Le sweet spot sur Valorant. 2-3 balles Phantom, 2 balles Vandal. La majorite de tes kills doivent venir de bursts.</li>
+          <li><strong>Spray (6+ balles) :</strong> Courte distance uniquement. Tire en continu en compensant le recul vers le bas. Spectre, courte distance Phantom.</li>
+        </ul>
+        <div class="cours-tip">La regle d'or : si tu rates tes 3 premieres balles, ARRETE de tirer, deplace-toi (counter-strafe), et recommence un burst. Ne commit jamais un spray a moyenne distance.</div>`
+      },
+      {
+        title: 'Counter-strafing',
+        content: `<p>Le <strong>counter-strafe</strong> est la technique la plus importante liee au burst :</p>
+        <ul>
+          <li>Tu te deplaces avec <span class="cours-key">A</span> ou <span class="cours-key">D</span></li>
+          <li>Tu appuies sur la direction opposee pour t'arreter net</li>
+          <li>Au moment EXACT ou tu es immobile → tu burst</li>
+          <li>Apres le burst → tu repars dans une direction</li>
+        </ul>
+        <p>Le timing est crucial : tirer trop tot = balles imprecises. Tirer trop tard = tu es une cible statique.</p>`
+      },
+      {
+        title: 'Spray patterns Valorant',
+        content: `<p>Sur Valorant, le spray est relativement simple compare a CS :</p>
+        <ul>
+          <li><strong>Balles 1-5 :</strong> Montent vers le haut → tire vers le bas</li>
+          <li><strong>Balles 6-10 :</strong> Devient horizontal → compense gauche/droite</li>
+          <li><strong>Balles 10+ :</strong> Random — evite d'en arriver la</li>
+        </ul>
+        <div class="cours-tip">Entraine-toi a tirer sur un mur au Range et observe le pattern. Phantom a un spray plus facile que le Vandal.</div>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'burst_drill', diff: 'easy', name: 'Burst Timing', desc: 'Cibles statiques — 2-3 clics rapides par cible' },
+          { mode: 'burst_drill', diff: 'medium', name: 'Burst + Move', desc: 'Cibles qui bougent — burst puis repositionne' },
+          { mode: 'burst_drill', diff: 'hard', name: 'Speed Burst', desc: 'Cibles rapides multiples — burst transfers' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'movement',
+    title: 'Movement & Peeking',
+    icon: '&#10148;',
+    tag: 'Intermediaire',
+    desc: 'Le mouvement est la base de tout en FPS tactique. Jiggle peek, wide swing, slice the pie — chaque technique a son utilite. Apprends quand utiliser quoi.',
+    sections: [
+      {
+        title: 'Les types de peeks',
+        content: `<ul>
+          <li><strong>Jiggle peek :</strong> Tu sors et rentres rapidement pour prendre l'info ou baiter un tir. Tu ne tires PAS pendant un jiggle peek.</li>
+          <li><strong>Wide swing :</strong> Tu sors large et rapide pour surprendre un joueur qui tient un angle serre. Tu counter-strafe + burst immediatement.</li>
+          <li><strong>Shoulder peek :</strong> Tu montres juste ton epaule pour baiter un tir d'Operator puis tu re-peek pendant qu'il recharge.</li>
+          <li><strong>Crouch peek :</strong> Tu sors en crouchant pour surprendre un joueur qui vise a hauteur de tete debout. A utiliser rarement car tu deviens lent.</li>
+        </ul>`
+      },
+      {
+        title: 'Slice the pie',
+        content: `<p>Le "slice the pie" consiste a <strong>decouvrir un angle progressivement</strong> en se deplacant lateralement plutot que de rusher droit dans l'angle.</p>
+        <p>Imagine que l'angle est un gateau (pie) et que tu le coupes en tranches — tu ne decouvres qu'un petit morceau a la fois, verifiant chaque tranche avant de passer a la suivante.</p>
+        <div class="cours-tip">Combine le slice the pie avec un bon crosshair placement : ton viseur doit etre exactement la ou la prochaine "tranche" peut contenir un ennemi.</div>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'speedflick', diff: 'easy', name: 'Flick Basique', desc: 'Cibles partout dans le FOV — simule les wide swings' },
+          { mode: 'pasu_reload', diff: 'medium', name: 'Repositionnement', desc: 'Track + click — simule le jiggle peek timing' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'game_sense',
+    title: 'Game Sense & Info',
+    icon: '&#128065;',
+    tag: 'Strategique',
+    desc: 'L\'aim seul ne suffit pas. Le game sense — savoir ou sont les ennemis, quand pousser, quand rotate — c\'est ce qui fait un vrai joueur Valorant.',
+    sections: [
+      {
+        title: 'Lire le jeu',
+        content: `<ul>
+          <li><strong>Compte les ennemis :</strong> Toujours savoir combien sont en vie et ou ils ont ete vus. Si 3 sont B, il n'en reste que 2 pour A + mid.</li>
+          <li><strong>Ecoute les sons :</strong> Les pas, les utils, les reloads — chaque son donne de l'info. Un joueur qui pose une smoke B = probablement un execute B.</li>
+          <li><strong>Economie :</strong> Regarde le score et les credits ennemis. S'ils ont eco, attend les rushes. S'ils ont full buy, respect les angles.</li>
+          <li><strong>Pattern recognition :</strong> Si l'equipe adverse fait le meme play 2 rounds de suite, ils vont probablement changer au 3eme.</li>
+        </ul>`
+      },
+      {
+        title: 'Communication',
+        content: `<p>L'info ne sert a rien si tu ne la partages pas. Les regles d'or de la comm en Valorant :</p>
+        <ul>
+          <li><strong>Court et precis :</strong> "2 B main" pas "je crois qu'il y a peut-etre des gens B"</li>
+          <li><strong>Callout + nombre :</strong> Toujours dire combien et ou</li>
+          <li><strong>Ne parle pas pendant un clutch</strong> sauf info critique</li>
+          <li><strong>Ne tilt pas en vocal</strong> — ca fait perdre plus de rounds que la mauvaise aim</li>
+        </ul>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'gridshot', diff: 'easy', name: 'Warm Up', desc: 'Gridshot pour chauffer avant de jouer' },
+          { mode: 'air_angelic', diff: 'medium', name: 'Multi-Target Awareness', desc: 'Tracking multi-cibles — comme gerer plusieurs ennemis' },
+        ]
+      }
+    ]
+  }
+];
+
+function getCoursProgress() {
+  try { return JSON.parse(localStorage.getItem('ch_cours_progress') || '{}'); } catch { return {}; }
+}
+function markCoursComplete(id) {
+  const p = getCoursProgress();
+  p[id] = true;
+  localStorage.setItem('ch_cours_progress', JSON.stringify(p));
+}
+
+function coachingRenderCours() {
+  const list = document.getElementById('cours-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const progress = getCoursProgress();
+
+  COURS_DATA.forEach(c => {
+    const done = progress[c.id];
+    const exerciseCount = c.sections.filter(s => s.type === 'exercises').reduce((acc, s) => acc + s.exercises.length, 0);
+    const card = document.createElement('div');
+    card.className = 'cours-card' + (done ? ' ch-done' : '');
+    card.innerHTML = `
+      <div class="cours-card-icon">${c.icon}</div>
+      <span class="cours-tag">${c.tag}</span>
+      ${done ? '<span class="ch-badge-done" style="margin-left:6px">Complete</span>' : ''}
+      <h3>${c.title}</h3>
+      <p>${c.desc}</p>
+      <div style="margin-top:10px;font-size:0.7rem;color:var(--dim)">${c.sections.length - (c.sections.filter(s=>s.type==='exercises').length)} lecons &middot; ${exerciseCount} exercices</div>
+      <div class="cours-progress"><div class="cours-progress-fill" style="width:${done ? 100 : 0}%"></div></div>
+    `;
+    card.addEventListener('click', () => openCoursDetail(c));
+    list.appendChild(card);
+  });
+}
+
+function openCoursDetail(cours) {
+  // Hide cours list, show detail
+  document.getElementById('ch-cours').classList.remove('active');
+  document.getElementById('ch-cours-detail').classList.add('active');
+
+  const container = document.getElementById('cours-content');
+  let html = `<div class="cours-detail-header">
+    <span class="cours-tag">${cours.tag}</span>
+    <h2>${cours.icon} ${cours.title}</h2>
+    <p style="color:var(--dim);font-size:0.85rem;margin-top:4px">${cours.desc}</p>
+  </div>`;
+
+  cours.sections.forEach(s => {
+    html += `<div class="cours-section">`;
+    html += `<h3>${s.title}</h3>`;
+    if (s.type === 'exercises') {
+      html += `<p style="margin-bottom:10px;color:var(--dim);font-size:0.8rem">Lance un exercice pour pratiquer ce concept :</p>`;
+      html += `<div class="cours-exercises">`;
+      s.exercises.forEach(ex => {
+        html += `<div class="cours-exercise-btn" data-mode="${ex.mode}" data-diff="${ex.diff}">
+          <h4>${ex.name}</h4>
+          <p>${ex.desc}</p>
+        </div>`;
+      });
+      html += `</div>`;
+    } else {
+      html += s.content;
+    }
+    html += `</div>`;
+  });
+
+  const progress = getCoursProgress();
+  const done = progress[cours.id];
+  html += `<button class="cours-done-btn" data-cours-id="${cours.id}">${done ? 'Deja complete !' : 'Marquer comme termine'}</button>`;
+
+  container.innerHTML = html;
+
+  // Wire exercise buttons
+  container.querySelectorAll('.cours-exercise-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      const diff = btn.dataset.diff;
+      // Go to menu, set diff, start game
+      document.getElementById('coaching-screen').classList.remove('active');
+      document.getElementById('menu-screen').classList.add('active');
+      document.getElementById('opt-diff').value = diff;
+      setTimeout(() => {
+        const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
+        if (modeBtn) modeBtn.click();
+        else if (typeof startGame === 'function') startGame(mode);
+      }, 100);
+    });
+  });
+
+  // Wire complete button
+  container.querySelector('.cours-done-btn')?.addEventListener('click', function() {
+    markCoursComplete(cours.id);
+    this.textContent = 'Deja complete !';
+    this.style.opacity = '0.6';
+  });
+}
+
+// Back button
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cours-back')?.addEventListener('click', () => {
+    document.getElementById('ch-cours-detail').classList.remove('active');
+    document.getElementById('ch-cours').classList.add('active');
+    coachingRenderCours();
+  });
+});
 
 // ============ MAP EDITOR ============
 

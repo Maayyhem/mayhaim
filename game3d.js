@@ -120,6 +120,11 @@ const SCENARIOS = {
     th:[1950,2300,2650,3000,3350,3650,3900,4200], thH:[3200,3484,3648,3848,4048,4248], thE:[400,700,1000,1350,1700,2050,2400,2750] },
   vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', label:'voxTargetClick', labelH:'voxTargetClick Small', labelE:'voxTargetSwitch Click',
     th:[62,72,80,87,95,102,108,116], thH:[90,96,101,106,111,115], thE:[49,59,67,74,81,88,94,100] },
+
+  // ═══ COURS DRILLS (not in benchmark, free play only) ═══
+  crosshair_drill: { cat:'cours', sub:'placement', type:'click', label:'Crosshair Placement Drill' },
+  deadzone_drill:  { cat:'cours', sub:'tracking', type:'track', label:'Deadzone Drill' },
+  burst_drill:     { cat:'cours', sub:'burst', type:'click', label:'Burst Transfer Drill' },
 };
 
 // Current tier: 'easier', 'medium', or 'hard'
@@ -592,6 +597,63 @@ function spawn_vox_click() {
   }
 }
 
+// ============ COURS DRILL MODES ============
+
+// Crosshair Placement Drill: targets appear at head height at fixed positions (like angles/corners)
+function spawn_crosshair_drill() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const d=DIFF[G.diff];
+  // Head height = 1.7m, simulate peeking angles
+  const headY = 1.7;
+  const positions = [
+    {x:-6,z:-12},{x:-4,z:-14},{x:-2,z:-10},{x:0,z:-13},{x:2,z:-11},
+    {x:4,z:-14},{x:6,z:-12},{x:-5,z:-8},{x:5,z:-9},{x:-3,z:-15},
+    {x:3,z:-15},{x:0,z:-8},{x:-6,z:-10},{x:6,z:-10}
+  ];
+  const pos = positions[Math.floor(Math.random()*positions.length)];
+  const r = G.diff==='easy' ? 0.25 : G.diff==='hard' ? 0.15 : 0.2;
+  const yOff = G.diff==='hard' ? rand(-0.2,0.2) : rand(-0.1,0.1); // slight variation
+  const mesh = mkSphere(pos.x, headY + yOff, pos.z, r, M.t1);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
+}
+
+// Deadzone Drill: single tracking target with varying speed
+function spawn_deadzone_drill() {
+  if(!G.running) return;
+  if(trackTarget && trackTarget.alive) return;
+  const d=DIFF[G.diff];
+  const r = G.diff==='easy' ? 0.5 : G.diff==='hard' ? 0.28 : 0.38;
+  const spd = G.diff==='easy' ? 1.5 : G.diff==='hard' ? 4.5 : 3;
+  const x=rand(-3,3), y=rand(1.2,2.8);
+  const mesh=mkSphere(x,y,-11,r,M.t4);
+  trackTarget={mesh,alive:true,radius:r,spawnTime:Date.now(),
+    vx:rand(-1,1)*spd, vy:rand(-0.5,0.5)*spd, ax:0, ay:0, dynamic:true,
+    smoothChange:true, nextChange:0.5+rand(0,1)};
+  G.targets.push(trackTarget);
+}
+
+// Burst Drill: clusters of 2-3 targets that appear together (practice burst transfers)
+function spawn_burst_drill() {
+  if(!G.running) return;
+  G.targets=G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 2) return;
+  const d=DIFF[G.diff];
+  const baseX = rand(-4,4), baseY = rand(1.2,2.8);
+  const count = G.diff==='easy' ? 2 : G.diff==='hard' ? 3 : 2;
+  const spacing = G.diff==='hard' ? 0.8 : 1.2;
+  const r = G.diff==='easy' ? 0.25 : G.diff==='hard' ? 0.18 : 0.22;
+  for(let i=0;i<count;i++) {
+    const x = baseX + (i - (count-1)/2) * spacing + rand(-0.2,0.2);
+    const y = baseY + rand(-0.3,0.3);
+    const spd = G.diff==='hard' ? 1.5 : G.diff==='medium' ? 0.8 : 0;
+    const mesh = mkSphere(x, y, rand(-11,-13), r, M.t2);
+    G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(),
+      vx:spd?rand(-1,1)*spd:0, vy:spd?rand(-0.5,0.5)*spd:0, dynamic:spd>0});
+  }
+}
+
 // Free play only
 function spawn_gridshot() {
   if(!G.running) return;
@@ -923,10 +985,12 @@ const SPAWN_MAP = {
   popcorn_mv:spawn_popcorn_mv, pasu_angelic:spawn_pasu_angelic, pasu_perfected:spawn_pasu_perfected,
   pasu_micro:spawn_pasu_micro, floatheads_t:spawn_floatheads_t, vox_click:spawn_vox_click,
   gridshot:spawn_gridshot, speedflick:spawn_speedflick,
+  crosshair_drill:spawn_crosshair_drill, deadzone_drill:spawn_deadzone_drill, burst_drill:spawn_burst_drill,
 };
 
 // Modes that need interval respawn
 const INTERVAL_MODES = {
+  crosshair_drill:150, burst_drill:400,
   w1w3ts_reload:200, pasu_reload:300, vt_bounceshot:300, ctrlsphere_clk:100,
   popcorn_mv:400, pasu_angelic:300, pasu_perfected:300, pasu_micro:200,
   floatheads_t:600, vox_click:250,

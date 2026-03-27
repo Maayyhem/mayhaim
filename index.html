@@ -81,6 +81,9 @@
           <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">&#128165;</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
           <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">&#127744;</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
           <button class="mode-card" data-mode="speedflick"><div class="mode-icon">&#127919;</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
+          <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">&#10010;</div><h3>Crosshair Drill</h3><p>Cibles a hauteur de tete. Placement pur.</p><span class="mode-tag">Cours</span></button>
+          <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">&#9678;</div><h3>Deadzone Drill</h3><p>Tracking smooth avec deadzone.</p><span class="mode-tag">Cours</span></button>
+          <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">&#9632;</div><h3>Burst Drill</h3><p>Clusters de cibles. Burst transfers.</p><span class="mode-tag">Cours</span></button>
         </div>
 
         <div class="settings-row">
@@ -219,6 +222,7 @@
           <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
           <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">Eleves</button>
+          <button class="ch-tab-btn" data-tab="ch-cours">Cours</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
         </div>
@@ -272,6 +276,18 @@
             <div class="ch-filter-group"><label>Map</label><select id="ch-vod-map-filter"><option value="">Toutes</option></select></div>
           </div>
           <div class="ch-cards-grid" id="ch-vods-list"></div>
+        </div>
+
+        <!-- COURS -->
+        <div id="ch-cours" class="ch-panel">
+          <h2 class="ch-section-title">Cours &amp; Exercices</h2>
+          <div class="cours-grid" id="cours-list"></div>
+        </div>
+
+        <!-- COURS DETAIL -->
+        <div id="ch-cours-detail" class="ch-panel">
+          <button id="cours-back" class="btn-back" style="margin-bottom:16px">&larr; Retour aux cours</button>
+          <div id="cours-content"></div>
         </div>
 
         <!-- MAP EDITOR -->
