@@ -218,7 +218,7 @@
           <button class="ch-tab-btn" data-tab="ch-scenarios">Scenarios</button>
           <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
           <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
-          <button class="ch-tab-btn ch-admin-only" data-tab="ch-students" style="display:none">Eleves</button>
+          <button class="ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">Eleves</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
         </div>
@@ -392,6 +392,17 @@
           <button id="ch-sm-train-btn" class="btn-primary" style="flex:1">S'entrainer</button>
           <button id="ch-sm-complete-btn" class="btn-secondary" style="flex:1">Marquer comme complete</button>
         </div>
+      </div>
+    </div>
+
+    <!-- AGENT EDIT MODAL (coach/admin) -->
+    <div id="ch-agent-edit-modal" class="ch-modal">
+      <div class="ch-modal-content">
+        <span class="ch-modal-close" onclick="document.getElementById('ch-agent-edit-modal').classList.remove('active')">&times;</span>
+        <h3 style="color:var(--gold);margin-bottom:16px">Editer <span id="ch-ae-name"></span></h3>
+        <div class="ch-auth-field"><label>Resume</label><textarea id="ch-ae-summary" rows="3" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:var(--font);resize:vertical"></textarea></div>
+        <div class="ch-auth-field"><label>Comment jouer</label><textarea id="ch-ae-howto" rows="6" style="width:100%;padding:10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:var(--font);resize:vertical"></textarea></div>
+        <button id="ch-ae-save" class="btn-primary" style="width:100%;margin-top:12px">Sauvegarder</button>
       </div>
     </div>
 

@@ -22,6 +22,25 @@ function incrementSessions() { localStorage.setItem('ch_sessions', String(getSes
 
 // ============ DATA: AGENTS ============
 
+// Load custom agent edits from localStorage
+function getCustomAgents() {
+  try { return JSON.parse(localStorage.getItem('ch_custom_agents') || '{}'); } catch { return {}; }
+}
+function saveCustomAgent(name, data) {
+  const all = getCustomAgents();
+  all[name] = data;
+  localStorage.setItem('ch_custom_agents', JSON.stringify(all));
+}
+function deleteCustomAgent(name) {
+  const all = getCustomAgents();
+  delete all[name];
+  localStorage.setItem('ch_custom_agents', JSON.stringify(all));
+}
+function getAgent(a) {
+  const custom = getCustomAgents()[a.name];
+  return custom ? { ...a, ...custom } : a;
+}
+
 const agentsGuide = [
   { name: 'Brimstone', role: 'Controller', summary: "Controleur fiable avec 3 smokes longue duree et un ulti devastateur. Ideal pour organiser des executes coordonnees et dominer le post-plant grace a ses mollys.", howToPlay: "En attaque : place tes 3 smokes sur les crossfires cles du site vise, puis entre avec ton equipe. En defense : garde 1-2 smokes pour les retakes. Ton ulti + molly = combo imbattable pour deny le defuse. Joue toujours en soutien, jamais en first." },
   { name: 'Omen', role: 'Controller', summary: "Controleur versatile qui excelle dans la deception. Ses smokes se rechargent, son TP permet des repositionnements imprevus, et son ulti cree une pression globale.", howToPlay: "Place tes smokes en profondeur pour isoler les duels (one-way si possible). Utilise tes TP pour changer d'angle apres chaque kill. En mid-round, flanke avec ton TP pour backstab. Ton ulti est parfait pour info ou retakes surprise." },
@@ -455,18 +474,65 @@ function coachingRenderAgents() {
   list.innerHTML = '';
   if (!filtered.length) { list.innerHTML = '<p class="ch-empty">Aucun agent trouve.</p>'; return; }
 
+  const isStaff = coachingUserRole === 'admin' || coachingUserRole === 'coach';
+  const customs = getCustomAgents();
+
   filtered.forEach(a => {
+    const ag = getAgent(a);
+    const hasCustom = !!customs[a.name];
     const card = document.createElement('div');
     card.className = 'ch-card';
     card.innerHTML = `
-      <div class="ch-card-title">${a.name}</div>
-      <span class="ch-badge">${a.role}</span>
-      <p class="ch-card-desc" style="font-style:italic;margin-top:10px">${a.summary}</p>
-      <div class="ch-howto"><strong>Comment jouer :</strong><br>${a.howToPlay}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="ch-card-title" style="margin:0">${ag.name}</div>
+        ${isStaff ? `<div style="display:flex;gap:4px">
+          ${hasCustom ? '<button class="ag-reset" style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--dim);border-radius:4px;cursor:pointer;font-size:0.6rem;font-family:var(--font)">Reset</button>' : ''}
+          <button class="ag-edit" style="padding:4px 10px;background:var(--red-g);border:1px solid var(--accent);color:var(--accent);border-radius:4px;cursor:pointer;font-size:0.65rem;font-weight:600;font-family:var(--font)">Editer</button>
+        </div>` : ''}
+      </div>
+      <span class="ch-badge">${ag.role}</span>
+      <p class="ch-card-desc" style="font-style:italic;margin-top:10px">${ag.summary}</p>
+      <div class="ch-howto"><strong>Comment jouer :</strong><br>${ag.howToPlay}</div>
     `;
+
+    if (isStaff) {
+      card.querySelector('.ag-edit')?.addEventListener('click', () => openAgentEditModal(a));
+      card.querySelector('.ag-reset')?.addEventListener('click', () => {
+        if (confirm(`Revenir a la description par defaut de ${a.name} ?`)) {
+          deleteCustomAgent(a.name);
+          coachingRenderAgents();
+        }
+      });
+    }
+
     list.appendChild(card);
   });
 }
+
+function openAgentEditModal(agent) {
+  const ag = getAgent(agent);
+  const modal = document.getElementById('ch-agent-edit-modal');
+  if (!modal) return;
+  document.getElementById('ch-ae-name').textContent = ag.name;
+  document.getElementById('ch-ae-summary').value = ag.summary;
+  document.getElementById('ch-ae-howto').value = ag.howToPlay;
+  document.getElementById('ch-ae-save').onclick = () => {
+    saveCustomAgent(agent.name, {
+      summary: document.getElementById('ch-ae-summary').value,
+      howToPlay: document.getElementById('ch-ae-howto').value,
+    });
+    modal.classList.remove('active');
+    coachingRenderAgents();
+  };
+  modal.classList.add('active');
+}
+
+// Close agent modal on backdrop click
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('ch-agent-edit-modal')?.addEventListener('click', e => {
+    if (e.target.id === 'ch-agent-edit-modal') e.target.classList.remove('active');
+  });
+});
 
 // ============ VODS ============
 
