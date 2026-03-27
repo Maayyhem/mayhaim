@@ -277,6 +277,9 @@ function applyCrosshair() {
   svg += '</svg>';
   $('#crosshair-overlay').innerHTML = svg;
   $('#crosshair-overlay').style.filter = 'none';
+  // Update preview box in menu
+  const prev = $('#xh-preview');
+  if (prev) prev.innerHTML = svg;
 }
 function applyTheme(t) { document.documentElement.dataset.theme = t; }
 
@@ -862,10 +865,30 @@ function hitTarget(t) {
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
 function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color='#e8c56d';f.appendChild(e);setTimeout(()=>e.remove(),1500); }
 
-// ---- MOUSE ----
-function onMouseMove(e) { if(!G.locked||!G.running) return; const mx=Math.max(-150,Math.min(150,e.movementX)),my=Math.max(-150,Math.min(150,e.movementY)),s=cm360ToRad(G.cm360); G.yaw-=mx*s; G.pitch-=my*s; G.pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,G.pitch)); camera.rotation.order='YXZ'; camera.rotation.y=G.yaw; camera.rotation.x=G.pitch; }
+// ---- MOUSE (with jump filter) ----
+let lastMoveTime = 0;
+let skipFrames = 0;
+function onMouseMove(e) {
+  if(!G.locked||!G.running) return;
+  const now = performance.now();
+  const rawX = e.movementX, rawY = e.movementY;
+  // Skip first 2 frames after pointer lock (browser sends garbage deltas)
+  if (skipFrames > 0) { skipFrames--; lastMoveTime = now; return; }
+  // Filter hardware/browser glitch spikes
+  if (Math.abs(rawX) > 500 || Math.abs(rawY) > 500) return;
+  // Skip first move after long pause (re-lock, tab switch)
+  if (now - lastMoveTime > 300 && lastMoveTime > 0) { lastMoveTime = now; return; }
+  lastMoveTime = now;
+  const s = cm360ToRad(G.cm360);
+  G.yaw -= rawX * s;
+  G.pitch -= rawY * s;
+  G.pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, G.pitch));
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = G.yaw;
+  camera.rotation.x = G.pitch;
+}
 function lockPointer() { const c=$('#game-canvas');(c.requestPointerLock||c.mozRequestPointerLock).call(c); }
-document.addEventListener('pointerlockchange',()=>{ G.locked=!!document.pointerLockElement; if(!G.locked&&G.running)$('#click-to-start').classList.remove('hidden'); });
+document.addEventListener('pointerlockchange',()=>{ G.locked=!!document.pointerLockElement; lastMoveTime=0; skipFrames=3; if(!G.locked&&G.running)$('#click-to-start').classList.remove('hidden'); });
 
 // ---- GAME LOOP ----
 function gameLoop() {
