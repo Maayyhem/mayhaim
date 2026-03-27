@@ -233,8 +233,9 @@ function showApp() {
   document.querySelectorAll('.ch-admin-only').forEach(el => {
     el.style.display = (coachingUserRole === 'admin' || coachingUserRole === 'coach') ? '' : 'none';
   });
+  const isStaff = coachingUserRole === 'admin' || coachingUserRole === 'coach';
   document.querySelectorAll('.ch-coach-only').forEach(el => {
-    el.style.display = (coachingUserRole === 'admin' || coachingUserRole === 'coach') ? '' : 'none';
+    el.style.display = isStaff ? (el.dataset.display || '') : 'none';
   });
 }
 
@@ -560,9 +561,20 @@ function coachingRenderManageScenarios() {
       <div class="ch-card-title">${s.title}</div>
       <div class="ch-card-meta">${s.map || ''} \u00b7 ${s.type || ''}</div>
       <p class="ch-card-desc">${s.description || ''}</p>
-      <button class="btn-primary ch-card-btn" style="margin-top:8px">Editer</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn-primary ch-card-btn" style="flex:1">Editer</button>
+        <button class="btn-del-scenario" style="padding:8px 14px;background:rgba(255,70,85,0.15);border:1px solid rgba(255,70,85,0.3);color:var(--accent);border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">Supprimer</button>
+      </div>
     `;
     card.querySelector('.ch-card-btn').addEventListener('click', () => coachingOpenEditModal(s));
+    card.querySelector('.btn-del-scenario').addEventListener('click', () => {
+      if (!confirm(`Supprimer le scenario "${s.title}" ?`)) return;
+      const idx = coachingScenarios.findIndex(sc => sc.id === s.id);
+      if (idx !== -1) coachingScenarios.splice(idx, 1);
+      // Also remove custom map if any
+      if (typeof deleteCustomScenarioMap === 'function') deleteCustomScenarioMap(s.id);
+      coachingRenderManageScenarios();
+    });
     list.appendChild(card);
   });
 }

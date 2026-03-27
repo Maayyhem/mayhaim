@@ -219,7 +219,7 @@
           <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
           <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
           <button class="ch-tab-btn ch-admin-only" data-tab="ch-students" style="display:none">Eleves</button>
-          <button class="ch-tab-btn" data-tab="ch-map-editor">Map Editor</button>
+          <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
         </div>
 
@@ -369,7 +369,7 @@
         <div id="ch-sm-meta" style="font-size:0.85rem;color:var(--dim);margin-bottom:16px"></div>
         <!-- Interactive Map -->
         <div id="ch-sm-map" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div id="ch-sm-map-actions" class="ch-coach-only" data-display="flex" style="display:none;gap:8px;margin-bottom:16px">
           <button id="ch-sm-edit-map" class="btn-secondary" style="flex:1;padding:8px;font-size:0.75rem">&#9998; Editer la map</button>
           <button id="ch-sm-reset-map" class="btn-secondary" style="padding:8px 14px;font-size:0.75rem;opacity:0.6">Reset</button>
         </div>
