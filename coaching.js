@@ -51,13 +51,40 @@ const agentsGuide = [
 
 // ============ DATA: SCENARIOS (default, will be overridden by DB) ============
 
-let coachingScenarios = [
+const DEFAULT_SCENARIOS = [
   { id: 1, title: "B Site Take - Bind", rank: "BRONZE", map: "Bind", type: "attack", difficulty: 1, description: "Entree B simple avec smoke et flash.", guide: "1. Smoke hookah et long B\n2. Flash pour ton duelist\n3. Le duelist entre par short B\n4. Le second joueur clear garden\n5. Plante default", tips: "Ne rush jamais sans smokes. Toujours clear les coins un par un.", aimMode: "pasu_reload", aimDiff: "easy" },
   { id: 2, title: "A Site Hold - Ascent", rank: "BRONZE", map: "Ascent", type: "defense", difficulty: 1, description: "Defense du site A avec crossfire basique.", guide: "1. Un joueur tient le generator\n2. Un joueur tient heaven\n3. Crossfire main et short\n4. Call et rotate si push", tips: "Le crossfire generator + heaven est tres puissant.", aimMode: "speedflick", aimDiff: "easy" },
   { id: 3, title: "A Site Retake - Haven", rank: "SILVER", map: "Haven", type: "retake", difficulty: 2, description: "Retake du site A apres plant ennemi.", guide: "1. Regroupe-toi avec ton equipe\n2. Utilise les utils pour clear\n3. Flash/stun long A et sewers\n4. Peek ensemble\n5. Check le timer avant defuse", tips: "Le timing est crucial en retake. Defuse toujours a couvert.", aimMode: "pasu_reload", aimDiff: "medium" },
   { id: 4, title: "Mid Control - Split", rank: "SILVER", map: "Split", type: "attack", difficulty: 2, description: "Prise du mid pour ouvrir les rotations.", guide: "1. Smoke vent et mail\n2. Clear mid avec drone/flash\n3. Hold mid bottom\n4. Execute A ou B selon l'info", tips: "Celui qui controle le mid controle le round.", aimMode: "pokeball_frenzy", aimDiff: "medium" },
   { id: 5, title: "Full Execute - Lotus", rank: "DIAMOND", map: "Lotus", type: "attack", difficulty: 5, description: "Execute complete sur A site avec 5 joueurs.", guide: "1. Drone/haunt pour reveler\n2. Smokes sur tree et rubble\n3. Flash + stun simultanement\n4. Entry par main + root\n5. Plant default", tips: "Le timing des utils doit etre au dixieme de seconde pres.", aimMode: "gridshot", aimDiff: "hard" },
 ];
+
+// Load scenarios: merge defaults with user-created ones from localStorage
+let coachingScenarios = loadScenarios();
+
+function loadScenarios() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('ch_custom_scenarios') || '[]');
+    // Merge: defaults + any user-edited defaults + user-created
+    const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
+    saved.forEach(s => {
+      const idx = merged.findIndex(m => m.id === s.id);
+      if (idx !== -1) merged[idx] = s; // override default with edited version
+      else merged.push(s); // user-created scenario
+    });
+    return merged;
+  } catch { return JSON.parse(JSON.stringify(DEFAULT_SCENARIOS)); }
+}
+
+function persistScenarios() {
+  // Save only scenarios that differ from defaults or are user-created
+  const toSave = coachingScenarios.filter(s => {
+    const def = DEFAULT_SCENARIOS.find(d => d.id === s.id);
+    if (!def) return true; // user-created
+    return JSON.stringify(def) !== JSON.stringify(s); // edited default
+  });
+  localStorage.setItem('ch_custom_scenarios', JSON.stringify(toSave));
+}
 
 // ============ DATA: VODS (from CSV) ============
 
@@ -573,6 +600,7 @@ function coachingRenderManageScenarios() {
       if (idx !== -1) coachingScenarios.splice(idx, 1);
       // Also remove custom map if any
       if (typeof deleteCustomScenarioMap === 'function') deleteCustomScenarioMap(s.id);
+      persistScenarios();
       coachingRenderManageScenarios();
     });
     list.appendChild(card);
@@ -634,6 +662,7 @@ async function saveScenario() {
       coachingScenarios.push(data);
     }
 
+    persistScenarios();
     coachingCloseEditModal();
     coachingRenderManageScenarios();
     err.style.display = 'none';
