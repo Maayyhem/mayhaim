@@ -1,6 +1,6 @@
 // ============ COACHING HUB + GLOBAL AUTH ============
 
-const API_BASE = '/.netlify/functions';
+const API_BASE = '/api';
 
 let coachingUser = null;
 let coachingUserRole = null;
