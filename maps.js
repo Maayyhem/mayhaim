@@ -1,6 +1,30 @@
 // ============ VALORANT TACTICAL MAPS ============
 // Using official Valorant API minimap images (valorant-api.com)
 
+// Custom scenario map storage
+function getCustomScenarioMap(scenarioId) {
+  try {
+    const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
+    return all[scenarioId] || null;
+  } catch { return null; }
+}
+
+function saveCustomScenarioMap(scenarioId, mapName, steps) {
+  try {
+    const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
+    all[scenarioId] = { map: mapName, steps: steps };
+    localStorage.setItem('me_scenario_maps', JSON.stringify(all));
+  } catch(e) { console.error('Failed to save custom map:', e); }
+}
+
+function deleteCustomScenarioMap(scenarioId) {
+  try {
+    const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
+    delete all[scenarioId];
+    localStorage.setItem('me_scenario_maps', JSON.stringify(all));
+  } catch(e) {}
+}
+
 const VALO_API = 'https://media.valorant-api.com/maps';
 
 const MAP_DATA = {
@@ -184,9 +208,11 @@ function renderTacticalMap(containerId, scenarioId, stepIndex) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const annotations = SCENARIO_ANNOTATIONS[scenarioId];
+  // Check for custom user annotations first, then fall back to defaults
+  const customAnns = getCustomScenarioMap(scenarioId);
+  const annotations = customAnns || SCENARIO_ANNOTATIONS[scenarioId];
   if (!annotations) {
-    container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:20px">Map non disponible pour ce scenario</p>';
+    container.innerHTML = '<p style="color:var(--dim);text-align:center;padding:20px">Map non disponible - clique "Editer la map" pour en creer une !</p>';
     return;
   }
 

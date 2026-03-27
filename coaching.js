@@ -308,7 +308,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-agents') coachingRenderAgents();
   if (tabId === 'ch-vods') coachingRenderVods();
   if (tabId === 'ch-students') coachingRenderStudents();
-  if (tabId === 'ch-map-editor') { meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
+  if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
 }
 
@@ -388,6 +388,25 @@ function coachingOpenScenarioModal(s) {
   completeBtn.textContent = done ? 'Deja complete' : 'Marquer comme complete';
   completeBtn.disabled = done;
   completeBtn.onclick = () => { markScenarioCompleted(s.id); completeBtn.textContent = 'Deja complete'; completeBtn.disabled = true; };
+
+  // Edit map button -> opens Map Editor with scenario data
+  const editMapBtn = document.getElementById('ch-sm-edit-map');
+  editMapBtn.onclick = () => {
+    coachingCloseScenarioModal();
+    meOpenForScenario(s);
+  };
+
+  // Reset custom map
+  const resetMapBtn = document.getElementById('ch-sm-reset-map');
+  const hasCustom = typeof getCustomScenarioMap === 'function' && getCustomScenarioMap(s.id);
+  resetMapBtn.style.display = hasCustom ? '' : 'none';
+  resetMapBtn.onclick = () => {
+    if (confirm('Supprimer ta map personnalisee et revenir a la map par defaut ?')) {
+      deleteCustomScenarioMap(s.id);
+      if (typeof renderTacticalMap === 'function') renderTacticalMap('ch-sm-map', s.id, 0);
+      resetMapBtn.style.display = 'none';
+    }
+  };
 
   modal.classList.add('active');
 }
@@ -621,6 +640,7 @@ const ME = {
   currentStep: 0,
   arrowStart: null, // for 2-click arrow/sightline
   dragging: null, dragIdx: -1,
+  editingScenario: null, // { id, title, map } when editing a scenario's map
 };
 
 function meInit() {
@@ -906,6 +926,76 @@ function meRenderSaved() {
       meLoadStrat(i);
     });
     list.appendChild(item);
+  });
+}
+
+// Open Map Editor pre-loaded with a scenario's map data
+function meOpenForScenario(scenario) {
+  ME.editingScenario = { id: scenario.id, title: scenario.title, map: scenario.map || 'Bind' };
+
+  // Load existing custom annotations, or default annotations, or start fresh
+  const custom = typeof getCustomScenarioMap === 'function' && getCustomScenarioMap(scenario.id);
+  const defaults = typeof SCENARIO_ANNOTATIONS !== 'undefined' && SCENARIO_ANNOTATIONS[scenario.id];
+  const source = custom || defaults;
+
+  ME.currentMap = source ? source.map : (scenario.map || 'Bind');
+  ME.steps = source ? JSON.parse(JSON.stringify(source.steps)) : [{ label:'Step 1', elements:[] }];
+  ME.currentStep = 0;
+  ME.arrowStart = null;
+
+  document.getElementById('me-map-select').value = ME.currentMap;
+
+  // Switch to map editor tab
+  coachingSwitchTab('ch-map-editor');
+
+  // Show scenario banner + save button
+  meUpdateScenarioBanner();
+  meLoadMapImg();
+  meRenderSteps();
+  meRender();
+}
+
+function meUpdateScenarioBanner() {
+  let banner = document.getElementById('me-scenario-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'me-scenario-banner';
+    banner.style.cssText = 'padding:10px 16px;background:rgba(255,70,85,0.1);border:1px solid var(--accent);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+    const toolbar = document.querySelector('.me-toolbar');
+    if (toolbar) toolbar.parentNode.insertBefore(banner, toolbar);
+  }
+
+  if (!ME.editingScenario) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <div>
+      <span style="font-size:0.75rem;color:var(--dim)">Edition de la map pour :</span>
+      <strong style="color:var(--accent);margin-left:6px">${ME.editingScenario.title}</strong>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="me-save-scenario-map" class="btn-primary" style="padding:8px 18px;font-size:0.8rem">Sauvegarder pour ce scenario</button>
+      <button id="me-cancel-scenario" class="btn-secondary" style="padding:8px 14px;font-size:0.8rem">Annuler</button>
+    </div>
+  `;
+
+  document.getElementById('me-save-scenario-map').addEventListener('click', () => {
+    const s = ME.editingScenario;
+    if (!s) return;
+    saveCustomScenarioMap(s.id, ME.currentMap, JSON.parse(JSON.stringify(ME.steps)));
+    ME.editingScenario = null;
+    meUpdateScenarioBanner();
+    // Go back to scenarios tab
+    coachingSwitchTab('ch-scenarios');
+  });
+
+  document.getElementById('me-cancel-scenario').addEventListener('click', () => {
+    ME.editingScenario = null;
+    meUpdateScenarioBanner();
+    coachingSwitchTab('ch-scenarios');
   });
 }
 
