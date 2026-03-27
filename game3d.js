@@ -25,9 +25,9 @@ const SENS_DEFAULTS = { cm360:{step:0.5,def:34}, valorant:{step:0.01,def:0.48}, 
 function cm360ToRad(cm360) { return (2 * Math.PI * 2.54) / (cm360 * getDPI()); }
 
 const DIFF = {
-  easy:   { tR:[0.5,0.7], sp:[4,3], spd:1.5, gR:0.55, pR:[0.25,0.35] },
-  medium: { tR:[0.35,0.5], sp:[5,3.5], spd:2.8, gR:0.42, pR:[0.18,0.28] },
-  hard:   { tR:[0.12,0.22], sp:[8,5.5], spd:7.5, gR:0.22, pR:[0.07,0.14] },
+  easy:   { tR:[0.5,0.7], sp:[4,3], spd:1.2, gR:0.55, pR:[0.28,0.38], maxT:4, spawnRate:1.2, switchInt:2.5 },
+  medium: { tR:[0.35,0.5], sp:[5,3.5], spd:2.5, gR:0.42, pR:[0.18,0.28], maxT:5, spawnRate:0.8, switchInt:1.8 },
+  hard:   { tR:[0.15,0.25], sp:[8,6], spd:5.0, gR:0.25, pR:[0.08,0.15], maxT:7, spawnRate:0.4, switchInt:1.0 },
 };
 
 // ============================================================
@@ -407,80 +407,91 @@ function mkSwitchTargets(positions, r, props) {
   G.switchActiveIdx=0; G.switchTimer=0;
 }
 
+// ═══ DIFFICULTY-SCALED RADIUS HELPER ═══
+// base = medium radius. easy: +30%, hard: -35%
+function tR(base) { const d=G.diff; return d==='easy'?base*1.3:d==='hard'?base*0.65:base; }
+
 // ═══ CONTROL TRACKING SPAWNS ═══
 
 // Arm: smooth sinusoidal, large range
-function spawn_whisphereraw() { mkTrackTarget(0,1.7,-10,0.35,M.t4,{mv:'whisphereraw'}); }
-function spawn_whisphere() { mkTrackTarget(0,1.7,-10,0.5,M.t4,{mv:'whisphere'}); }
-function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,0.5,M.t3,{mv:'smoothbot'}); }
+function spawn_whisphereraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t4,{mv:'whisphereraw'}); }
+function spawn_whisphere() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t4,{mv:'whisphere'}); }
+function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t3,{mv:'smoothbot'}); }
 
 // Wrist: tighter, faster direction changes
-function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,0.45,M.t6,{mv:'leaptrack',phase:0,jumpTimer:0}); }
-function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,0.4,M.t4,{mv:'ctrlsphere_aim'}); }
-function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,0.4,M.t5,{mv:'vt_ctrlsphere'}); }
+function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t6,{mv:'leaptrack',phase:0,jumpTimer:0}); }
+function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'ctrlsphere_aim'}); }
+function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t5,{mv:'vt_ctrlsphere'}); }
 
 // Fingertip: tiny movements, small targets
-function spawn_air_angelic() { mkTrackTarget(0,2,-10,0.35,M.t5,{mv:'air_angelic'}); }
-function spawn_cloverraw() { mkTrackTarget(0,1.7,-10,0.35,M.t3,{mv:'cloverraw'}); }
-function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,0.4,M.t4,{mv:'ctrlsphere_far'}); }
+function spawn_air_angelic() { mkTrackTarget(0,2,-10,tR(0.35),M.t5,{mv:'air_angelic'}); }
+function spawn_cloverraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t3,{mv:'cloverraw'}); }
+function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,tR(0.4),M.t4,{mv:'ctrlsphere_far'}); }
 
 // Blending: mixed movement patterns
-function spawn_pgti() { mkTrackTarget(0,1.7,-10,0.4,M.t4,{mv:'pgti'}); }
-function spawn_air_celestial() { mkTrackTarget(0,2,-10,0.45,M.t5,{mv:'air_celestial'}); }
-function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,0.5,M.t6,{mv:'whisphere_slow'}); }
+function spawn_pgti() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'pgti'}); }
+function spawn_air_celestial() { mkTrackTarget(0,2,-10,tR(0.45),M.t5,{mv:'air_celestial'}); }
+function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t6,{mv:'whisphere_slow'}); }
 
 // ═══ REACTIVE TRACKING SPAWNS ═══
-function spawn_ground_plaza() { mkTrackTarget(0,0.8,-10,0.5,M.t3,{mv:'ground_plaza',vx:2,vy:0,ct:0,nc:0.8}); }
-function spawn_ctrlsphere_ow() { mkTrackTarget(0,1.7,-10,0.45,M.t4,{mv:'ctrlsphere_ow',vx:1.5,vy:0.8,ct:0,nc:1}); }
-function spawn_flicker_plaza() { mkTrackTarget(0,1.7,-10,0.45,M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:0.5}); }
-function spawn_polarized_hell() { mkTrackTarget(0,1.7,-10,0.5,M.t1,{mv:'polarized_hell',vx:2,vy:1.5,ct:0,nc:0.7}); }
-function spawn_air_pure() { mkTrackTarget(0,2,-10,0.4,M.t5,{mv:'air_pure',vx:1,vy:1,ct:0,nc:1.2}); }
-function spawn_air_voltaic() { mkTrackTarget(0,2,-10,0.45,M.t4,{mv:'air_voltaic',vx:2,vy:1.5,ct:0,nc:0.6}); }
+function spawn_ground_plaza() { const d=DIFF[G.diff]; mkTrackTarget(0,0.8,-10,tR(0.5),M.t3,{mv:'ground_plaza',vx:2*d.spd/2.5,vy:0,ct:0,nc:d==='hard'?0.4:0.8}); }
+function spawn_ctrlsphere_ow() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.45),M.t4,{mv:'ctrlsphere_ow',vx:1.5*d.spd/2.5,vy:0.8*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.5:1}); }
+function spawn_flicker_plaza() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:G.diff==='hard'?0.25:0.5}); }
+function spawn_polarized_hell() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.5),M.t1,{mv:'polarized_hell',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.35:0.7}); }
+function spawn_air_pure() { mkTrackTarget(0,2,-10,tR(0.4),M.t5,{mv:'air_pure',vx:1,vy:1,ct:0,nc:G.diff==='hard'?0.6:1.2}); }
+function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.45),M.t4,{mv:'air_voltaic',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.3:0.6}); }
 
 // ═══ FLICK TECH SPAWNS (click-based switching) ═══
 function spawn_pokeball_frenzy() {
-  mkSwitchTargets([[-3,1.7,-10],[0,2.5,-11],[3,1.5,-10]], 0.4, {mv:'switch_move', spd:2});
-  G.switchInterval = 1.5;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-3,1.7,-10],[0,2.5,-11],[3,1.5,-10]], tR(0.4), {mv:'switch_move', spd:d.spd*0.8});
+  G.switchInterval = G.diff==='hard'?0.8:G.diff==='easy'?2.2:1.5;
 }
 function spawn_w1w3ts_reload() {
-  // 3 targets on wall, click any, respawns
   if(!G.running) return;
+  const d=DIFF[G.diff];
   G.targets = G.targets.filter(t=>t.alive);
-  while(G.targets.filter(t=>t.alive).length < 3) {
-    const r=rand(0.25,0.4), x=rand(-5,5), y=rand(0.8,3.5);
+  const maxT = d.maxT || 3;
+  while(G.targets.filter(t=>t.alive).length < maxT) {
+    const r=rand(d.pR[0],d.pR[1]), x=rand(-5,5), y=rand(0.8,3.5);
     const mesh=mkSphere(x,y,-12,r,M.t1);
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now()});
   }
 }
 function spawn_vox_ts2() {
-  mkSwitchTargets([[-4,1.7,-10],[-1,2.5,-11],[2,1.2,-10],[4.5,2,-11]], 0.35, {mv:'switch_move', spd:1.5});
-  G.switchInterval = 1.2;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-4,1.7,-10],[-1,2.5,-11],[2,1.2,-10],[4.5,2,-11]], tR(0.35), {mv:'switch_move', spd:d.spd*0.6});
+  G.switchInterval = G.diff==='hard'?0.6:G.diff==='easy'?1.8:1.2;
 }
 function spawn_beants() {
-  mkSwitchTargets([[-3,2,-10],[3,2,-10]], 0.4, {mv:'switch_bounce', spd:1.8});
-  G.switchInterval = 2;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-3,2,-10],[3,2,-10]], tR(0.4), {mv:'switch_bounce', spd:d.spd*0.7});
+  G.switchInterval = G.diff==='hard'?1.0:G.diff==='easy'?3.0:2;
 }
 function spawn_floatts() {
-  mkSwitchTargets([[-2,2.5,-10],[2,1.5,-10]], 0.45, {mv:'switch_float', spd:1.2});
-  G.switchInterval = 2.5;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-2,2.5,-10],[2,1.5,-10]], tR(0.45), {mv:'switch_float', spd:d.spd*0.5});
+  G.switchInterval = G.diff==='hard'?1.2:G.diff==='easy'?3.5:2.5;
 }
 function spawn_waldots() {
-  mkSwitchTargets([[-3,1.5,-10],[0,2.8,-11],[3,1.8,-10]], 0.3, {mv:'switch_micro', spd:0.8});
-  G.switchInterval = 1.8;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-3,1.5,-10],[0,2.8,-11],[3,1.8,-10]], tR(0.3), {mv:'switch_micro', spd:d.spd*0.3});
+  G.switchInterval = G.diff==='hard'?0.9:G.diff==='easy'?2.5:1.8;
 }
 function spawn_devts() {
-  // 5 static bots, click active one
   const pos = [[-4,1.7,-10],[-2,2.5,-11],[0,1.5,-10],[2,2.5,-11],[4,1.7,-10]];
-  mkSwitchTargets(pos, 0.35, {mv:'static', spd:0});
-  G.switchInterval = 1;
+  mkSwitchTargets(pos, tR(0.35), {mv:'static', spd:0});
+  G.switchInterval = G.diff==='hard'?0.5:G.diff==='easy'?1.5:1;
 }
 function spawn_domiswitch() {
-  mkSwitchTargets([[-3,1.7,-10],[3,1.7,-10]], 0.45, {mv:'switch_move', spd:2.5});
-  G.switchInterval = 2;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-3,1.7,-10],[3,1.7,-10]], tR(0.45), {mv:'switch_move', spd:d.spd});
+  G.switchInterval = G.diff==='hard'?1.0:G.diff==='easy'?3.0:2;
 }
 function spawn_tamts() {
-  mkSwitchTargets([[-2,2,-10],[2,2,-10]], 0.4, {mv:'switch_smooth', spd:1});
-  G.switchInterval = 3;
+  const d=DIFF[G.diff];
+  mkSwitchTargets([[-2,2,-10],[2,2,-10]], tR(0.4), {mv:'switch_smooth', spd:d.spd*0.4});
+  G.switchInterval = G.diff==='hard'?1.5:G.diff==='easy'?4.0:3;
 }
 
 // ═══ CLICK TIMING SPAWNS ═══
@@ -527,21 +538,25 @@ function spawn_popcorn_mv() {
 }
 function spawn_pasu_angelic() {
   if(!G.running) return;
+  const d=DIFF[G.diff], sM=d.spd/2.5;
   G.targets=G.targets.filter(t=>t.alive);
-  while(G.targets.filter(t=>t.alive).length < 4) {
-    const r=rand(0.15,0.25), x=rand(-4,4), y=rand(1,3.5);
+  const maxT = G.diff==='hard'?6:G.diff==='easy'?3:4;
+  while(G.targets.filter(t=>t.alive).length < maxT) {
+    const r=rand(d.pR[0]*0.7,d.pR[1]*0.8), x=rand(-4,4), y=rand(1,3.5);
     const mesh=mkSphere(x,y,-13,r,M.t5);
-    const vx=rand(-1.5,1.5), vy=rand(-1,1);
+    const vx=rand(-1.5,1.5)*sM, vy=rand(-1,1)*sM;
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
   }
 }
 function spawn_pasu_perfected() {
   if(!G.running) return;
+  const d=DIFF[G.diff], sM=d.spd/2.5;
   G.targets=G.targets.filter(t=>t.alive);
-  while(G.targets.filter(t=>t.alive).length < 3) {
-    const r=rand(0.12,0.2), x=rand(-4,4), y=rand(1,3.5);
+  const maxT = G.diff==='hard'?5:G.diff==='easy'?2:3;
+  while(G.targets.filter(t=>t.alive).length < maxT) {
+    const r=rand(d.pR[0]*0.6,d.pR[1]*0.7), x=rand(-4,4), y=rand(1,3.5);
     const mesh=mkSphere(x,y,-14,r,M.t6);
-    const vx=rand(-1,1), vy=rand(-0.8,0.8);
+    const vx=rand(-1,1)*sM, vy=rand(-0.8,0.8)*sM;
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
   }
 }
