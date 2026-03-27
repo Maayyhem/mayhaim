@@ -308,6 +308,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-agents') coachingRenderAgents();
   if (tabId === 'ch-vods') coachingRenderVods();
   if (tabId === 'ch-students') coachingRenderStudents();
+  if (tabId === 'ch-map-editor') { meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
 }
 
@@ -611,8 +612,306 @@ async function saveScenario() {
   }
 }
 
+// ============ MAP EDITOR ============
+
+const ME = {
+  currentMap: 'Bind',
+  currentTool: 'player_t',
+  steps: [{ label:'Step 1', elements:[] }],
+  currentStep: 0,
+  arrowStart: null, // for 2-click arrow/sightline
+  dragging: null, dragIdx: -1,
+};
+
+function meInit() {
+  const mapSel = document.getElementById('me-map-select');
+  const img = document.getElementById('me-map-img');
+  const container = document.getElementById('me-canvas-container');
+
+  if (!mapSel || !img || !container) return;
+
+  // Map select
+  mapSel.addEventListener('change', () => {
+    ME.currentMap = mapSel.value;
+    meLoadMapImg();
+    meRender();
+  });
+
+  // Tool buttons
+  document.querySelectorAll('.me-tool').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.me-tool').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ME.currentTool = btn.dataset.tool;
+      ME.arrowStart = null;
+      container.style.cursor = ME.currentTool === 'eraser' ? 'not-allowed' : 'crosshair';
+    });
+  });
+
+  // Click on map
+  container.addEventListener('mousedown', meOnMouseDown);
+  container.addEventListener('mousemove', meOnMouseMove);
+  container.addEventListener('mouseup', meOnMouseUp);
+
+  // Steps
+  document.getElementById('me-add-step').addEventListener('click', () => {
+    ME.steps.push({ label:`Step ${ME.steps.length+1}`, elements:[] });
+    ME.currentStep = ME.steps.length - 1;
+    meRenderSteps();
+    meRender();
+  });
+
+  // Save/Clear
+  document.getElementById('me-save-strat').addEventListener('click', meSaveStrat);
+  document.getElementById('me-clear').addEventListener('click', () => {
+    ME.steps = [{ label:'Step 1', elements:[] }];
+    ME.currentStep = 0;
+    ME.arrowStart = null;
+    meRenderSteps();
+    meRender();
+  });
+
+  meLoadMapImg();
+  meRenderSteps();
+  meRenderSaved();
+}
+
+function meLoadMapImg() {
+  const img = document.getElementById('me-map-img');
+  const mapData = MAP_DATA[ME.currentMap];
+  if (img && mapData) img.src = mapData.img;
+}
+
+function meGetCoords(e) {
+  const container = document.getElementById('me-canvas-container');
+  const img = document.getElementById('me-map-img');
+  const rect = img.getBoundingClientRect();
+  const x = Math.round(((e.clientX - rect.left) / rect.width) * 1024);
+  const y = Math.round(((e.clientY - rect.top) / rect.height) * 1024);
+  return { x: Math.max(0, Math.min(1024, x)), y: Math.max(0, Math.min(1024, y)) };
+}
+
+function meOnMouseDown(e) {
+  if (e.button !== 0) return;
+  const { x, y } = meGetCoords(e);
+  const step = ME.steps[ME.currentStep];
+  if (!step) return;
+
+  const tool = ME.currentTool;
+
+  // Eraser: find and remove nearest element
+  if (tool === 'eraser') {
+    let bestIdx = -1, bestDist = 40;
+    step.elements.forEach((el, i) => {
+      const ex = el.x ?? ((el.x1 + el.x2) / 2);
+      const ey = el.y ?? ((el.y1 + el.y2) / 2);
+      const d = Math.hypot(ex - x, ey - y);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    });
+    if (bestIdx >= 0) { step.elements.splice(bestIdx, 1); meRender(); }
+    return;
+  }
+
+  // Arrow/sightline: 2-click mode
+  if (tool === 'arrow' || tool === 'sightline') {
+    if (!ME.arrowStart) {
+      ME.arrowStart = { x, y };
+      return;
+    }
+    const el = tool === 'arrow'
+      ? { type:'arrow', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y, color:'#3fb950' }
+      : { type:'sightline', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y };
+    step.elements.push(el);
+    ME.arrowStart = null;
+    meRender();
+    return;
+  }
+
+  // Text: prompt for label
+  if (tool === 'text') {
+    const label = prompt('Texte:');
+    if (label) { step.elements.push({ type:'text', x, y, label }); meRender(); }
+    return;
+  }
+
+  // Check if clicking near existing element to drag
+  let dragIdx = -1, dragDist = 30;
+  step.elements.forEach((el, i) => {
+    if (el.x !== undefined) {
+      const d = Math.hypot(el.x - x, el.y - y);
+      if (d < dragDist) { dragDist = d; dragIdx = i; }
+    }
+  });
+
+  if (dragIdx >= 0 && tool !== 'eraser') {
+    ME.dragging = step.elements[dragIdx];
+    ME.dragIdx = dragIdx;
+    return;
+  }
+
+  // Place new element
+  let newEl = null;
+  switch (tool) {
+    case 'player_t': newEl = { type:'player', x, y, team:'T', label:'ATK' }; break;
+    case 'player_ct': newEl = { type:'player', x, y, team:'CT', label:'DEF' }; break;
+    case 'smoke': newEl = { type:'smoke', x, y, label:'Smoke' }; break;
+    case 'flash': newEl = { type:'flash', x, y }; break;
+    case 'plant': newEl = { type:'plant', x, y }; break;
+  }
+  if (newEl) { step.elements.push(newEl); meRender(); }
+}
+
+function meOnMouseMove(e) {
+  if (!ME.dragging) return;
+  const { x, y } = meGetCoords(e);
+  ME.dragging.x = x;
+  ME.dragging.y = y;
+  meRender();
+}
+
+function meOnMouseUp() {
+  ME.dragging = null;
+  ME.dragIdx = -1;
+}
+
+function meRender() {
+  const svg = document.getElementById('me-svg-overlay');
+  if (!svg) return;
+  const step = ME.steps[ME.currentStep];
+  if (!step) { svg.innerHTML = ''; return; }
+
+  let out = '';
+  step.elements.forEach(el => {
+    switch (el.type) {
+      case 'smoke':
+        out += `<circle cx="${el.x}" cy="${el.y}" r="36" fill="rgba(150,150,150,0.45)" stroke="#bbb" stroke-width="2.5" stroke-dasharray="8"/>`;
+        if (el.label) out += `<text x="${el.x}" y="${el.y+5}" fill="#ddd" font-size="18" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 6px #000">${el.label}</text>`;
+        break;
+      case 'flash':
+        out += `<circle cx="${el.x}" cy="${el.y}" r="20" fill="rgba(255,220,50,0.6)" stroke="#ffdd33" stroke-width="2.5"/>`;
+        out += `<text x="${el.x}" y="${el.y+7}" fill="#fff" font-size="18" text-anchor="middle" font-weight="bold">F</text>`;
+        break;
+      case 'player':
+        const c = el.team === 'T' ? '#ff4655' : '#58a6ff';
+        out += `<circle cx="${el.x}" cy="${el.y}" r="20" fill="${c}" stroke="#fff" stroke-width="3" opacity="0.9"/>`;
+        if (el.label) out += `<text x="${el.x}" y="${el.y+45}" fill="${c}" font-size="18" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 6px #000">${el.label}</text>`;
+        break;
+      case 'arrow':
+        const ac = el.color || '#3fb950';
+        const aid = `me-ah-${el.x1}-${el.y1}-${el.x2}`;
+        out += `<defs><marker id="${aid}" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="${ac}"/></marker></defs>`;
+        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="${ac}" stroke-width="4" marker-end="url(#${aid})" opacity="0.85"/>`;
+        break;
+      case 'sightline':
+        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="rgba(255,70,85,0.5)" stroke-width="2.5" stroke-dasharray="10"/>`;
+        break;
+      case 'plant':
+        out += `<rect x="${el.x-15}" y="${el.y-15}" width="30" height="30" fill="rgba(255,70,85,0.7)" stroke="#ff4655" stroke-width="3" rx="4"/>`;
+        out += `<text x="${el.x}" y="${el.y+7}" fill="#fff" font-size="18" text-anchor="middle" font-weight="bold">X</text>`;
+        break;
+      case 'text':
+        out += `<text x="${el.x}" y="${el.y}" fill="#ffcc44" font-size="22" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 8px #000">${el.label}</text>`;
+        break;
+    }
+  });
+
+  // Show arrow start indicator
+  if (ME.arrowStart) {
+    out += `<circle cx="${ME.arrowStart.x}" cy="${ME.arrowStart.y}" r="8" fill="none" stroke="#3fb950" stroke-width="3" stroke-dasharray="4"><animate attributeName="r" values="8;14;8" dur="1s" repeatCount="indefinite"/></circle>`;
+  }
+
+  svg.innerHTML = out;
+}
+
+function meRenderSteps() {
+  const list = document.getElementById('me-steps-list');
+  if (!list) return;
+  list.innerHTML = '';
+  ME.steps.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'me-step-btn' + (i === ME.currentStep ? ' active' : '');
+    btn.innerHTML = s.label;
+    if (ME.steps.length > 1) {
+      btn.innerHTML += ` <span class="me-step-del" data-idx="${i}">&times;</span>`;
+    }
+    btn.addEventListener('click', (e) => {
+      if (e.target.classList.contains('me-step-del')) {
+        ME.steps.splice(parseInt(e.target.dataset.idx), 1);
+        if (ME.currentStep >= ME.steps.length) ME.currentStep = ME.steps.length - 1;
+        meRenderSteps();
+        meRender();
+        return;
+      }
+      ME.currentStep = i;
+      ME.arrowStart = null;
+      meRenderSteps();
+      meRender();
+    });
+    list.appendChild(btn);
+  });
+}
+
+function meSaveStrat() {
+  const nameInput = document.getElementById('me-strat-name');
+  const name = (nameInput.value || '').trim() || `Strat ${Date.now()}`;
+  const strats = meGetSaved();
+  strats.push({
+    name,
+    map: ME.currentMap,
+    steps: JSON.parse(JSON.stringify(ME.steps)),
+    date: new Date().toISOString()
+  });
+  localStorage.setItem('me_strats', JSON.stringify(strats));
+  nameInput.value = '';
+  meRenderSaved();
+}
+
+function meGetSaved() {
+  try { return JSON.parse(localStorage.getItem('me_strats')) || []; } catch { return []; }
+}
+
+function meLoadStrat(idx) {
+  const strats = meGetSaved();
+  const s = strats[idx];
+  if (!s) return;
+  ME.currentMap = s.map;
+  ME.steps = JSON.parse(JSON.stringify(s.steps));
+  ME.currentStep = 0;
+  ME.arrowStart = null;
+  document.getElementById('me-map-select').value = s.map;
+  meLoadMapImg();
+  meRenderSteps();
+  meRender();
+}
+
+function meDeleteStrat(idx) {
+  const strats = meGetSaved();
+  strats.splice(idx, 1);
+  localStorage.setItem('me_strats', JSON.stringify(strats));
+  meRenderSaved();
+}
+
+function meRenderSaved() {
+  const list = document.getElementById('me-saved-list');
+  if (!list) return;
+  const strats = meGetSaved();
+  if (!strats.length) { list.innerHTML = '<span style="color:var(--dim);font-size:0.8rem">Aucune strat sauvegardee</span>'; return; }
+  list.innerHTML = '';
+  strats.forEach((s, i) => {
+    const item = document.createElement('div');
+    item.className = 'me-saved-item';
+    item.innerHTML = `<span style="font-weight:700">${s.name}</span> <span style="color:var(--dim);font-size:0.7rem">${s.map}</span> <span class="me-del" data-idx="${i}">&times;</span>`;
+    item.addEventListener('click', (e) => {
+      if (e.target.classList.contains('me-del')) { meDeleteStrat(parseInt(e.target.dataset.idx)); return; }
+      meLoadStrat(i);
+    });
+    list.appendChild(item);
+  });
+}
+
 // ============ BOOT ============
 document.addEventListener('DOMContentLoaded', () => {
   initGlobalAuth();
   initCoaching();
+  meInit();
 });

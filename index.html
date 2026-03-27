@@ -219,6 +219,7 @@
           <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
           <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
           <button class="ch-tab-btn ch-admin-only" data-tab="ch-students" style="display:none">Eleves</button>
+          <button class="ch-tab-btn" data-tab="ch-map-editor">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
         </div>
 
@@ -271,6 +272,66 @@
             <div class="ch-filter-group"><label>Map</label><select id="ch-vod-map-filter"><option value="">Toutes</option></select></div>
           </div>
           <div class="ch-cards-grid" id="ch-vods-list"></div>
+        </div>
+
+        <!-- MAP EDITOR -->
+        <div id="ch-map-editor" class="ch-panel">
+          <h2 class="ch-section-title">Map Editor</h2>
+          <div class="me-toolbar">
+            <select id="me-map-select">
+              <option value="Bind">Bind</option><option value="Haven">Haven</option><option value="Ascent">Ascent</option>
+              <option value="Split">Split</option><option value="Icebox">Icebox</option><option value="Breeze">Breeze</option>
+              <option value="Fracture">Fracture</option><option value="Pearl">Pearl</option><option value="Lotus">Lotus</option>
+              <option value="Sunset">Sunset</option><option value="Abyss">Abyss</option><option value="Corrode">Corrode</option>
+            </select>
+            <div class="me-tools">
+              <button class="me-tool active" data-tool="player_t" title="Joueur Attaque">
+                <span style="color:#ff4655;font-size:1.2rem">&#9679;</span> ATK
+              </button>
+              <button class="me-tool" data-tool="player_ct" title="Joueur Defense">
+                <span style="color:#58a6ff;font-size:1.2rem">&#9679;</span> DEF
+              </button>
+              <button class="me-tool" data-tool="smoke" title="Smoke">
+                <span style="opacity:0.6">&#9681;</span> Smoke
+              </button>
+              <button class="me-tool" data-tool="flash" title="Flash">
+                <span style="color:#ffdd33">&#9733;</span> Flash
+              </button>
+              <button class="me-tool" data-tool="plant" title="Plant Spike">
+                <span style="color:#ff4655">&#10006;</span> Plant
+              </button>
+              <button class="me-tool" data-tool="arrow" title="Fleche mouvement">
+                <span style="color:#3fb950">&#10132;</span> Arrow
+              </button>
+              <button class="me-tool" data-tool="sightline" title="Ligne de vue">
+                <span style="color:#ff4655;opacity:0.6">- -</span> Sight
+              </button>
+              <button class="me-tool" data-tool="text" title="Texte">
+                <span style="color:#ffcc44">T</span> Text
+              </button>
+              <button class="me-tool" data-tool="eraser" title="Supprimer">
+                <span style="color:#ff4444">&#10005;</span> Eraser
+              </button>
+            </div>
+          </div>
+          <div class="me-steps-bar">
+            <div id="me-steps-list" class="me-steps-list"></div>
+            <button id="me-add-step" class="me-step-add">+ Step</button>
+          </div>
+          <div class="me-canvas-wrap">
+            <div id="me-canvas-container" style="position:relative;display:inline-block;cursor:crosshair">
+              <img id="me-map-img" crossorigin="anonymous" style="width:100%;max-width:600px;border-radius:8px;display:block" />
+              <svg id="me-svg-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none" viewBox="0 0 1024 1024"></svg>
+            </div>
+          </div>
+          <div class="me-bottom-bar">
+            <div class="me-strats-bar">
+              <input type="text" id="me-strat-name" placeholder="Nom de la strat..." style="flex:1;padding:8px 12px;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--txt);font-size:0.85rem">
+              <button id="me-save-strat" class="btn-primary" style="padding:8px 16px;font-size:0.8rem">Sauvegarder</button>
+              <button id="me-clear" class="btn-secondary" style="padding:8px 16px;font-size:0.8rem">Clear</button>
+            </div>
+            <div class="me-saved-list" id="me-saved-list"></div>
+          </div>
         </div>
 
         <!-- STUDENTS (admin/coach only) -->
