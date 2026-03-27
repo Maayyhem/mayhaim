@@ -157,6 +157,26 @@
       <div id="tracking-bar" class="hidden"><div id="tracking-fill"></div><span id="tracking-pct">0%</span></div>
       <div id="kill-feed"></div>
       <div id="click-to-start" class="hidden"><div class="click-box"><h2>Clique pour commencer</h2><p>Clic gauche = Tirer &nbsp;|&nbsp; Souris = Viser</p></div></div>
+
+      <!-- PAUSE MENU -->
+      <div id="pause-menu" class="hidden">
+        <div class="pause-overlay"></div>
+        <div class="pause-panel">
+          <h2 class="pause-title">Pause</h2>
+          <div class="pause-info">
+            <span id="pause-mode">-</span>
+            <span id="pause-score">Score: 0</span>
+            <span id="pause-time">Temps: 60s</span>
+          </div>
+          <div class="pause-buttons">
+            <button id="pause-resume" class="btn-primary pause-btn">&#9654; Reprendre</button>
+            <button id="pause-restart" class="pause-btn btn-outline">&#8635; Recommencer</button>
+            <button id="pause-settings" class="pause-btn btn-outline">&#9881; Sensibilite &amp; Crosshair</button>
+            <button id="pause-benchmark" class="pause-btn btn-outline">&#128202; Benchmark</button>
+            <button id="pause-menu-btn" class="pause-btn btn-quit">&#10005; Quitter au Menu</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- RESULTS -->

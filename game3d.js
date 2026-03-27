@@ -888,7 +888,8 @@ function onMouseMove(e) {
   camera.rotation.x = G.pitch;
 }
 function lockPointer() { const c=$('#game-canvas');(c.requestPointerLock||c.mozRequestPointerLock).call(c); }
-document.addEventListener('pointerlockchange',()=>{ G.locked=!!document.pointerLockElement; lastMoveTime=0; skipFrames=3; if(!G.locked&&G.running)$('#click-to-start').classList.remove('hidden'); });
+// pointerlockchange handled in pause section; reset mouse filter on lock change
+
 
 // ---- GAME LOOP ----
 function gameLoop() {
@@ -1130,6 +1131,130 @@ xhBind('#xh-outer-gap','xhOuterGap',parseInt,'#xh-outer-gap-val');
 $('#opt-theme').addEventListener('change',e=>{saveSettings({theme:e.target.value});applyTheme(e.target.value);});
 $('#opt-room-theme').addEventListener('change',e=>{saveSettings({roomTheme:e.target.value});applyRoomTheme();});
 document.addEventListener('contextmenu',e=>{if(G.running)e.preventDefault();});
+
+// ============ PAUSE MENU ============
+let paused = false;
+let pauseTimeLeft = 0;
+
+function pauseGame() {
+  if (!G.running || paused) return;
+  paused = true;
+  clearInterval(G.timerInterval);
+  clearInterval(G.spawnTimer); G.spawnTimer = null;
+  pauseTimeLeft = G.timeLeft;
+  if (document.exitPointerLock) document.exitPointerLock();
+
+  // Update pause info
+  const pm = $('#pause-mode');
+  if (pm) pm.textContent = G.mode.replace(/_/g,' ');
+  const ps = $('#pause-score');
+  if (ps) ps.textContent = 'Score: ' + G.score;
+  const pt = $('#pause-time');
+  if (pt) pt.textContent = 'Temps: ' + G.timeLeft + 's';
+
+  $('#pause-menu').classList.remove('hidden');
+  $('#click-to-start').classList.add('hidden');
+}
+
+function resumeGame() {
+  if (!paused) return;
+  paused = false;
+  $('#pause-menu').classList.add('hidden');
+  G.timeLeft = pauseTimeLeft;
+
+  // Re-lock pointer with a small delay, then restart timers
+  const c = $('#game-canvas');
+  c.addEventListener('click', function resumeLock() {
+    c.removeEventListener('click', resumeLock);
+    lockPointer();
+    G.running = true;
+
+    // Restart timer
+    G.timerInterval = setInterval(() => {
+      G.timeLeft--;
+      $('#hud-timer').textContent = G.timeLeft;
+      if (G.timeLeft <= 5) $('#hud-timer').classList.add('urgent');
+      if (G.timeLeft <= 0) endGame();
+    }, 1000);
+
+    // Restart spawn timer
+    const iv = INTERVAL_MODES[G.mode];
+    if (iv) G.spawnTimer = setInterval(() => { const f = SPAWN_MAP[G.mode]; if(f) f(); }, iv);
+  });
+
+  // Show click-to-start prompt
+  $('#click-to-start').classList.remove('hidden');
+  G.running = false; // pause until click
+}
+
+function quitToMenu() {
+  paused = false;
+  G.running = false;
+  clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
+  if (document.exitPointerLock) document.exitPointerLock();
+  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
+  G.targets = []; trackTarget = null; switchTargets = [];
+  $('#pause-menu').classList.add('hidden');
+  showScreen('menu-screen');
+}
+
+function quitToBenchmark() {
+  paused = false;
+  G.running = false;
+  clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
+  if (document.exitPointerLock) document.exitPointerLock();
+  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
+  G.targets = []; trackTarget = null; switchTargets = [];
+  $('#pause-menu').classList.add('hidden');
+  showScreen('benchmark-screen');
+  renderBenchmark();
+}
+
+function pauseToSettings() {
+  quitToMenu();
+  // Scroll to crosshair section after showing menu
+  setTimeout(() => {
+    const xhSection = document.querySelector('#xh-preview');
+    if (xhSection) xhSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+// ESC key handler
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (paused) {
+      resumeGame();
+    } else if (G.running) {
+      e.preventDefault();
+      pauseGame();
+    }
+  }
+});
+
+// Pause buttons
+$('#pause-resume')?.addEventListener('click', resumeGame);
+$('#pause-restart')?.addEventListener('click', () => {
+  paused = false;
+  G.running = false;
+  clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
+  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
+  G.targets = []; trackTarget = null; switchTargets = [];
+  $('#pause-menu').classList.add('hidden');
+  startGame(G.mode);
+});
+$('#pause-settings')?.addEventListener('click', pauseToSettings);
+$('#pause-benchmark')?.addEventListener('click', quitToBenchmark);
+$('#pause-menu-btn')?.addEventListener('click', quitToMenu);
+
+// Pointer lock change: pause when pointer is lost during play
+document.addEventListener('pointerlockchange', () => {
+  G.locked = !!document.pointerLockElement;
+  lastMoveTime = 0;
+  skipFrames = 3;
+  if (!G.locked && G.running && !paused) {
+    pauseGame();
+  }
+});
 
 // ---- INIT ----
 initThree(); gameLoop(); applySettings(); updateMenuStats();
