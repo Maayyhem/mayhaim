@@ -9,10 +9,10 @@ function getCustomScenarioMap(scenarioId) {
   } catch { return null; }
 }
 
-function saveCustomScenarioMap(scenarioId, mapName, steps) {
+function saveCustomScenarioMap(scenarioId, mapName, steps, rotation) {
   try {
     const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
-    all[scenarioId] = { map: mapName, steps: steps };
+    all[scenarioId] = { map: mapName, steps: steps, rotation: rotation || 0 };
     localStorage.setItem('me_scenario_maps', JSON.stringify(all));
   } catch(e) { console.error('Failed to save custom map:', e); }
 }
@@ -226,11 +226,15 @@ function renderTacticalMap(containerId, scenarioId, stepIndex) {
   const w = mapData.width;
   const h = mapData.height;
 
+  const rot = annotations.rotation || 0;
+
   // SVG with embedded minimap image as background
   let svg = `<svg width="100%" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="border-radius:8px;max-height:400px;background:#0a0e14">`;
 
-  // Real minimap image
+  // Real minimap image (rotated)
+  svg += `<g transform="rotate(${rot} ${w/2} ${h/2})">`;
   svg += `<image href="${mapData.img}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
+  svg += `</g>`;
 
   // Semi-transparent overlay for better annotation visibility
   svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="rgba(0,0,0,0.15)"/>`;

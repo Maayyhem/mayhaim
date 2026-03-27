@@ -653,6 +653,7 @@ const ME = {
   arrowStart: null, // for 2-click arrow/sightline
   dragging: null, dragIdx: -1,
   editingScenario: null, // { id, title, map } when editing a scenario's map
+  rotation: 0,
 };
 
 function meInit() {
@@ -677,6 +678,16 @@ function meInit() {
       ME.currentTool = btn.dataset.tool;
       ME.arrowStart = null;
       container.style.cursor = ME.currentTool === 'eraser' ? 'not-allowed' : 'crosshair';
+    });
+  });
+
+  // Rotation buttons
+  document.querySelectorAll('.me-rot-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.me-rot-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ME.rotation = parseInt(btn.dataset.rot) || 0;
+      meApplyRotation();
     });
   });
 
@@ -711,7 +722,12 @@ function meInit() {
 function meLoadMapImg() {
   const img = document.getElementById('me-map-img');
   const mapData = MAP_DATA[ME.currentMap];
-  if (img && mapData) img.src = mapData.img;
+  if (img && mapData) { img.src = mapData.img; meApplyRotation(); }
+}
+
+function meApplyRotation() {
+  const img = document.getElementById('me-map-img');
+  if (img) img.style.transform = ME.rotation ? `rotate(${ME.rotation}deg)` : '';
 }
 
 function meGetCoords(e) {
@@ -891,6 +907,7 @@ function meSaveStrat() {
     name,
     map: ME.currentMap,
     steps: JSON.parse(JSON.stringify(ME.steps)),
+    rotation: ME.rotation,
     date: new Date().toISOString()
   });
   localStorage.setItem('me_strats', JSON.stringify(strats));
@@ -910,7 +927,11 @@ function meLoadStrat(idx) {
   ME.steps = JSON.parse(JSON.stringify(s.steps));
   ME.currentStep = 0;
   ME.arrowStart = null;
+  ME.rotation = s.rotation || 0;
   document.getElementById('me-map-select').value = s.map;
+  document.querySelectorAll('.me-rot-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.rot) === ME.rotation);
+  });
   meLoadMapImg();
   meRenderSteps();
   meRender();
@@ -954,8 +975,13 @@ function meOpenForScenario(scenario) {
   ME.steps = source ? JSON.parse(JSON.stringify(source.steps)) : [{ label:'Step 1', elements:[] }];
   ME.currentStep = 0;
   ME.arrowStart = null;
+  ME.rotation = source?.rotation || 0;
 
   document.getElementById('me-map-select').value = ME.currentMap;
+  // Update rotation buttons
+  document.querySelectorAll('.me-rot-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.rot) === ME.rotation);
+  });
 
   // Switch to map editor tab
   coachingSwitchTab('ch-map-editor');
@@ -997,7 +1023,7 @@ function meUpdateScenarioBanner() {
   document.getElementById('me-save-scenario-map').addEventListener('click', () => {
     const s = ME.editingScenario;
     if (!s) return;
-    saveCustomScenarioMap(s.id, ME.currentMap, JSON.parse(JSON.stringify(ME.steps)));
+    saveCustomScenarioMap(s.id, ME.currentMap, JSON.parse(JSON.stringify(ME.steps)), ME.rotation);
     ME.editingScenario = null;
     meUpdateScenarioBanner();
     // Go back to scenarios tab
