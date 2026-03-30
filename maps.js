@@ -12,8 +12,11 @@ function getCustomScenarioMap(scenarioId) {
 function saveCustomScenarioMap(scenarioId, mapName, steps, rotation) {
   try {
     const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
-    all[scenarioId] = { map: mapName, steps: steps, rotation: rotation || 0 };
+    const val = { map: mapName, steps: steps, rotation: rotation || 0 };
+    all[scenarioId] = val;
     localStorage.setItem('me_scenario_maps', JSON.stringify(all));
+    // Sync to DB if coach/admin logged in
+    if (typeof pushStratToDB === 'function') pushStratToDB(scenarioId, val);
   } catch(e) { console.error('Failed to save custom map:', e); }
 }
 

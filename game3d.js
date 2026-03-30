@@ -817,10 +817,11 @@ function updateSwitchTargets(dt) {
       t.phase += dt*(t.spd||2)*0.3;
       t.phaseY += dt*(t.spd||2)*0.2;
       const bx = [-3,0,3,4.5][t.idx]||0;
-      t.x = bx+Math.sin(t.phase)*2.5; t.y=(t.y||1.7)+Math.sin(t.phaseY)*0.02; // minimal y drift in loop
+      t.x = Math.max(-7, Math.min(7, bx+Math.sin(t.phase)*2.2));
+      t.y = (t.y||1.7)+Math.sin(t.phaseY)*0.02;
       t.z = -10+Math.cos(t.phase*0.6)*1;
     }
-    t.mesh.position.set(t.x,Math.max(0.3,t.y),t.z);
+    t.mesh.position.set(t.x,Math.max(0.3,Math.min(4.5,t.y)),Math.min(-4,t.z));
   });
 
   // Switch active target on click-based modes
@@ -955,19 +956,26 @@ function hitTarget(t) {
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
 function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color='#e8c56d';f.appendChild(e);setTimeout(()=>e.remove(),1500); }
 
-// ---- MOUSE (with jump filter) ----
+// ---- MOUSE (with jump filter + rolling-average spike detector) ----
 let lastMoveTime = 0;
 let skipFrames = 0;
+let avgDeltaX = 5, avgDeltaY = 5; // rolling average, start non-zero to avoid divide issues
 function onMouseMove(e) {
   if(!G.locked||!G.running) return;
   const now = performance.now();
   const rawX = e.movementX, rawY = e.movementY;
-  // Skip first 2 frames after pointer lock (browser sends garbage deltas)
+  // Skip first 3 frames after pointer lock (browser sends garbage deltas)
   if (skipFrames > 0) { skipFrames--; lastMoveTime = now; return; }
-  // Filter hardware/browser glitch spikes
-  if (Math.abs(rawX) > 500 || Math.abs(rawY) > 500) return;
-  // Skip first move after long pause (re-lock, tab switch)
-  if (now - lastMoveTime > 300 && lastMoveTime > 0) { lastMoveTime = now; return; }
+  // Absolute spike filter — hardware/driver glitch
+  if (Math.abs(rawX) > 200 || Math.abs(rawY) > 200) return;
+  // Skip first move after long pause (re-lock, tab switch, resume)
+  if (now - lastMoveTime > 250 && lastMoveTime > 0) { lastMoveTime = now; return; }
+  // Rolling-average spike detection (catches subtler jumps)
+  avgDeltaX = avgDeltaX * 0.88 + Math.abs(rawX) * 0.12;
+  avgDeltaY = avgDeltaY * 0.88 + Math.abs(rawY) * 0.12;
+  const maxRatioX = Math.max(avgDeltaX * 6, 12);
+  const maxRatioY = Math.max(avgDeltaY * 6, 12);
+  if (Math.abs(rawX) > maxRatioX || Math.abs(rawY) > maxRatioY) return;
   lastMoveTime = now;
   const s = cm360ToRad(G.cm360);
   G.yaw -= rawX * s;
@@ -1036,8 +1044,10 @@ function startGame(mode) {
   saveSettings({sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,difficulty:G.diff,duration:G.duration,soundOn:G.soundOn});
 
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];
-  G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;trackTarget=null;switchTargets=[];
+  G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
+  G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
+  avgDeltaX=5; avgDeltaY=5; skipFrames=3;
   G.switchActiveIdx=0;G.switchTimer=0;
 
   const sc=SCENARIOS[mode];
@@ -1113,7 +1123,14 @@ function endGame() {
     $('#btn-menu').textContent='Menu'; $('#btn-menu').onclick=()=>showScreen('menu-screen');
   }
 
-  saveCareer(G.score, acc); showScreen('results-screen');
+  saveCareer(G.score, acc);
+  // Save to server if logged in
+  if(typeof coachingToken !== 'undefined' && coachingToken) {
+    fetch('/api/history', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+coachingToken},
+      body: JSON.stringify({ mode:G.mode, score:G.score, accuracy:acc, hits:G.hits, misses:G.misses, avg_reaction:avgR, best_combo:G.bestCombo, duration:G.duration })
+    }).catch(()=>{});
+  }
+  showScreen('results-screen');
 }
 
 function showScreen(id) { $$('.screen').forEach(s=>s.classList.remove('active')); $(`#${id}`).classList.add('active'); }

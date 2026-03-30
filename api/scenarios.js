@@ -71,5 +71,13 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  if (req.method === 'DELETE') {
+    if (decoded.role !== 'admin' && decoded.role !== 'coach') return res.status(403).json({ error: 'Coach ou Admin requis' });
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID requis' });
+    await sql`DELETE FROM scenarios WHERE id = ${id}`;
+    return res.status(200).json({ success: true });
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 };

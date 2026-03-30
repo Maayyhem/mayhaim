@@ -30,6 +30,7 @@ function saveCustomAgent(name, data) {
   const all = getCustomAgents();
   all[name] = data;
   localStorage.setItem('ch_custom_agents', JSON.stringify(all));
+  pushAgentEditToDB(name, data);
 }
 function deleteCustomAgent(name) {
   const all = getCustomAgents();
@@ -84,25 +85,85 @@ let coachingScenarios = loadScenarios();
 function loadScenarios() {
   try {
     const saved = JSON.parse(localStorage.getItem('ch_custom_scenarios') || '[]');
-    // Merge: defaults + any user-edited defaults + user-created
     const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
     saved.forEach(s => {
       const idx = merged.findIndex(m => m.id === s.id);
-      if (idx !== -1) merged[idx] = s; // override default with edited version
-      else merged.push(s); // user-created scenario
+      if (idx !== -1) merged[idx] = s;
+      else merged.push(s);
     });
     return merged;
   } catch { return JSON.parse(JSON.stringify(DEFAULT_SCENARIOS)); }
 }
 
 function persistScenarios() {
-  // Save only scenarios that differ from defaults or are user-created
   const toSave = coachingScenarios.filter(s => {
     const def = DEFAULT_SCENARIOS.find(d => d.id === s.id);
-    if (!def) return true; // user-created
-    return JSON.stringify(def) !== JSON.stringify(s); // edited default
+    if (!def) return true;
+    return JSON.stringify(def) !== JSON.stringify(s);
   });
   localStorage.setItem('ch_custom_scenarios', JSON.stringify(toSave));
+}
+
+// ============ DB SYNC ============
+
+async function fetchScenariosFromDB() {
+  if (!coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/scenarios`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    if (!res.ok) return;
+    const { scenarios } = await res.json();
+    if (!scenarios || !scenarios.length) return;
+    const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
+    scenarios.forEach(s => {
+      const idx = merged.findIndex(m => m.id === s.id);
+      if (idx !== -1) merged[idx] = { ...merged[idx], ...s };
+      else merged.push(s);
+    });
+    coachingScenarios = merged;
+    persistScenarios();
+  } catch (e) { /* fallback to localStorage */ }
+}
+
+async function fetchAgentEditsFromDB() {
+  try {
+    const res = await fetch(`${API_BASE}/coach-data?type=agent`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (!data || !data.length) return;
+    const all = getCustomAgents();
+    data.forEach(entry => { all[entry.data_key] = entry.data_value; });
+    localStorage.setItem('ch_custom_agents', JSON.stringify(all));
+  } catch {}
+}
+
+async function fetchStratsFromDB() {
+  try {
+    const res = await fetch(`${API_BASE}/coach-data?type=strat`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (!data || !data.length) return;
+    const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
+    data.forEach(entry => { all[entry.data_key] = entry.data_value; });
+    localStorage.setItem('me_scenario_maps', JSON.stringify(all));
+  } catch {}
+}
+
+async function pushAgentEditToDB(name, agentData) {
+  if (!coachingToken) return;
+  fetch(`${API_BASE}/coach-data`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+    body: JSON.stringify({ data_type: 'agent', data_key: name, data_value: agentData })
+  }).catch(() => {});
+}
+
+async function pushStratToDB(scenarioId, stratData) {
+  if (!coachingToken) return;
+  fetch(`${API_BASE}/coach-data`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+    body: JSON.stringify({ data_type: 'strat', data_key: String(scenarioId), data_value: stratData })
+  }).catch(() => {});
 }
 
 // ============ DATA: VODS (from CSV) ============
@@ -291,6 +352,10 @@ function initCoaching() {
   document.getElementById('btn-coaching').addEventListener('click', () => {
     document.getElementById('menu-screen').classList.remove('active');
     document.getElementById('coaching-screen').classList.add('active');
+    // Sync DB data on open
+    fetchScenariosFromDB().then(() => { if (document.getElementById('ch-scenarios')?.classList.contains('active')) coachingRenderScenarios(); });
+    fetchAgentEditsFromDB();
+    fetchStratsFromDB();
     coachingSwitchTab('ch-dashboard');
   });
 
@@ -358,6 +423,8 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-cours') coachingRenderCours();
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
+  if (tabId === 'ch-historique') coachingRenderHistory();
+  if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
 }
 
 // ============ DASHBOARD ============
@@ -661,11 +728,20 @@ function coachingRenderManageScenarios() {
       </div>
     `;
     card.querySelector('.ch-card-btn').addEventListener('click', () => coachingOpenEditModal(s));
-    card.querySelector('.btn-del-scenario').addEventListener('click', () => {
+    card.querySelector('.btn-del-scenario').addEventListener('click', async () => {
       if (!confirm(`Supprimer le scenario "${s.title}" ?`)) return;
+      try {
+        if (coachingToken && s.id) {
+          const res = await fetch(`${API_BASE}/scenarios`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+            body: JSON.stringify({ id: s.id })
+          });
+          if (!res.ok) { const r = await res.json(); throw new Error(r.error); }
+        }
+      } catch (e) { /* Only default scenarios can't be deleted from DB, still remove locally */ }
       const idx = coachingScenarios.findIndex(sc => sc.id === s.id);
       if (idx !== -1) coachingScenarios.splice(idx, 1);
-      // Also remove custom map if any
       if (typeof deleteCustomScenarioMap === 'function') deleteCustomScenarioMap(s.id);
       persistScenarios();
       coachingRenderManageScenarios();
@@ -717,18 +793,31 @@ async function saveScenario() {
 
   if (!data.title) { err.textContent = 'Titre requis'; err.style.display = 'block'; return; }
 
+  const saveBtn = document.getElementById('ch-se-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
   try {
     if (editingScenarioId) {
       data.id = editingScenarioId;
-      // Update local
+      const res = await fetch(`${API_BASE}/scenarios`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
       const idx = coachingScenarios.findIndex(s => s.id === editingScenarioId);
       if (idx !== -1) Object.assign(coachingScenarios[idx], data);
     } else {
-      // Create local with temp id
-      data.id = Date.now();
+      const res = await fetch(`${API_BASE}/scenarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      data.id = result.scenario?.id || Date.now();
       coachingScenarios.push(data);
     }
-
     persistScenarios();
     coachingCloseEditModal();
     coachingRenderManageScenarios();
@@ -736,6 +825,8 @@ async function saveScenario() {
   } catch (e) {
     err.textContent = e.message;
     err.style.display = 'block';
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
 
@@ -1439,6 +1530,80 @@ function meUpdateScenarioBanner() {
     meUpdateScenarioBanner();
     coachingSwitchTab('ch-scenarios');
   });
+}
+
+// ============ HISTORIQUE ============
+
+async function coachingRenderHistory() {
+  const el = document.getElementById('ch-history-content');
+  if (!el) return;
+  if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connecte-toi pour voir ton historique.</p>'; return; }
+  el.innerHTML = '<p class="ch-empty">Chargement...</p>';
+  try {
+    const res = await fetch(`${API_BASE}/history?limit=30`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    if (!res.ok) throw new Error('Erreur serveur');
+    const { history } = await res.json();
+    if (!history || !history.length) { el.innerHTML = '<p class="ch-empty">Aucune partie jouee pour le moment.</p>'; return; }
+    const modeLabel = m => m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const fmt = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    el.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);color:var(--text-muted)">
+        <th style="padding:8px;text-align:left">Mode</th>
+        <th style="padding:8px;text-align:right">Score</th>
+        <th style="padding:8px;text-align:right">Précision</th>
+        <th style="padding:8px;text-align:right">Hits</th>
+        <th style="padding:8px;text-align:right">Réaction</th>
+        <th style="padding:8px;text-align:right">Date</th>
+      </tr></thead>
+      <tbody>${history.map((h,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);${i%2===0?'background:rgba(255,255,255,0.02)':''}">
+        <td style="padding:8px">${modeLabel(h.mode)}</td>
+        <td style="padding:8px;text-align:right;color:var(--accent)">${Number(h.score).toLocaleString()}</td>
+        <td style="padding:8px;text-align:right">${h.accuracy}%</td>
+        <td style="padding:8px;text-align:right">${h.hits}</td>
+        <td style="padding:8px;text-align:right">${h.avg_reaction ? h.avg_reaction+'ms' : 'N/A'}</td>
+        <td style="padding:8px;text-align:right;color:var(--text-muted)">${fmt(h.played_at)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${e.message}</p>`; }
+}
+
+// ============ LEADERBOARD ============
+
+async function coachingRenderLeaderboard() {
+  const el = document.getElementById('ch-leaderboard-content');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement...</p>';
+  try {
+    const res = await fetch(`${API_BASE}/leaderboard`);
+    if (!res.ok) throw new Error('Erreur serveur');
+    const { leaderboard } = await res.json();
+    if (!leaderboard || !leaderboard.length) { el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.88rem">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);color:var(--text-muted)">
+        <th style="padding:10px;text-align:center">#</th>
+        <th style="padding:10px;text-align:left">Joueur</th>
+        <th style="padding:10px;text-align:right">Score Total</th>
+        <th style="padding:10px;text-align:right">Parties</th>
+        <th style="padding:10px;text-align:right">Précision</th>
+        <th style="padding:10px;text-align:right">Meilleure Partie</th>
+      </tr></thead>
+      <tbody>${leaderboard.map((p,i) => {
+        const isMe = coachingUser && p.username === coachingUser.email;
+        const bg = i===0?'rgba(232,197,109,0.06)':i===1?'rgba(192,192,192,0.04)':i===2?'rgba(180,90,50,0.04)':'';
+        const rank = medals[i] || `<span style="color:var(--text-muted)">${i+1}</span>`;
+        const nameColor = isMe ? 'color:var(--accent)' : i===0?'color:#e8c56d':'';
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);${bg?'background:'+bg:''}">
+          <td style="padding:10px;text-align:center;font-size:1rem">${rank}</td>
+          <td style="padding:10px;font-weight:600;${nameColor}">${p.username || 'Joueur'}${isMe?' (moi)':''}</td>
+          <td style="padding:10px;text-align:right;color:var(--accent);font-weight:700">${Number(p.total_score).toLocaleString()}</td>
+          <td style="padding:10px;text-align:right">${p.total_games}</td>
+          <td style="padding:10px;text-align:right">${p.avg_accuracy}%</td>
+          <td style="padding:10px;text-align:right">${Number(p.best_game).toLocaleString()}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${e.message}</p>`; }
 }
 
 // ============ BOOT ============

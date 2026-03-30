@@ -225,6 +225,8 @@
           <button class="ch-tab-btn" data-tab="ch-cours">Cours</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
+          <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
+          <button class="ch-tab-btn" data-tab="ch-leaderboard">Classement</button>
         </div>
 
         <!-- DASHBOARD -->
@@ -368,6 +370,16 @@
           <h2 class="ch-section-title">Gestion des Scenarios</h2>
           <button id="ch-add-scenario-btn" class="btn-primary" style="margin-bottom:20px">+ Ajouter un scenario</button>
           <div class="ch-cards-grid" id="ch-manage-scenarios-list"></div>
+        </div>
+
+        <div id="ch-historique" class="ch-panel">
+          <h2 class="ch-section-title">Mon Historique</h2>
+          <div id="ch-history-content"><p class="ch-empty">Chargement...</p></div>
+        </div>
+
+        <div id="ch-leaderboard" class="ch-panel">
+          <h2 class="ch-section-title">Classement Global</h2>
+          <div id="ch-leaderboard-content"><p class="ch-empty">Chargement...</p></div>
         </div>
       </div>
     </div>
