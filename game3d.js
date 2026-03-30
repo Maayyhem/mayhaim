@@ -321,7 +321,7 @@ function applyRoomTheme() {
 }
 
 // ---- STATE ----
-const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false };
+const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false, recoilY:0, autoFireTimer:null, swayPhase:0 };
 
 // ---- THREE.JS ----
 let scene, camera, renderer, clock, roomGroup, targetsGroup;
@@ -619,39 +619,28 @@ function spawn_crosshair_drill() {
   G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
 }
 
-// Deadzone Drill: single tracking target with varying speed
+// Deadzone Drill: tracking target with direction changes + camera sway to simulate movement inaccuracy
 function spawn_deadzone_drill() {
   if(!G.running) return;
   if(trackTarget && trackTarget.alive) return;
-  const d=DIFF[G.diff];
   const r = G.diff==='easy' ? 0.5 : G.diff==='hard' ? 0.28 : 0.38;
   const spd = G.diff==='easy' ? 1.5 : G.diff==='hard' ? 4.5 : 3;
-  const x=rand(-3,3), y=rand(1.2,2.8);
-  const mesh=mkSphere(x,y,-11,r,M.t4);
-  trackTarget={mesh,alive:true,radius:r,spawnTime:Date.now(),
-    vx:rand(-1,1)*spd, vy:rand(-0.5,0.5)*spd, ax:0, ay:0, dynamic:true,
-    smoothChange:true, nextChange:0.5+rand(0,1)};
-  G.targets.push(trackTarget);
+  G.swayPhase = 0;
+  mkTrackTarget(0, 1.7, -11, r, M.t4, {mv:'deadzone_drill', vx:rand(-1,1)*spd, vy:0, ct:0, nc:0.6+rand(0,0.5)});
 }
 
-// Burst Drill: clusters of 2-3 targets that appear together (practice burst transfers)
+// Burst Drill: targets requiring multiple hits (hold click to fire, spray pattern rises)
 function spawn_burst_drill() {
   if(!G.running) return;
   G.targets=G.targets.filter(t=>t.alive);
-  if(G.targets.filter(t=>t.alive).length >= 2) return;
-  const d=DIFF[G.diff];
-  const baseX = rand(-4,4), baseY = rand(1.2,2.8);
-  const count = G.diff==='easy' ? 2 : G.diff==='hard' ? 3 : 2;
-  const spacing = G.diff==='hard' ? 0.8 : 1.2;
-  const r = G.diff==='easy' ? 0.25 : G.diff==='hard' ? 0.18 : 0.22;
-  for(let i=0;i<count;i++) {
-    const x = baseX + (i - (count-1)/2) * spacing + rand(-0.2,0.2);
-    const y = baseY + rand(-0.3,0.3);
-    const spd = G.diff==='hard' ? 1.5 : G.diff==='medium' ? 0.8 : 0;
-    const mesh = mkSphere(x, y, rand(-11,-13), r, M.t2);
-    G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(),
-      vx:spd?rand(-1,1)*spd:0, vy:spd?rand(-0.5,0.5)*spd:0, dynamic:spd>0});
-  }
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const hp = G.diff==='easy' ? 3 : G.diff==='hard' ? 6 : 4;
+  const r = G.diff==='easy' ? 0.3 : G.diff==='hard' ? 0.2 : 0.24;
+  const spd = G.diff==='hard' ? 1.2 : G.diff==='medium' ? 0.6 : 0;
+  const x = rand(-4,4), y = rand(1.2,2.8);
+  const mesh = mkSphere(x, y, rand(-11,-13), r, M.t2);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), hp, maxHp:hp,
+    vx:spd?rand(-1,1)*spd:0, vy:spd?rand(-0.3,0.3)*spd:0, dynamic:spd>0, bounce:true});
 }
 
 // Free play only
@@ -671,9 +660,11 @@ function spawn_speedflick() {
   G.targets=G.targets.filter(t=>t.alive);
   if(G.targets.filter(t=>t.alive).length >= 1) return;
   const d=DIFF[G.diff], r=rand(d.tR[0],d.tR[1]);
-  const a=rand(-1.2,1.2), va=rand(-0.4,0.5), dist=rand(8,16);
-  const x=Math.sin(a)*dist, y=1.7+Math.tan(va)*dist, z=-Math.cos(a)*dist;
-  const mesh=mkSphere(x,Math.max(0.5,y),z,r,M.t1);
+  const a=rand(-0.8,0.8), va=rand(-0.3,0.35), dist=rand(8,13);
+  const x=Math.max(-7, Math.min(7, Math.sin(a)*dist));
+  const y=Math.max(0.5, Math.min(3.8, 1.7+Math.tan(va)*dist));
+  const z=Math.min(-5, -Math.abs(Math.cos(a)*dist));
+  const mesh=mkSphere(x,y,z,r,M.t1);
   G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now()});
 }
 
@@ -761,6 +752,24 @@ function updateTrackTarget(dt) {
       t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
       if(t.mv==='ground_plaza') { t.y = 0.8 + Math.sin(Date.now()*0.003)*0.2; }
       t.x=Math.max(-6,Math.min(6,t.x)); t.y=Math.max(0.4,Math.min(3.5,t.y));
+      break;
+    case 'deadzone_drill':
+      // Target moves with direction changes
+      t.ct = (t.ct||0)+dt;
+      if(t.ct >= (t.nc||0.8)) {
+        t.ct=0; t.nc=0.3+rand(0,0.7);
+        t.vx=rand(-1,1)*spd*(G.diff==='hard'?1.1:0.75);
+        t.vy=rand(-0.3,0.3)*spd*0.3;
+      }
+      t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
+      t.x=Math.max(-5,Math.min(5,t.x)); t.y=Math.max(0.8,Math.min(3.2,t.y));
+      // Camera sway: simulate player movement inaccuracy
+      G.swayPhase += dt;
+      { const swAmt = G.diff==='hard'?0.005:G.diff==='easy'?0.0015:0.003;
+        G.pitch += Math.sin(G.swayPhase*7.3)*swAmt*dt;
+        G.yaw   += Math.sin(G.swayPhase*5.1)*swAmt*0.4*dt;
+        G.pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, G.pitch));
+        camera.rotation.y=G.yaw; camera.rotation.x=G.pitch; }
       break;
   }
 
@@ -894,13 +903,32 @@ function shoot() {
   }
 
   // Click modes
+  // Burst drill: apply recoil to aim per shot
+  if(G.mode==='burst_drill') {
+    const recoilPerShot = G.diff==='hard'?0.007:G.diff==='easy'?0.003:0.005;
+    G.pitch -= recoilPerShot; // recoil pushes crosshair up
+    G.pitch = Math.max(-Math.PI/2.2, G.pitch);
+    camera.rotation.x = G.pitch;
+  }
   raycaster.setFromCamera(center,camera);
   const meshes=G.targets.filter(t=>t.alive).map(t=>t.mesh);
   const intersects=raycaster.intersectObjects(meshes);
   if(intersects.length>0) {
     const hm=intersects[0].object;
     const tgt=G.targets.find(t=>t.alive&&t.mesh===hm);
-    if(tgt) { hitTarget(tgt); return; }
+    if(tgt) {
+      // Burst drill: targets need multiple hits
+      if(tgt.hp !== undefined) {
+        tgt.hp--;
+        showHitmarker(); audioEngine.play('hit');
+        // Visual feedback: scale down as HP depletes
+        const pct = tgt.hp/tgt.maxHp;
+        tgt.mesh.scale.setScalar(0.6+pct*0.4);
+        if(tgt.hp <= 0) { hitTarget(tgt); }
+        return;
+      }
+      hitTarget(tgt); return;
+    }
   }
   G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
 }
@@ -1008,7 +1036,8 @@ function startGame(mode) {
   saveSettings({sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,difficulty:G.diff,duration:G.duration,soundOn:G.soundOn});
 
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];
-  G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;trackTarget=null;switchTargets=[];
+  G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;trackTarget=null;switchTargets=[];
+  if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
   G.switchActiveIdx=0;G.switchTimer=0;
 
   const sc=SCENARIOS[mode];
@@ -1049,6 +1078,7 @@ function doSpawn() {
 
 function endGame() {
   G.running=false; clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer=null;
+  if(G.autoFireTimer){ clearInterval(G.autoFireTimer); G.autoFireTimer=null; }
   if(document.exitPointerLock) document.exitPointerLock();
   G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
   G.targets=[]; trackTarget=null; switchTargets=[];
@@ -1136,7 +1166,19 @@ function renderBenchmark() {
 
 // ---- EVENTS ----
 document.addEventListener('mousemove',onMouseMove);
-document.addEventListener('mousedown',e=>{if(e.button===0&&G.running&&G.locked)shoot();});
+document.addEventListener('mousedown',e=>{
+  if(e.button===0&&G.running&&G.locked) {
+    shoot();
+    if(G.mode==='burst_drill') {
+      G.autoFireTimer=setInterval(()=>{ if(G.running&&G.locked)shoot(); },65);
+    }
+  }
+});
+document.addEventListener('mouseup',e=>{
+  if(e.button===0) {
+    if(G.autoFireTimer){ clearInterval(G.autoFireTimer); G.autoFireTimer=null; }
+  }
+});
 $$('.mode-card').forEach(c=>c.addEventListener('click',()=>{G.benchmarkMode=false;startGame(c.dataset.mode);}));
 $('#btn-retry').addEventListener('click',()=>startGame(G.mode));
 $('#btn-menu').addEventListener('click',()=>showScreen('menu-screen'));
