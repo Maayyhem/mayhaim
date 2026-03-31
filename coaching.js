@@ -184,19 +184,347 @@ const DEFAULT_SCENARIOS = [
     tips: "La smoke mid est absolument critique sur Sunset — sans elle, les rotations arrivent en 5 secondes. Le plant sous les escaliers est superieur au spot default car il est couvert de plusieurs angles. La molly post-plant sur le spike est LA technique a maitriser sur cette map.",
     aim_mode: "beants", aim_diff: "medium"
   },
+  // ═══ BIND (suite) ═══
+  {
+    id: 16, title: "A Short + Showers Execute — Bind", rank: "GOLD", map: "Bind", type: "attack", difficulty: 3,
+    description: "Execute coordonne sur A depuis A short et showers pour prendre le site en pince.",
+    guide: "1. Controller smoke A elbow ET CT box depuis A main\n2. Initiator flash depuis A short (couvre A main et les angles)\n3. Joueur 1 entre par A short (pre-aim box default a droite)\n4. Joueur 2 sort de showers pour couper le retake CT\n5. Clear A tower depuis short si le setup le permet\n6. Plante derriere la boite A ou spot heaven selon le clear",
+    tips: "La double entree (short + showers) est la force de cet execute. Le joueur venant de showers DOIT arriver en meme temps — une difference de timing detruit la synergie. La smoke elbow est optionnelle si tu fais confiance a ton aim, mais la smoke CT box est obligatoire.",
+    aim_mode: "pasu_angelic", aim_diff: "medium"
+  },
+  {
+    id: 17, title: "B TP Anchor Defense — Bind", rank: "PLATINUM", map: "Bind", type: "defense", difficulty: 4,
+    description: "Hold agressif de B site en utilisant le TP showers pour repositionner un sentinel et surprendre.",
+    guide: "1. Sentinel (Cypher/KJ) setup B main avec trip/turret en debut de round\n2. 1 joueur hold long B depuis B elbow (angle dominant)\n3. 1 joueur se prepare pres du TP showers (pret a teleporter)\n4. Si push B : le joueur elbow retreate, le TP arrivant flanke par derriere\n5. Smoke hookah pour couper les renforts T\n6. Post-retake : sentinel re-setup le site",
+    tips: "Le TP est l'element cle — utilisez-le pour changer l'angle d'attaque apres un retrait. Gardez toujours une smoke hookah. Cypher cam sur B elbow donne de l'info gratuite. Ne restez jamais plus de 3 joueurs sur B — trop previsible.",
+    aim_mode: "deadzone_drill", aim_diff: "medium"
+  },
+  // ═══ HAVEN (suite) ═══
+  {
+    id: 18, title: "A Hold Agressif Long — Haven", rank: "SILVER", map: "Haven", type: "defense", difficulty: 3,
+    description: "Tient agressif de A depuis long en crossfire avec CT box pour dominer l'entree principale.",
+    guide: "1. 1 joueur prend position sur long A (derriere la boite)\n2. 1 joueur tient CT box / A corner\n3. Crossfire naturel : si T push, les 2 angles se couvrent\n4. Initiator stun l'entree long A si push detecte\n5. Controller smoke mid A pour bloquer les rotations via mid\n6. Si perdus : reculer sur CT et wait retake",
+    tips: "Le crossfire long A + CT box est l'un des plus forts du jeu. Long A est dangereux seul — ne jamais y rester sans info. Mid smoke bloque une strat classique de prise d'info. Avec Sova, un drone debut de round donne l'info sur le push A instantanement.",
+    aim_mode: "crosshair_drill", aim_diff: "medium"
+  },
+  {
+    id: 19, title: "B Rush Full — Haven", rank: "BRONZE", map: "Haven", type: "attack", difficulty: 1,
+    description: "Rush pur 4-5 joueurs sur B avec flash et smoke CT. Rapide et efficace pour les rounds eco.",
+    guide: "1. Utilise tous les utils de flash disponibles sur B entry\n2. 1 smoke CT immediat en entrant\n3. Tous les joueurs entrent B en meme temps\n4. 1 joueur clear garage (souvent oublie)\n5. 1er a atteindre le site commence le plant immediatement\n6. Les autres couvrent les 3 entrees (short, garage, CT)",
+    tips: "La vitesse est tout — ne pas hesiter. Flash par-dessus les murs pour aveugler les defenders. La smoke CT est la seule utility vraiment necessaire. Si un joueur meurt avant d'entrer, continuez — la masse compense. Plante TOUJOURS le plus vite possible sur un rush.",
+    aim_mode: "pokeball_frenzy", aim_diff: "easy"
+  },
+  // ═══ SPLIT (suite) ═══
+  {
+    id: 20, title: "A Ropes + Main Coordonne — Split", rank: "BRONZE", map: "Split", type: "attack", difficulty: 2,
+    description: "Execute A simple en entrant depuis les ropes et le main avec smoke CT et flash.",
+    guide: "1. Controller smoke CT A depuis A main\n2. Initiator flash depuis A main (couvre les 2 angles)\n3. Duelist monte les ropes (position haute, avantage de vue)\n4. 2eme joueur push A main au sol\n5. Clear A heaven depuis les ropes en priorite\n6. Plante derriere la boite centrale A",
+    tips: "A Split exige que le haut et le bas entrent simultanement. La position ropes est dominante mais exposee — flash AVANT de monter. Sans smoke CT, entrer A est quasi suicidaire. La boite centrale est le spot de plant le plus defendable de A.",
+    aim_mode: "w1w3ts_reload", aim_diff: "easy"
+  },
+  {
+    id: 21, title: "B Main Execute — Split", rank: "SILVER", map: "Split", type: "attack", difficulty: 2,
+    description: "Prise de B site via B main avec smoke heaven et flash screens, strategy fondamentale.",
+    guide: "1. Smoke B heaven (coupe l'angle dominant du defender)\n2. Smoke window (bloque la vue depuis mid)\n3. Flash B main pour l'entry\n4. Duelist entre B main (pre-aim box et back-B)\n5. 2eme joueur clear le coin derriere B entry\n6. Plante derriere le container ou site default",
+    tips: "Heaven est LA position dominante de B Split — toujours la smoker en premier. Back-B est l'angle le plus oublie mais le plus dangereux. Si heaven est free debut de round, prends-la — elle te donne vue sur tout le site.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  {
+    id: 22, title: "A CT Hold — Split", rank: "GOLD", map: "Split", type: "defense", difficulty: 3,
+    description: "Defense de A site depuis CT avec sentinel setup et crossfire ropes/main pour deny l'execute.",
+    guide: "1. Sentinel setup A heaven avec trip ou turret\n2. 1 joueur tient ropes depuis CT (angle eleve)\n3. 1 joueur hold A main depuis CT coin\n4. Crossfire automatique si push A\n5. Controller garde smoke pour l'urgence (smoke ropes si besoin)\n6. Jamais peeker — attendre et crossfire",
+    tips: "Le hold CT sur A Split est defensivement tres fort car les angles convergent. La turret/trip sur heaven donne l'info gratuite. Ecoute les bruits de pas sur les ropes pour anticiper le push. Deux joueurs en crossfire main + ropes depuis CT = entree quasi impossible.",
+    aim_mode: "beants", aim_diff: "medium"
+  },
+  // ═══ ASCENT (suite) ═══
+  {
+    id: 23, title: "B Lanes Execute — Ascent", rank: "SILVER", map: "Ascent", type: "attack", difficulty: 2,
+    description: "Execute B standard avec fermeture de la porte mid, smoke CT et flash pour l'entree depuis B main.",
+    guide: "1. Ferme la porte mid en debut de round (bloque les rotations rapides)\n2. Smoke CT B depuis B main\n3. Smoke market depuis B lobby\n4. Flash B main pour l'entry\n5. Duelist entre B (pre-aim CT puis market)\n6. Plante derriere la boite ou spot default B",
+    tips: "Fermer la porte mid est la priorite absolue sur B Ascent — sans ca, les rotations CT arrivent en 3 secondes. Market est l'angle le plus souvent tenu agressivement. La smoke CT doit etre loin dans le site.",
+    aim_mode: "speedflick", aim_diff: "medium"
+  },
+  {
+    id: 24, title: "A Retake via Mid — Ascent", rank: "GOLD", map: "Ascent", type: "retake", difficulty: 3,
+    description: "Retake de A site depuis B via mid en utilisant la porte pour arriver par l'angle inattendu.",
+    guide: "1. 1-2 joueurs gardent le chemin direct CT → A\n2. 1 joueur ouvre la porte mid et traverse pour entrer A via mid\n3. Initiator flash A site depuis l'entree CT\n4. Smoke pour couper les defenders sur generator ou heaven\n5. Pince : un depuis CT, un depuis mid\n6. Defuse en team — ne jamais solo",
+    tips: "L'entree par mid via porte est completement inattendue. Synchronise ABSOLUMENT l'entree des 2 cotes. Flash l'interieur du site avant d'entrer. Generator et heaven sont les 2 holds post-plant preferes des T sur A Ascent.",
+    aim_mode: "ctrlsphere_clk", aim_diff: "medium"
+  },
+  {
+    id: 25, title: "Mid + A Short Split — Ascent", rank: "PLATINUM", map: "Ascent", type: "attack", difficulty: 4,
+    description: "Split A entre mid et A short pour surcharger la defense et forcer une rotation impossible.",
+    guide: "1. 1 joueur prend mid control (smoke la box, clear le milieu)\n2. 2 joueurs avancent sur A short depuis T lobby\n3. Controller smoke A main depuis mid (bloque rotations CT)\n4. Timing coordonne : A short push en meme temps que mid avance\n5. Joueur mid entre via passage caisse pour prendre A par derriere\n6. 2 joueurs A short entrent depuis le haut (heaven position)\n7. Plante default ou heaven selon clear",
+    tips: "Le timing est absolument crucial — les deux groupes doivent entrer simultanement. Mid control pre-round est la cle : sans mid, cette strat ne fonctionne pas. La smoke A main isole les defenders de tout support.",
+    aim_mode: "floatts", aim_diff: "hard"
+  },
+  // ═══ ICEBOX (suite) ═══
+  {
+    id: 26, title: "A Rafters Execute — Icebox", rank: "GOLD", map: "Icebox", type: "attack", difficulty: 3,
+    description: "Execute A avec boost rafters pour prendre la position haute dominante avant l'entree en site.",
+    guide: "1. 1 joueur boost sur rafters A via le container\n2. Controller smoke snowman ET CT A simultanement\n3. Flash A main pour aveugler les defenders\n4. Joueur rafters engage depuis le haut (distrait et prend des kills)\n5. Reste de l'equipe entre A main pendant que rafters distrait\n6. Plante derriere la boite ou dans le coin belt",
+    tips: "Le boost rafters est le facteur de surprise — il cree de l'info et de la distraction. Rafters est une position exposee : si spotte, retraite immediatement. Snowman doit etre smoke — c'est le spot defensif le plus fort de A. Coordonne l'entree equipe APRES le premier engagement.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  {
+    id: 27, title: "B Yellow + Tube Execute — Icebox", rank: "GOLD", map: "Icebox", type: "attack", difficulty: 3,
+    description: "Execute B via yellow et tube simultanement avec smoke CT et flash pour surcharger la defense.",
+    guide: "1. Smoke CT B depuis le coin B main\n2. Flash depuis yellow pour aveugler les defenders site\n3. Entry depuis yellow (clear coin B et back-site)\n4. Simultanement : 1 joueur push tube (entre par derriere)\n5. Pince : un depuis yellow, un depuis tube\n6. Plante dans tube (plus safe) ou site default",
+    tips: "Tube est l'entree la plus sous-estimee de B Icebox — elle coupe le retake CT. Coordonner yellow + tube est la cle du succes. Le plant dans tube est tres difficile a defuser car il y a un seul angle d'acces. Attention au sniper sur le toit depuis CT B.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  {
+    id: 28, title: "A Retake Coordonne — Icebox", rank: "PLATINUM", map: "Icebox", type: "retake", difficulty: 4,
+    description: "Retake de A depuis conveyor et CT en pince avec utils pour clear snowman et belt.",
+    guide: "1. 1 joueur entre A depuis CT (approche principale)\n2. 1 joueur utilise conveyor pour entrer par le cote\n3. Initiator stun/flash snowman (position la plus dangereuse)\n4. Controller smoke A main pour bloquer les renforts T\n5. Pince sur snowman : un depuis CT, un depuis conveyor\n6. Ne defuser qu'apres avoir clear snowman ET belt",
+    tips: "Snowman est le point de hold post-plant n°1 sur A Icebox — le neutraliser est la priorite absolue. La pince conveyor + CT desorganise completement les defenders. Belt est souvent le 2eme angle — toujours check apres snowman.",
+    aim_mode: "burst_drill", aim_diff: "hard"
+  },
+  // ═══ LOTUS (suite) ═══
+  {
+    id: 29, title: "B Fast Execute — Lotus", rank: "SILVER", map: "Lotus", type: "attack", difficulty: 2,
+    description: "Execute rapide de B avec smoke entrance et flash pour prendre le site avant les rotations.",
+    guide: "1. Smoke l'entree B main (couvre le defender standard)\n2. Flash B pour l'entry depuis le couloir\n3. Duelist entre B (pre-aim corner droit en entrant)\n4. 2eme joueur clear rubble corner\n5. Smoke C connection pour bloquer les rotations rapides\n6. Plante derriere le rocher central ou spot default B",
+    tips: "B Lotus a une seule entree principale — une bonne smoke la couvre entierement. La smoke C connection est tres utile si l'equipe a 2+ controllers. Le rocher central B est le meilleur spot de plant — il a deux cotes de couverture.",
+    aim_mode: "pokeball_frenzy", aim_diff: "easy"
+  },
+  {
+    id: 30, title: "C Take avec Wingman — Lotus", rank: "GOLD", map: "Lotus", type: "attack", difficulty: 3,
+    description: "Prise de C site en utilisant le Wingman de Gekko pour planter pendant que l'equipe couvre.",
+    guide: "1. Controller smoke C corner et mound simultanement\n2. Flash C pour l'entry\n3. Duelist entre C (clear mound immediatement)\n4. Gekko envoie Wingman vers le site pour planter (libere les mains)\n5. Pendant le plant Wingman : les 4 autres hold les 3 entrees\n6. Post-plant : Mosh pit sur le spike pour deny defuse",
+    tips: "Wingman qui plante est un changement de jeu — 4 joueurs libres pour couvrir. Mound est l'angle le plus dangereux de C Lotus — toujours le clearer ou smoker. Recupere Wingman apres le round pour le suivant.",
+    aim_mode: "domiswitch", aim_diff: "medium"
+  },
+  {
+    id: 31, title: "A-C Split — Lotus", rank: "DIAMOND", map: "Lotus", type: "attack", difficulty: 5,
+    description: "Split A et C avec fausse pression B au milieu pour forcer des rotations impossibles.",
+    guide: "1. 1 joueur fait bruit et utils sur B main (fake)\n2. 2 joueurs setup execute A (smoke tree et root)\n3. 2 joueurs setup execute C (smoke mound et corner)\n4. Controller place toutes les smokes en simultanee (Brimstone/Astra)\n5. Signal GO : les deux groupes entrent A et C en meme temps\n6. Le joueur fake B tient la connection entre les deux sites",
+    tips: "Necessite un controller longue portee absolument. La pression B doit etre convaincante — utilise les pas, les utils, les peeks. La precision du timing GO est cruciale — trop ecarte et un groupe se fait nettoyer.",
+    aim_mode: "waldots", aim_diff: "hard"
+  },
+  // ═══ SUNSET (suite) ═══
+  {
+    id: 32, title: "A Execute Standard — Sunset", rank: "SILVER", map: "Sunset", type: "attack", difficulty: 2,
+    description: "Execute A simple via A main avec smoke CT et flash, strategy de base solide sur Sunset.",
+    guide: "1. Controller smoke CT A depuis A lobby\n2. 2eme smoke pilier A (coupe la vue du defender sur le site)\n3. Flash A main pour l'entry\n4. Duelist entre A (pre-aim CT puis back)\n5. 2eme joueur clear le coin droit en entrant\n6. Plante sur le site, spot selon le clear (default ou escaliers)",
+    tips: "CT est l'angle mortel sur A Sunset — toujours smoker avant d'entrer. La smoke pilier isole la partie droite du site. Escaliers A est un spot de plant tres defendable. Ne jamais entrer A seul — toujours wait au moins un partenaire.",
+    aim_mode: "speedflick", aim_diff: "easy"
+  },
+  {
+    id: 33, title: "Mid + A Execute — Sunset", rank: "GOLD", map: "Sunset", type: "attack", difficulty: 3,
+    description: "Prise de mid control puis execute A en utilisant l'angle de mid pour couvrir l'entree du site.",
+    guide: "1. 1-2 joueurs prennent mid control\n2. Clear mid sous et box mid pour securiser\n3. Controller smoke CT A depuis mid (angle impossible depuis lobby)\n4. Initiator flash A depuis mid connector\n5. 2 joueurs entrent A main pendant que 1 entre depuis mid connector\n6. Plante default ou sous escaliers",
+    tips: "Mid control donne un angle CT completement inattendu. La smoke depuis mid est beaucoup plus profonde et efficace que depuis lobby. Le joueur mid connector doit entrer simultanement avec les joueurs A main.",
+    aim_mode: "ctrlsphere_aim", aim_diff: "medium"
+  },
+  {
+    id: 34, title: "B Eco Rush — Sunset", rank: "BRONZE", map: "Sunset", type: "attack", difficulty: 1,
+    description: "Rush B rapide en eco avec flash seule pour prendre le site avant les rotations adverses.",
+    guide: "1. Flash B main depuis le couloir\n2. Tous les joueurs entrent B ensemble (rush)\n3. 1 joueur clear CT coin immediatement\n4. 1 joueur clear back B (angle gauche)\n5. 1er joueur arrive en site plante immediatement\n6. Les autres couvrent B main et CT pendant le plant",
+    tips: "Sur un eco, la vitesse est tout. Un seul flash suffit si bien executee. Clear CT ET back-B avant de planter. Plant rapide = le CT n'a pas le temps de defuser. Avec pistols, evite les angles longs — rush dans les coins.",
+    aim_mode: "w1w3ts_reload", aim_diff: "easy"
+  },
+  {
+    id: 35, title: "A Retake 3v2 — Sunset", rank: "GOLD", map: "Sunset", type: "retake", difficulty: 3,
+    description: "Retake de A site en superiorite numerique 3v2 avec utils pour clear les positions post-plant.",
+    guide: "1. Identifie les positions T via info (camera, drone, footsteps)\n2. 1 joueur entre A depuis CT (angle principal)\n3. 1 joueur entre depuis mid connector (angle surprise)\n4. Flash l'interieur du site depuis l'entree\n5. Smoke la spike si les T sont splits\n6. Defuse en coordonne : 1 defuse, 2 couvrent",
+    tips: "3v2 est largement favorable — n'hesite pas. L'entree mid connector en simultane est la cle. Si un T tient escaliers + un tient CT : flash les deux angles en meme temps. Defuser en 2 temps si necessaire : commence, force le tir, re-defuse.",
+    aim_mode: "burst_drill", aim_diff: "medium"
+  },
+  // ═══ BREEZE ═══
+  {
+    id: 36, title: "A Entry Standard — Breeze", rank: "SILVER", map: "Breeze", type: "attack", difficulty: 2,
+    description: "Execute A via A main avec smoke CT et cave pour neutraliser les angles dominants du site.",
+    guide: "1. Smoke CT A depuis A lobby (coupe l'angle dominant)\n2. Smoke cave/elbow pour isoler le retake\n3. Flash A main depuis le mur (couvre pilier et site)\n4. Duelist entre A (pre-aim pilier droit puis CT)\n5. 2eme joueur clear elbow si pas smoke\n6. Plante derriere le pilier ou default selon clear",
+    tips: "A Breeze a les lignes de vue les plus longues du jeu — les smokes sont absolument essentielles. Pilier est la seule cover sur le site. Cave est l'angle de retake le plus rapide — toujours le couvrir. Joue vite — les repositionnements T sont rapides sur cette map.",
+    aim_mode: "speedflick", aim_diff: "medium"
+  },
+  {
+    id: 37, title: "B Tunnel Rush — Breeze", rank: "BRONZE", map: "Breeze", type: "attack", difficulty: 1,
+    description: "Rush rapide B via le tunnel avec flash et smoke pour prendre le site avant que les T s'installent.",
+    guide: "1. Flash tunnel depuis B lobby (jete par dessus)\n2. Controller smoke CT B (l'angle le plus dangereux)\n3. Tous entrent B tunnel ensemble\n4. 1 joueur clear le coin mur derriere (angle surprise)\n5. 1 joueur clear Arco (a droite en sortant)\n6. Plant rapide au centre du site",
+    tips: "B Tunnel est serree — ne pas s'entasser. Flash doit aveugler avant d'entrer. Arco est souvent oublie mais tenu — check toujours. Plant au centre B exposee mais acceptable si CT est smoke.",
+    aim_mode: "w1w3ts_reload", aim_diff: "easy"
+  },
+  {
+    id: 38, title: "Mid Hall + A Execute — Breeze", rank: "GOLD", map: "Breeze", type: "attack", difficulty: 3,
+    description: "Prise de mid puis execute A en utilisant l'angle de mid Hall pour couper les rotations.",
+    guide: "1. 2 joueurs avancent sur mid (smoke si contestee)\n2. Clear mid progressivement (angles longs — etre methodique)\n3. Controller smoke CT A depuis mid hall\n4. 1 joueur maintient mid, 1 entre A via pyramide depuis mid\n5. 2 joueurs entrent A main simultanement\n6. Pince A + mid : plante dans les escaliers ou default",
+    tips: "Mid Breeze est tres dangereux solo — avance toujours a 2. L'entree A via pyramide est completement inattendue. La smoke depuis mid hall donne un angle CT impossible a defender. Si mid est non conteste en debut de round, prenez-le TOUJOURS.",
+    aim_mode: "pasu_perfected", aim_diff: "medium"
+  },
+  {
+    id: 39, title: "A Viper Mur Hold — Breeze", rank: "PLATINUM", map: "Breeze", type: "defense", difficulty: 4,
+    description: "Setup defensif de A avec Viper mur pour creer des one-ways et deny l'execute.",
+    guide: "1. Viper place son mur diagonal sur A main (cree one-way)\n2. 1 joueur hold depuis derriere le mur (one-way advantage)\n3. 1 joueur tient pilier avec angle sur A site\n4. Orbe de Viper pre-place pres de CT pour le post-plant\n5. Si execute : ulti Viper sur le spike pour deny defuse\n6. Communiquer l'info via le mur (traversee = alerte)",
+    tips: "Le mur Viper sur A Breeze est un des setups les plus forts du jeu — apprends le placement exact. Le one-way cree un avantage informationnel majeur. Pilier est la seule cover du site. Si les T ont Brim/Astra pour re-smoke, avoir une strat de fallback.",
+    aim_mode: "ctrlsphere_aim", aim_diff: "hard"
+  },
+  {
+    id: 40, title: "B Retake via Mid — Breeze", rank: "GOLD", map: "Breeze", type: "retake", difficulty: 3,
+    description: "Retake de B site via mid Hall pour arriver de l'angle inattendu et couvrir Arco et CT B.",
+    guide: "1. 1 joueur entre B depuis le chemin direct CT B\n2. 1-2 joueurs traversent mid pour entrer B par la pyramide\n3. Flash B depuis mid connection (aveugle les T sur site)\n4. Smoke Arco ou CT selon la position du spike\n5. Pince : un depuis CT B, un depuis mid\n6. Defuse en equipe : 1 defuse, 1 watch Arco, 1 watch CT",
+    tips: "L'angle depuis mid est completement surprenant. Arco est le spot de hold post-plant prefere sur B Breeze — flash ou smoke avant d'approcher. Ne pas defuser seul si Arco n'est pas clear.",
+    aim_mode: "leaptrack", aim_diff: "medium"
+  },
+  // ═══ FRACTURE ═══
+  {
+    id: 41, title: "A-B Split Spawn — Fracture", rank: "GOLD", map: "Fracture", type: "attack", difficulty: 3,
+    description: "Split coordonne depuis les deux spawns attaquants pour prendre A et B simultanement.",
+    guide: "1. 2 joueurs avancent cote A (depuis spawn A)\n2. 3 joueurs avancent cote B via rope (depuis spawn B/milieu)\n3. Chaque groupe clear son couloir d'approche respectif\n4. Controller place smokes sur les crossfires cles de chaque site\n5. Signal GO simultanee : les deux groupes entrent ensemble\n6. Le groupe le plus avance plante selon sa position",
+    tips: "Fracture est unique — les attaquants peuvent split naturellement depuis leurs spawns. La coordination timing est la cle. Ne pas attendre l'autre groupe trop longtemps. Rope side est souvent sous-utilise — c'est un avantage naturel.",
+    aim_mode: "domiswitch", aim_diff: "medium"
+  },
+  {
+    id: 42, title: "B Arcade Execute — Fracture", rank: "SILVER", map: "Fracture", type: "attack", difficulty: 2,
+    description: "Execute B via arcade avec smoke dish et flash pour prendre le site rapidement.",
+    guide: "1. Smoke dish (coupe le defender dish qui est tres agressif)\n2. Smoke CT B pour bloquer les rotations\n3. Flash arcade depuis le couloir\n4. Duelist entre arcade (pre-aim dish coin puis CT)\n5. 2eme joueur clear le coin escaliers\n6. Plante derriere la grande boite ou spot default",
+    tips: "Dish est l'angle le plus agressif de B Fracture — toujours le smoker ou flasher. Les rotations CT arrivent vite sur B — plante rapidement. Le coin escaliers est souvent oublie mais dangerous. Si tu prends dish, tu controles tout le site.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 43, title: "A Main Entry — Fracture", rank: "BRONZE", map: "Fracture", type: "attack", difficulty: 2,
+    description: "Entree simple sur A depuis A main avec smoke CT et flash pour les rounds eco ou save.",
+    guide: "1. Smoke CT A (coupe l'angle dominant)\n2. Smoke bonsai si disponible (deuxieme angle dangerous)\n3. Flash A main depuis le couloir\n4. Entry clear les deux coins en entrant\n5. 1 joueur hold la connexion milieu\n6. Plant default A",
+    tips: "A main est l'entree la plus directe sur A Fracture. Bonsai est dangereux — si tu n'as qu'une smoke, priorise CT. Si defender tient agressivement bonsai : jette une flash vers lui en approchant.",
+    aim_mode: "crosshair_drill", aim_diff: "easy"
+  },
+  {
+    id: 44, title: "Rope Control + B Execute — Fracture", rank: "PLATINUM", map: "Fracture", type: "attack", difficulty: 4,
+    description: "Prise de controle via la corde centrale puis execute B via le flanc pour surprendre la defense.",
+    guide: "1. 1-2 joueurs prennent rope control (smoke la sortie de rope)\n2. Ils avancent et clear les angles depuis rope\n3. Controller smoke B dish ET CT B depuis rope position\n4. 2 joueurs entrent B arcade simultanement\n5. Joueur rope entre B via la sortie rope side\n6. Triple entree B : arcade + rope + upper — impossible a hold",
+    tips: "La maitrise de la corde est la cle de Fracture — sans ca, tu joues a 4v5. La triple entree B est litteralement impossible a tenir. Smoke depuis la corde donne des angles uniques que les defenders ne voient jamais.",
+    aim_mode: "floatts", aim_diff: "hard"
+  },
+  {
+    id: 45, title: "B Dish Hold — Fracture", rank: "GOLD", map: "Fracture", type: "defense", difficulty: 3,
+    description: "Hold agressif de B depuis dish pour dominer l'acces et deny l'execute avec crossfire.",
+    guide: "1. 1 joueur prend dish (position agressive, vue sur arcade)\n2. 1 joueur tient le flanc rope depuis position safe\n3. Sentinel setup trip sur arcade pour l'info\n4. Si push arcade detecte : dish engage, rope flanke\n5. Si push rope detecte : retraite dish, hold depuis CT\n6. Jamais 2 joueurs en dish — trop couteux si flash",
+    tips: "Dish est la meilleure position defensive de B Fracture mais tres exposee aux flashs. Toujours avoir un joueur derriere sur rope pour le trade. La trip sentinel sur arcade est l'info la plus precieuse. Si tu perds dish, retraite immediatement.",
+    aim_mode: "tamts", aim_diff: "medium"
+  },
+  // ═══ PEARL ═══
+  {
+    id: 46, title: "A Link Execute — Pearl", rank: "SILVER", map: "Pearl", type: "attack", difficulty: 2,
+    description: "Execute A via link avec smoke CT et art pour neutraliser les angles principaux.",
+    guide: "1. Smoke CT A depuis link (coupe l'angle le plus dangereux)\n2. Smoke art depuis lobby A\n3. Flash link pour l'entry\n4. Duelist entre link (pre-aim CT immediatement)\n5. 2eme joueur clear le coin droit en entrant\n6. Plante derriere la grande structure centrale ou spot standard",
+    tips: "CT est l'angle mortel sur A Pearl — il DOIT etre smoke. Art est l'angle secondaire mais tout aussi dangerous. Link est etroit — ne pas s'entasser. La structure centrale offre la meilleure cover pour planter.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  {
+    id: 47, title: "B Main Rush — Pearl", rank: "BRONZE", map: "Pearl", type: "attack", difficulty: 1,
+    description: "Rush rapide B via B main avec flash et smoke CT pour prendre le site en vitesse.",
+    guide: "1. Flash depuis B main (jete par dessus le mur)\n2. Smoke CT B pour bloquer le defender\n3. Tous entrent B main ensemble (rush)\n4. 1 joueur clear B corner droit immediatement\n5. 1 joueur check derriere la grande colonne\n6. Plant rapide dans le coin ou au centre",
+    tips: "B Pearl a un couloir d'entree unique — la vitesse est la seule strat valide en eco. Smoke CT obligatoire sinon l'entree est suicidaire. Corner droit en entrant est souvent tenu agressivement. La colonne au milieu est le meilleur spot de cover pour le plant.",
+    aim_mode: "pokeball_frenzy", aim_diff: "easy"
+  },
+  {
+    id: 48, title: "Mid + B Execute — Pearl", rank: "GOLD", map: "Pearl", type: "attack", difficulty: 3,
+    description: "Prise de mid puis execute B en utilisant l'angle mid shops pour couper CT et entrer par le haut.",
+    guide: "1. 2 joueurs prennent mid control (smoke connector si contestee)\n2. Controller smoke B screens depuis mid\n3. 1 joueur maintient mid pour watch les rotations A\n4. 2 joueurs avancent vers B depuis mid shops (entree superieure)\n5. 2 joueurs entrent B main en simultane depuis en bas\n6. Pince B depuis mid et B main simultanement",
+    tips: "Mid Pearl donne acces a B par le haut — angle completement inattendu. La smoke screens depuis mid est tres efficace car elle bloque une large zone. Le joueur maintenant mid est le guard contre les rotations A.",
+    aim_mode: "ground_plaza", aim_diff: "medium"
+  },
+  {
+    id: 49, title: "A Retake depuis CT — Pearl", rank: "GOLD", map: "Pearl", type: "retake", difficulty: 3,
+    description: "Retake de A site depuis CT avec utils pour clear les positions standard de post-plant.",
+    guide: "1. 2 joueurs entrent A depuis CT main (direct)\n2. 1 joueur entre par link si disponible (angle surprise)\n3. Flash A depuis l'entree CT (aveugle les T)\n4. Smoke art si T tient depuis ce coin\n5. Clear CT corner puis structure centrale\n6. Defuse : 1 joueur defuse, 2 couvrent CT et link",
+    tips: "CT est l'angle de hold post-plant le plus populaire sur A Pearl — flash it avant d'entrer. Art est le second spot prefere. Si 3v2+, envoie toujours 1 par link — la pince est decisive. Ne jamais defuser si art ou CT ne sont pas clear.",
+    aim_mode: "ctrlsphere_clk", aim_diff: "medium"
+  },
+  {
+    id: 50, title: "B CT Hold — Pearl", rank: "PLATINUM", map: "Pearl", type: "defense", difficulty: 4,
+    description: "Setup defensif de B avec sentinel et crossfire depuis CT et B main pour deny l'execute.",
+    guide: "1. Sentinel (KJ) setup B main avec alarmbot + turret\n2. 1 joueur tient CT B (angle dominant sur toute l'entree)\n3. 1 joueur tient B screens depuis le milieu du site\n4. Si push detecte par sentinel : engagement depuis CT\n5. Controller garde smokes pour post-detect (smoke B main si deborde)\n6. Ne jamais push CT seul sans info — trop expose",
+    tips: "CT B Pearl est la position defensive la plus forte du site. La turret KJ en B main donne l'info ET le damage. Screens est un angle secondaire qui donne un crossfire parfait. Si tu perds CT, retraite immediatement vers A.",
+    aim_mode: "whisphere", aim_diff: "hard"
+  },
+  // ═══ ABYSS ═══
+  {
+    id: 51, title: "A Execute Standard — Abyss", rank: "SILVER", map: "Abyss", type: "attack", difficulty: 2,
+    description: "Execute A classique avec smokes sur les angles cles et flash pour l'entree en site.",
+    guide: "1. Smoke A main CT (coupe le defender standard)\n2. Smoke A link pour bloquer les rotations rapides\n3. Flash depuis A lobby pour l'entry\n4. Duelist entre A (pre-aim CT puis back)\n5. 2eme joueur clear le coin derriere l'entree\n6. Plante dans le spot default ou derriere la structure",
+    tips: "Abyss a des bords sans murs — attention aux positions aux bords pour eviter les tombes accidentelles. CT est l'angle dominant. La structure centrale du site est la seule cover pour planter. Toujours checker le bord droit en entrant.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  {
+    id: 52, title: "B Pit Execute — Abyss", rank: "GOLD", map: "Abyss", type: "attack", difficulty: 3,
+    description: "Execute B avec controle du pit et smoke CT pour neutraliser les angles dangereux.",
+    guide: "1. 1 joueur prend pit (position basse, vue sur CT et back B)\n2. Smoke CT B depuis B lobby\n3. Flash B main depuis le couloir\n4. Duelist entre B (pre-aim CT et back-B)\n5. Joueur pit distrait et engage pendant l'entree\n6. Plante derriere la plateforme centrale B",
+    tips: "Pit est unique sur Abyss — position basse avec vue complete. Attention aux bords autour du pit. CT B est l'angle le plus dangerous. La plateforme centrale B est le meilleur spot de plant.",
+    aim_mode: "w1w3ts_reload", aim_diff: "medium"
+  },
+  {
+    id: 53, title: "Mid + A Rush — Abyss", rank: "PLATINUM", map: "Abyss", type: "attack", difficulty: 4,
+    description: "Prise de controle du mid puis execute A pour creer un angle superieur pendant l'entree en site.",
+    guide: "1. 2-3 joueurs fight mid pour prendre le controle\n2. Controller smoke les lignes de vue mid dangereuses\n3. Une fois mid controle : 1 joueur tient depuis mid pour couvrir\n4. 2 joueurs rush A main pendant que mid player distraie\n5. Flash A depuis mid connection\n6. Pince A : mid + main simultanement",
+    tips: "Mid Abyss donne une vue plongeante sur A — avantage informationnel majeur. La fight mid est risquee mais payante si gagnee. Le joueur mid doit communiquer en permanence les positions. Decision making rapide est essentiel.",
+    aim_mode: "air_voltaic", aim_diff: "hard"
+  },
+  {
+    id: 54, title: "A Defense avec Util — Abyss", rank: "GOLD", map: "Abyss", type: "defense", difficulty: 3,
+    description: "Setup defensif de A avec sentinel et crossfire pour deny l'execute.",
+    guide: "1. Sentinel (Cypher) setup cam sur A main + trip\n2. 1 joueur tient A CT depuis le back du site\n3. 1 joueur tient la position de mid pour les rotations\n4. Initiator garde stun/flash pour le push detect\n5. Si push detecte par cam : tous se concentrent sur A\n6. Controller smokes pour le retake si besoin",
+    tips: "Cam Cypher sur A main Abyss est une des meilleures positions de cam du jeu. CT du site est la position defensive la plus forte. Attention aux bords — ne jamais reculer trop vite. Le joueur mid est le pivot pour les rotations.",
+    aim_mode: "deadzone_drill", aim_diff: "medium"
+  },
+  {
+    id: 55, title: "B Retake Express — Abyss", rank: "SILVER", map: "Abyss", type: "retake", difficulty: 3,
+    description: "Retake rapide de B via l'entree principale avec utils pour clear les positions post-plant.",
+    guide: "1. Flash B depuis l'entree (aveugle les T post-plant)\n2. 1 joueur entre B direct (CT side)\n3. 1 joueur entre par le flanc (pit si possible)\n4. Smoke la spike si T tient directement dessus\n5. Clear CT puis plateforme centrale\n6. Defuse : 1 defuse, 1 watch CT, 1 watch pit",
+    tips: "CT B est le spot post-plant dominant — flash avant d'entrer. Le pit est souvent ignore par les T en post-plant — en profiter pour le flank. Defuser sous la plateforme est le plus safe.",
+    aim_mode: "floatheads_t", aim_diff: "medium"
+  },
+  // ═══ CORRODE ═══
+  {
+    id: 56, title: "A Execute Standard — Corrode", rank: "SILVER", map: "Corrode", type: "attack", difficulty: 2,
+    description: "Execute A avec smokes sur les angles principaux et flash pour l'entree en site.",
+    guide: "1. Smoke CT A (angle le plus dangereux)\n2. Smoke le flanc connection pour bloquer les rotations\n3. Flash A main depuis le couloir\n4. Duelist entre A (pre-aim CT et back-A)\n5. 2eme joueur clear le coin en entrant\n6. Plante dans le spot central ou derriere la structure",
+    tips: "Corrode est une map relativement lineaire — les smokes sur les 2 angles principaux suffisent. Connais les spots de plant optimaux avant de jouer. La rapidite est importante car les rotations sont courtes.",
+    aim_mode: "speedflick", aim_diff: "medium"
+  },
+  {
+    id: 57, title: "B Rush Coordonne — Corrode", rank: "BRONZE", map: "Corrode", type: "attack", difficulty: 1,
+    description: "Rush rapide B avec flash et smoke CT pour prendre le site en vitesse.",
+    guide: "1. Flash B main en debut de rush\n2. Smoke CT B pour bloquer le defender\n3. Tous entrent ensemble (rush pur)\n4. 1er joueur clear les coins de l'entree\n5. Plant le plus rapide possible\n6. Hold les points de retake depuis le site",
+    tips: "Rush eco classique sur Corrode. La smoke CT est obligatoire sinon l'entree est dangereux. La vitesse compense le manque d'utils. Plant rapide = avantage post-plant.",
+    aim_mode: "pokeball_frenzy", aim_diff: "easy"
+  },
+  {
+    id: 58, title: "Mid Control — Corrode", rank: "GOLD", map: "Corrode", type: "attack", difficulty: 3,
+    description: "Prise de controle du mid pour dominer la map et preparer l'execute sur A ou B selon l'info.",
+    guide: "1. 2 joueurs prennent mid en priorite\n2. Controller smoke les angles contestees de mid\n3. Initiator stun si defenders mid agressifs\n4. Une fois mid controle : decide A ou B selon l'info\n5. Pivoter rapidement vers le site choisi\n6. Les 3 autres joueurs sont prets a execute selon la decision",
+    tips: "Mid control sur Corrode donne acces aux 2 sites — avantage strategique majeur. La decision A ou B doit se faire vite — 20 secondes max pour pivoter. Avec bon mid control, les defenders ne peuvent pas pre-setup contre un site specifique.",
+    aim_mode: "pasu_angelic", aim_diff: "medium"
+  },
+  {
+    id: 59, title: "A Retake Coordonne — Corrode", rank: "GOLD", map: "Corrode", type: "retake", difficulty: 3,
+    description: "Retake de A site avec utils et pince pour clear les positions post-plant adverses.",
+    guide: "1. Identifie les positions T via footsteps ou utils\n2. 2 joueurs entrent A depuis l'entree principale\n3. 1 joueur entre via le flanc/connection si disponible\n4. Flash l'interieur du site avant d'entrer\n5. Smoke les spots de post-plant connus\n6. Defuse en equipe : 1 defuse, les autres couvrent",
+    tips: "Le flanc est souvent la cle du retake — les T ne s'y attendent pas. Flash AVANT d'entrer — ne jamais peek les T post-plant a l'aveugle. Si tu connais les spots de post-plant, smoke les directement.",
+    aim_mode: "burst_drill", aim_diff: "medium"
+  },
 ];
 
 // Load scenarios: merge defaults with user-created ones from localStorage
+const SCENARIOS_VERSION = 3; // bump when DEFAULT_SCENARIOS changes to clear stale cache
 let coachingScenarios = loadScenarios();
 
 function loadScenarios() {
   try {
+    // Clear stale cache if version mismatch
+    if (parseInt(localStorage.getItem('ch_scenarios_version') || '0') < SCENARIOS_VERSION) {
+      localStorage.removeItem('ch_custom_scenarios');
+      localStorage.setItem('ch_scenarios_version', String(SCENARIOS_VERSION));
+      return JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
+    }
     const saved = JSON.parse(localStorage.getItem('ch_custom_scenarios') || '[]');
     const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
+    // Only merge truly custom scenarios (ids not in DEFAULT_SCENARIOS)
+    const defaultIds = new Set(DEFAULT_SCENARIOS.map(s => s.id));
     saved.forEach(s => {
-      const idx = merged.findIndex(m => m.id === s.id);
-      if (idx !== -1) merged[idx] = s;
-      else merged.push(s);
+      if (defaultIds.has(s.id)) return; // skip stale overrides of default scenarios
+      merged.push(s);
     });
     return merged;
   } catch { return JSON.parse(JSON.stringify(DEFAULT_SCENARIOS)); }
@@ -480,7 +808,6 @@ function initCoaching() {
 
   // Filters
   document.getElementById('ch-rank-filter')?.addEventListener('change', coachingRenderScenarios);
-  document.getElementById('ch-map-filter')?.addEventListener('change', coachingRenderScenarios);
   document.getElementById('ch-type-filter')?.addEventListener('change', coachingRenderScenarios);
   document.getElementById('ch-agent-role-filter')?.addEventListener('change', coachingRenderAgents);
   document.getElementById('ch-agent-search')?.addEventListener('input', coachingRenderAgents);
@@ -547,12 +874,10 @@ function coachingRenderDashboard() {
 
 function coachingRenderScenarios() {
   const rank = document.getElementById('ch-rank-filter')?.value || '';
-  const map = document.getElementById('ch-map-filter')?.value || '';
   const type = document.getElementById('ch-type-filter')?.value || '';
 
   let filtered = coachingScenarios;
   if (rank) filtered = filtered.filter(s => s.rank === rank);
-  if (map) filtered = filtered.filter(s => s.map === map);
   if (type) filtered = filtered.filter(s => s.type === type);
 
   const list = document.getElementById('ch-scenarios-list');
@@ -588,8 +913,6 @@ function coachingOpenScenarioModal(s) {
   document.getElementById('ch-sm-meta').textContent = `${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'defense' ? 'Defense' : 'Retake'} \u00b7 Difficulte ${s.difficulty || 3}/5`;
   document.getElementById('ch-sm-guide').textContent = s.guide || 'Guide non disponible.';
   document.getElementById('ch-sm-tips').textContent = s.tips || '';
-  // Render tactical map if available
-  if (typeof renderTacticalMap === 'function') renderTacticalMap('ch-sm-map', s.id, 0);
 
   const trainBtn = document.getElementById('ch-sm-train-btn');
   const aimMode = s.aim_mode || s.aimMode;
