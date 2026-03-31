@@ -143,9 +143,11 @@ const SUB_LABELS = {
 
 // ---- THREADS CALCULATION ----
 function getTh(key) {
-  if (currentTier==='hard') return SCENARIOS[key].thH || SCENARIOS[key].th;
-  if (currentTier==='easier') return SCENARIOS[key].thE || SCENARIOS[key].th;
-  return SCENARIOS[key].th;
+  const s = SCENARIOS[key];
+  if (!s || !s.th) return null;
+  if (currentTier==='hard') return s.thH || s.th;
+  if (currentTier==='easier') return s.thE || s.th;
+  return s.th;
 }
 function getMaxThreads() { return currentTier === 'hard' ? 6 : 8; }
 function getLabel(key) {
@@ -156,6 +158,7 @@ function getLabel(key) {
 
 function calcThreads(key, score) {
   const th = getTh(key);
+  if (!th) return 0;
   for (let i = th.length - 1; i >= 0; i--) { if (score >= th[i]) return i + 1; }
   return 0;
 }
@@ -167,9 +170,9 @@ function calcMaxSubThreads(sub) {
   return Object.values(SCENARIOS).filter(v => v.sub === sub).length * getMaxThreads();
 }
 function calcTotalThreads() {
-  return Object.keys(SCENARIOS).reduce((sum, k) => sum + calcThreads(k, getBest(k)), 0);
+  return Object.keys(SCENARIOS).filter(k=>SCENARIOS[k].th).reduce((sum, k) => sum + calcThreads(k, getBest(k)), 0);
 }
-function calcMaxTotal() { return Object.keys(SCENARIOS).length * getMaxThreads(); }
+function calcMaxTotal() { return Object.keys(SCENARIOS).filter(k=>SCENARIOS[k].th).length * getMaxThreads(); }
 function calcRankFromThreads(threads) {
   const total = Object.keys(SCENARIOS).length * 8; // 256
   const pct = threads / total;
