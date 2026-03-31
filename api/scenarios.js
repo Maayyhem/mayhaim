@@ -24,6 +24,29 @@ module.exports = async function handler(req, res) {
 
   const sql = neon(process.env.DATABASE_URL);
 
+  // Auto-create and migrate table
+  await sql`CREATE TABLE IF NOT EXISTS scenarios (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    rank VARCHAR(50),
+    map VARCHAR(100),
+    type VARCHAR(50),
+    difficulty INTEGER DEFAULT 3,
+    description TEXT DEFAULT '',
+    guide TEXT DEFAULT '',
+    tips TEXT DEFAULT '',
+    aim_mode VARCHAR(100) DEFAULT '',
+    aim_diff VARCHAR(20) DEFAULT 'medium',
+    created_by INTEGER,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`;
+  await sql`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS aim_mode VARCHAR(100) DEFAULT ''`;
+  await sql`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS aim_diff VARCHAR(20) DEFAULT 'medium'`;
+  await sql`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS created_by INTEGER`;
+  await sql`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
+  await sql`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
+
   if (req.method === 'GET') {
     const scenarios = await sql`SELECT * FROM scenarios ORDER BY id ASC`;
     return res.status(200).json({ scenarios });
