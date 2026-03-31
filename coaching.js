@@ -548,11 +548,12 @@ async function fetchScenariosFromDB() {
     if (!res.ok) return;
     const { scenarios } = await res.json();
     if (!scenarios || !scenarios.length) return;
+    const defaultIds = new Set(DEFAULT_SCENARIOS.map(s => s.id));
     const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
     scenarios.forEach(s => {
       const idx = merged.findIndex(m => m.id === s.id);
       if (idx !== -1) merged[idx] = { ...merged[idx], ...s };
-      else merged.push(s);
+      else if (!defaultIds.has(s.id)) merged.push(s); // only truly new custom scenarios
     });
     coachingScenarios = merged;
     persistScenarios();
