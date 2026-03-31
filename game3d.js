@@ -959,26 +959,19 @@ function hitTarget(t) {
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
 function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color='#e8c56d';f.appendChild(e);setTimeout(()=>e.remove(),1500); }
 
-// ---- MOUSE (with jump filter + rolling-average spike detector) ----
+// ---- MOUSE (hardware jump filter only — no rolling average to avoid blocking flicks) ----
 let lastMoveTime = 0;
 let skipFrames = 0;
-let avgDeltaX = 5, avgDeltaY = 5; // rolling average, start non-zero to avoid divide issues
 function onMouseMove(e) {
   if(!G.locked||!G.running) return;
   const now = performance.now();
   const rawX = e.movementX, rawY = e.movementY;
   // Skip first 3 frames after pointer lock (browser sends garbage deltas)
   if (skipFrames > 0) { skipFrames--; lastMoveTime = now; return; }
-  // Absolute spike filter — hardware/driver glitch
-  if (Math.abs(rawX) > 200 || Math.abs(rawY) > 200) return;
-  // Skip first move after long pause (re-lock, tab switch, resume)
-  if (now - lastMoveTime > 250 && lastMoveTime > 0) { lastMoveTime = now; return; }
-  // Rolling-average spike detection (catches subtler jumps)
-  avgDeltaX = avgDeltaX * 0.88 + Math.abs(rawX) * 0.12;
-  avgDeltaY = avgDeltaY * 0.88 + Math.abs(rawY) * 0.12;
-  const maxRatioX = Math.max(avgDeltaX * 6, 12);
-  const maxRatioY = Math.max(avgDeltaY * 6, 12);
-  if (Math.abs(rawX) > maxRatioX || Math.abs(rawY) > maxRatioY) return;
+  // Absolute spike filter — catches hardware/driver glitch teleports only
+  if (Math.abs(rawX) > 300 || Math.abs(rawY) > 300) return;
+  // Skip first move after long pause (re-lock, tab switch)
+  if (now - lastMoveTime > 300 && lastMoveTime > 0) { lastMoveTime = now; return; }
   lastMoveTime = now;
   const s = cm360ToRad(G.cm360);
   G.yaw -= rawX * s;
@@ -1050,7 +1043,7 @@ function startGame(mode) {
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
   G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
-  avgDeltaX=5; avgDeltaY=5; skipFrames=3;
+  skipFrames=3;
   G.switchActiveIdx=0;G.switchTimer=0;
 
   const sc=SCENARIOS[mode];

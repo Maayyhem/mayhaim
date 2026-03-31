@@ -28,18 +28,19 @@ module.exports = async function handler(req, res) {
     played_at TIMESTAMP DEFAULT NOW()
   )`;
 
-  // Top 50 players: sum of best score per mode, plus total games & avg accuracy
+  // Top 50 players: join with users table for real username
   const rows = await sql`
     SELECT
-      user_id,
-      username,
-      SUM(score) AS total_score,
+      gh.user_id,
+      COALESCE(u.username, gh.username, 'Joueur') AS username,
+      SUM(gh.score) AS total_score,
       COUNT(*) AS total_games,
-      ROUND(AVG(accuracy)) AS avg_accuracy,
-      MAX(score) AS best_game,
-      MAX(played_at) AS last_played
-    FROM game_history
-    GROUP BY user_id, username
+      ROUND(AVG(gh.accuracy)) AS avg_accuracy,
+      MAX(gh.score) AS best_game,
+      MAX(gh.played_at) AS last_played
+    FROM game_history gh
+    LEFT JOIN users u ON u.id = gh.user_id
+    GROUP BY gh.user_id, u.username, gh.username
     ORDER BY total_score DESC
     LIMIT 50
   `;

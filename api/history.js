@@ -46,9 +46,12 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { mode, score, accuracy, hits, misses, avg_reaction, best_combo, duration } = req.body;
+    // Fetch real username from users table
+    const userRow = await sql`SELECT username FROM users WHERE id = ${decoded.id} LIMIT 1`;
+    const username = userRow[0]?.username || decoded.email;
     await sql`
       INSERT INTO game_history (user_id, username, mode, score, accuracy, hits, misses, avg_reaction, best_combo, duration)
-      VALUES (${decoded.id}, ${decoded.email}, ${mode||''}, ${score||0}, ${accuracy||0},
+      VALUES (${decoded.id}, ${username}, ${mode||''}, ${score||0}, ${accuracy||0},
               ${hits||0}, ${misses||0}, ${avg_reaction||null}, ${best_combo||0}, ${duration||60})
     `;
     return res.status(201).json({ success: true });
