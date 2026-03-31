@@ -39,47 +39,48 @@ const RANK_COLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5'
 // th = Medium (8), thH = Hard (6), thE = Easier (8)
 const SCENARIOS = {
   // ═══ CONTROL TRACKING - Arm ═══
+  // Seuils recalibrés : précision × 10 (500=50%, 900=90%)
   whisphereraw:   { cat:'control_tracking', sub:'arm', type:'track', label:'WhisphereRawControl', labelH:'WhisphereRawCtrl 30% Small', labelE:'WhisphereRawCtrl Larger',
-    th:[5300,6700,7600,8800,10000,10900,11800,13000], thH:[7100,7700,8300,8900,9900,11000], thE:[5500,6700,7800,8700,9600,10500,11400,12500] },
+    th:[500,600,680,750,800,840,870,900], thH:[700,748,792,828,858,888], thE:[420,525,615,695,755,808,848,875] },
   whisphere:      { cat:'control_tracking', sub:'arm', type:'track', label:'Whisphere', labelH:'Whisphere Small & Slow', labelE:'Whisphere 80%',
-    th:[5750,8250,10750,13250,15250,17250,19250,20500], thH:[14000,15250,16500,18000,19500,20500], thE:[6300,7700,9000,10000,11000,12000,13000,14500] },
+    th:[480,590,670,740,795,840,870,900], thH:[718,762,806,836,864,892], thE:[405,510,600,680,750,808,848,875] },
   smoothbot:      { cat:'control_tracking', sub:'arm', type:'track', label:'SmoothBot Goated', labelH:'SmoothBot Goated Smaller', labelE:'SmoothBot Goated 75%',
-    th:[1700,2200,2750,3250,3800,4300,4650,5000], thH:[2700,3200,3450,3850,4200,4450], thE:[1800,2250,2650,2900,3150,3400,3650,4000] },
+    th:[490,592,672,742,792,836,870,900], thH:[698,745,788,822,852,882], thE:[415,518,608,688,755,812,852,882] },
   // ═══ CONTROL TRACKING - Wrist ═══
   leaptrack:      { cat:'control_tracking', sub:'wrist', type:'track', label:'Leaptrack Goated', labelH:'Leaptrack Goated 80%', labelE:'Leaptrack Goated 60% Larger',
-    th:[1400,1750,2000,2250,2500,2750,3000,3275], thH:[2500,2625,2750,2850,3000,3200], thE:[850,1200,1500,1700,1900,2100,2250,2450] },
+    th:[450,558,638,710,768,818,852,878], thH:[678,728,770,806,838,870], thE:[375,485,578,658,728,788,838,868] },
   ctrlsphere_aim: { cat:'control_tracking', sub:'wrist', type:'track', label:'Controlsphere rAim', labelH:'Controlsphere rAim', labelE:'Controlsphere rAim Easy 90%',
-    th:[7400,8500,9600,10700,11900,13100,14300,15100], thH:[9100,9850,10700,11300,11900,12350], thE:[6100,6950,7700,8400,9100,9800,10500,11500] },
+    th:[458,565,645,718,774,820,854,880], thH:[688,738,780,815,845,876], thE:[385,495,588,668,738,798,845,875] },
   vt_ctrlsphere:  { cat:'control_tracking', sub:'wrist', type:'track', label:'VT Controlsphere', labelH:'VT Controlsphere Hard', labelE:'VT Controlsphere 80%',
-    th:[2100,2500,2950,3250,3550,3800,4100,4400], thH:[2850,3200,3500,3800,4000,4200], thE:[1850,2300,2700,3000,3300,3600,3850,4100] },
+    th:[465,570,650,720,775,820,854,880], thH:[686,736,778,812,842,873], thE:[392,498,590,668,738,798,842,872] },
   // ═══ CONTROL TRACKING - Fingertip ═══
   air_angelic:    { cat:'control_tracking', sub:'fingertip', type:'track', label:'Air Angelic 4', labelH:'Air Angelic 4 Voltaic', labelE:'Air Angelic 4 Easy 80%',
-    th:[1900,2300,2650,3000,3400,3750,4100,4450], thH:[3300,3650,3850,4100,4225,4350], thE:[1050,1600,2000,2400,2700,3000,3300,3600] },
+    th:[422,528,618,698,758,808,847,878], thH:[658,714,758,798,834,868], thE:[348,458,558,645,715,775,828,858] },
   cloverraw:      { cat:'control_tracking', sub:'fingertip', type:'track', label:'Cloverrawcontrol Easy', labelH:'Cloverrawcontrol', labelE:'Cloverrawcontrol Easy 80%',
-    th:[5000,6100,7000,8100,9200,10100,10900,11700], thH:[7000,7650,8200,8650,9200,10100], thE:[3900,4550,5200,5700,6200,6700,7200,7700] },
+    th:[435,540,625,705,763,812,850,880], thH:[670,722,765,802,838,870], thE:[360,470,565,648,718,778,832,862] },
   ctrlsphere_far: { cat:'control_tracking', sub:'fingertip', type:'track', label:'Controlsphere Far', labelH:'Controlsphere Far', labelE:'Controlsphere Far Larger 90%',
-    th:[7800,8600,9300,10000,10800,11700,12700,13600], thH:[8600,9200,9800,10600,11200,12000], thE:[7600,8150,8700,9200,9800,10200,10900,11500] },
+    th:[442,548,632,710,768,816,852,882], thH:[672,724,768,805,840,872], thE:[368,478,572,652,722,782,835,865] },
   // ═══ CONTROL TRACKING - Blending ═══
   pgti:           { cat:'control_tracking', sub:'blending', type:'track', label:'PGTI Voltaic Easy', labelH:'PGTI Voltaic', labelE:'PGTI Voltaic Easy 80%',
-    th:[800,1100,1400,1700,2000,2300,2750,3200], thH:[1350,1650,1900,2150,2400,2700], thE:[350,550,850,1100,1350,1600,1900,2250] },
+    th:[428,532,618,698,756,806,844,875], thH:[662,718,760,798,832,865], thE:[355,462,555,638,708,770,826,858] },
   air_celestial:  { cat:'control_tracking', sub:'blending', type:'track_pct', label:'Air CELESTIAL', labelH:'Air CELESTIAL', labelE:'Air CELESTIAL Slowed',
     th:[825,840,855,865,881,890,902,908], thH:[867,875,885,890,894,897], thE:[820,835,850,861,870,878,884,890] },
   whisphere_slow: { cat:'control_tracking', sub:'blending', type:'track', label:'Whisphere Slow', labelH:'Whisphere Extra Small', labelE:'Whisphere Slow 55%',
-    th:[5500,7500,9500,11500,13500,15500,17500,19000], thH:[8500,10300,11000,12500,13500,14500], thE:[6000,7500,9000,10000,10750,11500,12250,13500] },
+    th:[458,562,648,718,774,820,854,882], thH:[708,752,792,822,852,880], thE:[388,495,585,665,735,795,842,872] },
 
   // ═══ REACTIVE TRACKING ═══
   ground_plaza:   { cat:'reactive_tracking', sub:'control', type:'track_pct', label:'Ground Plaza Sparky', labelH:'Ground Plaza Thin', labelE:'Air Voltaic Inv 7 Easy 80%',
-    th:[862,872,882,888,894,900,905,909], thH:[881,886,891,895,898,901], thE:[750,1200,1600,1900,2200,2500,2800,3200] },
+    th:[862,872,882,888,894,900,905,909], thH:[881,886,891,895,898,901], thE:[780,812,838,855,868,878,886,893] },
   ctrlsphere_ow:  { cat:'reactive_tracking', sub:'control', type:'track', label:'Controlsphere OW', labelH:'Controlsphere OW 150%', labelE:'Controlsphere OW Long 90%',
-    th:[4800,5700,6400,7300,8100,8900,9800,10500], thH:[6900,7600,8100,8525,8950,9500], thE:[5400,6100,6700,7200,7600,8000,8300,8700] },
+    th:[438,542,623,703,760,810,847,878], thH:[675,725,768,804,837,870], thE:[368,475,568,648,718,778,832,862] },
   flicker_plaza:  { cat:'reactive_tracking', sub:'speed', type:'track_pct', label:'Flicker Plaza rAim', labelH:'Flicker Plaza', labelE:'Flicker Plaza Less Blinks',
     th:[860,870,881,891,900,908,913,917], thH:[890,896,901,905,910,914], thE:[858,871,883,890,895,900,904,909] },
   polarized_hell: { cat:'reactive_tracking', sub:'speed', type:'track', label:'Polarized Hell', labelH:'Polarized Hell 20% Slower', labelE:'Polarized Hell 40% Slower',
-    th:[1600,1850,2100,2350,2600,2850,3150,3350], thH:[2550,2700,2850,3000,3150,3300], thE:[750,1100,1400,1600,1800,2000,2150,2500] },
+    th:[425,528,612,692,750,800,838,870], thH:[660,712,755,793,826,858], thE:[352,458,552,635,706,768,824,855] },
   air_pure:       { cat:'reactive_tracking', sub:'reading', type:'track_pct', label:'Air Pure', labelH:'Air Pure', labelE:'Air Pure Slower No UFO',
     th:[847,862,876,886,895,902,906,910], thH:[884,890,895,900,905,909], thE:[860,874,886,893,901,907,911,916] },
   air_voltaic:    { cat:'reactive_tracking', sub:'reading', type:'track', label:'Air Voltaic', labelH:'Air Voltaic Invincible 4', labelE:'Air Voltaic Easy 80%',
-    th:[1800,2150,2500,2950,3350,3750,4150,4450], thH:[2800,3150,3450,3700,3900,4100], thE:[1100,1600,2100,2450,2800,3150,3400,3800] },
+    th:[418,522,608,688,748,798,836,868], thH:[648,705,748,788,822,856], thE:[345,452,547,630,700,762,820,852] },
 
   // ═══ FLICK TECH ═══
   pokeball_frenzy:{ cat:'flick_tech', sub:'speed', type:'click', label:'Pokeball Frenzy', labelH:'Pokeball Frenzy TE Wide', labelE:'Pokeball Frenzy TE Wide',
@@ -192,6 +193,13 @@ function loadBench() { try { return JSON.parse(localStorage.getItem('visc_bench_
 function saveBest(key, score) {
   const b = loadBench(); if (!b[key] || score > b[key]) b[key] = score;
   localStorage.setItem('visc_bench_'+currentTier, JSON.stringify(b));
+}
+function getBenchmarkScore() {
+  const sc = SCENARIOS[G.mode];
+  if (sc && (sc.type === 'track' || sc.type === 'track_pct')) {
+    return G.trackFrames > 0 ? Math.round(G.trackOnTarget / G.trackFrames * 1000) : 0;
+  }
+  return G.score;
 }
 function getBest(key) { return loadBench()[key] || 0; }
 
@@ -1104,8 +1112,9 @@ function endGame() {
   const rk=$('#res-rank'), tw=$('#res-threads-wrap');
 
   if(G.benchmarkMode && SCENARIOS[G.mode]) {
-    saveBest(G.mode, G.score);
-    const threads = calcThreads(G.mode, G.score);
+    const benchScore = getBenchmarkScore();
+    saveBest(G.mode, benchScore);
+    const threads = calcThreads(G.mode, benchScore);
     rk.textContent = threads+'/8 Threads';
     rk.style.color = RANK_COLORS[Math.min(threads,7)]; rk.style.borderColor = RANK_COLORS[Math.min(threads,7)];
     tw.classList.remove('hidden');
