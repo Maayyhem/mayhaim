@@ -72,11 +72,118 @@ const agentsGuide = [
 // ============ DATA: SCENARIOS (default, will be overridden by DB) ============
 
 const DEFAULT_SCENARIOS = [
-  { id: 1, title: "B Site Take - Bind", rank: "BRONZE", map: "Bind", type: "attack", difficulty: 1, description: "Entree B simple avec smoke et flash.", guide: "1. Smoke hookah et long B\n2. Flash pour ton duelist\n3. Le duelist entre par short B\n4. Le second joueur clear garden\n5. Plante default", tips: "Ne rush jamais sans smokes. Toujours clear les coins un par un.", aimMode: "pasu_reload", aimDiff: "easy" },
-  { id: 2, title: "A Site Hold - Ascent", rank: "BRONZE", map: "Ascent", type: "defense", difficulty: 1, description: "Defense du site A avec crossfire basique.", guide: "1. Un joueur tient le generator\n2. Un joueur tient heaven\n3. Crossfire main et short\n4. Call et rotate si push", tips: "Le crossfire generator + heaven est tres puissant.", aimMode: "speedflick", aimDiff: "easy" },
-  { id: 3, title: "A Site Retake - Haven", rank: "SILVER", map: "Haven", type: "retake", difficulty: 2, description: "Retake du site A apres plant ennemi.", guide: "1. Regroupe-toi avec ton equipe\n2. Utilise les utils pour clear\n3. Flash/stun long A et sewers\n4. Peek ensemble\n5. Check le timer avant defuse", tips: "Le timing est crucial en retake. Defuse toujours a couvert.", aimMode: "pasu_reload", aimDiff: "medium" },
-  { id: 4, title: "Mid Control - Split", rank: "SILVER", map: "Split", type: "attack", difficulty: 2, description: "Prise du mid pour ouvrir les rotations.", guide: "1. Smoke vent et mail\n2. Clear mid avec drone/flash\n3. Hold mid bottom\n4. Execute A ou B selon l'info", tips: "Celui qui controle le mid controle le round.", aimMode: "pokeball_frenzy", aimDiff: "medium" },
-  { id: 5, title: "Full Execute - Lotus", rank: "DIAMOND", map: "Lotus", type: "attack", difficulty: 5, description: "Execute complete sur A site avec 5 joueurs.", guide: "1. Drone/haunt pour reveler\n2. Smokes sur tree et rubble\n3. Flash + stun simultanement\n4. Entry par main + root\n5. Plant default", tips: "Le timing des utils doit etre au dixieme de seconde pres.", aimMode: "gridshot", aimDiff: "hard" },
+  // ═══ BIND ═══
+  {
+    id: 1, title: "A Hookah Execute — Bind", rank: "SILVER", map: "Bind", type: "attack", difficulty: 3,
+    description: "Execute complete sur A site via hookah avec smoke CT, flash short et setup post-plant.",
+    guide: "1. Controller smoke hookah ET CT box en simultane\n2. Initiator flash court depuis A showers (aveugle les angles)\n3. Duelist entre hookah (pre-aim CT immediat en sortant)\n4. 2eme joueur clear short A et la box droite\n5. Plante default B main ou derriere la box selon le clear\n6. Post-plant : smoke elbow + molly spot default",
+    tips: "Ne jamais entrer hookah sans smoke CT — c'est un angle mortel. En sortant de hookah, pre-aim immediatement la box a droite au fond. Si CT est smoke, la box devient la priorite absolue. La molly post-plant sous la box est quasiment impossible a defuse.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 2, title: "B Short Default — Bind", rank: "BRONZE", map: "Bind", type: "attack", difficulty: 2,
+    description: "Prise de B site via short avec smoke long B et garden. Strat fondamentale pour Bind.",
+    guide: "1. Smoke long B depuis le coin (coupe CT et heaven)\n2. Flash B main pour le duelist\n3. Duelist entre short B (pre-aim U-Hall)\n4. 2eme joueur clear garden angle\n5. 3eme joueur tient B elbow via showers TP contre rotations\n6. Plante derriere la boite centrale (spot default B)",
+    tips: "La smoke long B doit couper CT ET heaven simultanement. Toujours clear le coin derriere la porte garden avant de planter — c'est le spot prefere des defenders. La boite centrale B est le meilleur spot de plant : difficile a voir depuis toutes les entrees.",
+    aim_mode: "w1w3ts_reload", aim_diff: "easy"
+  },
+  {
+    id: 3, title: "B Retake Express — Bind", rank: "GOLD", map: "Bind", type: "retake", difficulty: 3,
+    description: "Retake rapide de B site apres plant ennemi via showers TP et garden coordonnes.",
+    guide: "1. 1-2 joueurs entrent par B main (cote long B)\n2. 1 joueur teleporte showers TP (arrive cote garden)\n3. Initiator flash/stun les defenders sur le site\n4. Smoke U-Hall pour couper les renforts\n5. Fermer la pince : un depuis B main, un depuis garden\n6. Ne jamais defuser seul — attendre que le site soit clear",
+    tips: "Venir de 2 cotes simultanement desorganise completement les defenders. Ecoute le spike pour localiser l'ennemi. Toujours avoir une smoke disponible avant de defuser. Si tu es seul sur le retake, utilise la smoke + jiggle pour forcer un tir.",
+    aim_mode: "w1w3ts_reload", aim_diff: "medium"
+  },
+  // ═══ HAVEN ═══
+  {
+    id: 4, title: "C Rush Coordonne — Haven", rank: "BRONZE", map: "Haven", type: "attack", difficulty: 1,
+    description: "Rush full 5 sur C site avec flash et smoke CT. Execution rapide avant les rotations adverses.",
+    guide: "1. Rush a 5 sur C main des le debut du round (avant 15s)\n2. Flash depuis le coin C lobby pour aveugler CT\n3. Smoke CT box pour couper la ligne de vue du defender\n4. Entry clear corner C right puis CT corner\n5. Plante dans la boite ou spot default\n6. 1 joueur tient C garage pour couper les rotations B",
+    tips: "Le rush C fonctionne sur la surprise — execute AVANT 15 secondes. Si les ennemis ont smoke B mid, ils sont probablement legers sur C. Ne jamais rush sans au minimum une flash. Le joueur garage est crucial pour detecter les rotations.",
+    aim_mode: "pokeball_frenzy", aim_diff: "easy"
+  },
+  {
+    id: 5, title: "A-C Split Strategique — Haven", rank: "PLATINUM", map: "Haven", type: "attack", difficulty: 4,
+    description: "Split A et C simultanement pour forcer les defenders a se diviser et creer un 3v2 favorable.",
+    guide: "1. 2 joueurs font une distraction convaincante sur A (bruit, peek sans entrer)\n2. 3 joueurs setup execute C en parallele\n3. Controller smoke mid pour couper toutes les rotations B\n4. Signal commun : les 2 font du bruit A au MEME moment que les 3 entrent C\n5. Execute C : smokes CT + C right, flash simultane\n6. Apres plant : smoke mid + B door pour hold jusqu'a la fin",
+    tips: "La synchronisation est TOUT dans ce split. Les 2 sur A doivent etre CONVAINCANTS — peek l'angle, fais du bruit, utilise des utils. Si un defender reste A, c'est un 3v2 sur C automatique. Communication pre-round obligatoire.",
+    aim_mode: "vox_ts2", aim_diff: "hard"
+  },
+  {
+    id: 6, title: "B Mid Control Defensif — Haven", rank: "GOLD", map: "Haven", type: "defense", difficulty: 3,
+    description: "Controle du mid depuis garage et window pour dominer les rotations et tenir B site.",
+    guide: "1. Sentinel setup trips/cam sur C entry des le debut\n2. 1 joueur tient B mid depuis garage (angle window)\n3. 1 joueur tient window depuis mid (crossfire naturel)\n4. Controller garde 1-2 smokes pour urgences mid\n5. Si push mid : smoke door B + crossfire garage + window ensemble\n6. Rotate B uniquement apres call confirm — ne jamais rotate a l'aveugle",
+    tips: "Celui qui controle mid sur Haven controle les rotations. Le crossfire garage + window est difficile a traverser sans utils. Ne rotate JAMAIS sans call — les rotations inutiles perdent des rounds. Garde toujours une smoke pour les urgences.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  // ═══ SPLIT ═══
+  {
+    id: 7, title: "A Ramp Execute — Split", rank: "SILVER", map: "Split", type: "attack", difficulty: 2,
+    description: "Execute A via ramp avec smokes heaven et screens pour neutraliser les positions hautes.",
+    guide: "1. Controller smoke heaven ET CT box simultanement\n2. Initiator flash depuis A lobby vers le site\n3. Duelist entre par ramp (pre-aim CT immediatement)\n4. 2eme joueur clear screens depuis A main\n5. 3eme joueur tient A lobby contre les rotations mid\n6. Plante derriere la box (protege depuis heaven) ou default ramp",
+    tips: "Heaven est l'angle le plus mortel sur A Split — toujours le smoker en premier. Ne jamais entrer A sans smoke screens sinon tu es expose a 3 angles en meme temps. Le plant derriere la box est excellent car difficile a defuser depuis heaven smoké.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 8, title: "Mid Heaven + B Execute — Split", rank: "GOLD", map: "Split", type: "attack", difficulty: 3,
+    description: "Prise du mid et de heaven pour ouvrir B site depuis le haut — la strat la plus puissante sur Split.",
+    guide: "1. Smoke vent mid ET mail des le debut (coupe les defenders)\n2. Joueur 1 clear mid sous puis tient vent\n3. Joueur 2 monte heaven depuis mid (la smoke mail couvre la montee)\n4. Le joueur heaven call toutes les positions B site\n5. Joueurs 3-4 push B main avec flash de l'initiator\n6. Heaven couvre l'entree et le plant jusqu'a la fin du round",
+    tips: "Controler heaven donne une vue sur TOUT B site — ce joueur devient les yeux de l'equipe, il doit caller chaque position. La smoke mail est non-negociable pour monter heaven. Apres le take, garder 1 joueur heaven pour le post-plant coverage.",
+    aim_mode: "w1w3ts_reload", aim_diff: "medium"
+  },
+  // ═══ ASCENT ═══
+  {
+    id: 9, title: "B Boat Fast Execute — Ascent", rank: "SILVER", map: "Ascent", type: "attack", difficulty: 2,
+    description: "Execute rapide sur B via boat et market avec smoke CT et flash coordonnes.",
+    guide: "1. Ferme les portes mid en debut de round (coupe les rotations A)\n2. Controller smoke CT box ET bench simultanement\n3. Initiator flash depuis B main\n4. Duelist entre par boat (pre-aim CT corner)\n5. 2eme joueur clear market corner depuis B main\n6. Plante derriere les boites (spot standard B Ascent)",
+    tips: "Fermer les portes mid est CRUCIAL — ca bloque les rotations depuis A et te donne 10 secondes de plus. La smoke bench est optionnelle mais protege contre les OPs. Entre toujours boat ET market simultanement pour eviter le crossfire defensif.",
+    aim_mode: "beants", aim_diff: "easy"
+  },
+  {
+    id: 10, title: "Mid Doors + A Short — Ascent", rank: "GOLD", map: "Ascent", type: "attack", difficulty: 3,
+    description: "Controle du mid via les portes pour ouvrir A short et executer A en superiorite numerique.",
+    guide: "1. Initiator drone/haunt pour reveal mid des le debut\n2. Smoke market window pour couper les lignes de vue mid\n3. 2 joueurs push mid (un wide, un safe pour le trade)\n4. Clear A short depuis mid avec une flash\n5. Execute A : smoke CT + catwalk flash simultanement\n6. Plante derriere generator ou spot default selon le clear",
+    tips: "Ne jamais push mid sans info — un OP depuis mid peut eliminer 2-3 joueurs. La combinaison drone + smoke market window est standard en competitif. Une fois mid controle, A short s'ouvre facilement (1 defender max souvent). Generator est le meilleur spot de plant sur A Ascent.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  // ═══ ICEBOX ═══
+  {
+    id: 11, title: "B Orange Rush — Icebox", rank: "GOLD", map: "Icebox", type: "attack", difficulty: 3,
+    description: "Rush agressif sur B via orange avec boost container pour prendre le controle total du site.",
+    guide: "1. 1 joueur booste sur le container B (position dominante sur le site)\n2. Smoke CT et yellow simultanement pour couper les lignes\n3. Flash depuis B main pour aveugler les defenders\n4. Entry clear yellow coin puis tube\n5. Le joueur sur container couvre tout le site depuis le haut\n6. Plante dans tube ou derriere la boite bleue",
+    tips: "Le boost container doit se faire accroupi et silencieusement. Ce joueur voit tout le site mais est tres expose — il doit tirer vite et se baisser. Si le boost est spotte, avorter le rush immediatement et changer de plan. Tube est le spot de plant le plus safe contre les retakes.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 12, title: "A Site Hold Snowman — Icebox", rank: "PLATINUM", map: "Icebox", type: "defense", difficulty: 4,
+    description: "Hold agressif A depuis snowman et rafters pour dominer l'entree et deny le take de site.",
+    guide: "1. Sentinel (KJ/Cypher) setup sur A main et conveyor des le debut\n2. 1 joueur tient snowman (couvre rafters et main)\n3. 1 joueur tient rafters (vue complete sur A site)\n4. Controller garde smokes pour les urgences retake\n5. Push detect : crossfire snowman + rafters automatique\n6. Ne jamais hold seul — les crossfires sont la cle",
+    tips: "Snowman est la meilleure position de A Icebox mais exige de l'aim — tu es expose. Le crossfire snowman + rafters rend l'entree presque impossible sans utils. Les capteurs KJ/Cypher permettent d'anticiper les pushes. Si les ennemis ont Viper/Astra, adjust ta position.",
+    aim_mode: "pasu_reload", aim_diff: "hard"
+  },
+  // ═══ LOTUS ═══
+  {
+    id: 13, title: "A Default Execute — Lotus", rank: "GOLD", map: "Lotus", type: "attack", difficulty: 3,
+    description: "Execute A standard sur Lotus avec cassage de porte strategique et neutralisation de tree et root.",
+    guide: "1. Casse la porte A (timing : tot = surprend, tard = masque l'execute)\n2. Smoke tree ET root simultanement (les 2 angles mortels)\n3. Flash depuis A main pour aveugler le defender\n4. Duelist pre-aim tree en entrant (position standard du defender)\n5. 2eme joueur clear root corner immediatement\n6. Plante derriere le stone ou spot default selon le clear",
+    tips: "Casser la porte fait du bruit — utilise-le strategiquement. Tree est l'angle LE PLUS dangereux sur A Lotus, toujours le smoker en premier. Root est souvent tenu agressivement en defense — approche avec une flash. Le plant derriere le stone est tres dur a defuser sans utils.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  {
+    id: 14, title: "A-B Split 5v5 — Lotus", rank: "DIAMOND", map: "Lotus", type: "attack", difficulty: 5,
+    description: "Split coordonne entre A et B avec fausse pression C pour forcer les rotations et creer une superiorite numerique.",
+    guide: "1. 1 joueur fait du bruit convincant sur C (peek, utils — sans entrer)\n2. 2 joueurs setup execute A (smoke tree + root)\n3. 2 joueurs setup execute B (smoke B main + door)\n4. Controller avec smokes longue portee place TOUT en meme temps\n5. Signal commun : les deux equipes entrent A et B simultanement\n6. Apres plant : smoke les rotations C pour hold jusqu'a la fin",
+    tips: "Cette strat EXIGE Brimstone ou Astra pour les smokes longue portee simultanees. La pression C doit etre convaincante — utilise tous tes utils, fais du bruit, peek l'angle. Le signal commun 'GO' doit etre pre-etabli. Communication et preparation pre-round sont absolument essentielles.",
+    aim_mode: "pokeball_frenzy", aim_diff: "hard"
+  },
+  // ═══ SUNSET ═══
+  {
+    id: 15, title: "B Default + Post-plant — Sunset", rank: "SILVER", map: "Sunset", type: "attack", difficulty: 2,
+    description: "Execute B standard sur Sunset avec setup post-plant et molly pour deny le defuse.",
+    guide: "1. Smoke mid (bloque les rotations) ET CT B simultanement\n2. Flash depuis B main pour le duelist\n3. Entry clear resto corner puis CT corner\n4. 2eme joueur clear back B\n5. Plante default (spot central) ou sous les escaliers (plus de cover)\n6. Post-plant : 1 molly sur le spike + smoke elbow pour hold",
+    tips: "La smoke mid est absolument critique sur Sunset — sans elle, les rotations arrivent en 5 secondes. Le plant sous les escaliers est superieur au spot default car il est couvert de plusieurs angles. La molly post-plant sur le spike est LA technique a maitriser sur cette map.",
+    aim_mode: "beants", aim_diff: "medium"
+  },
 ];
 
 // Load scenarios: merge defaults with user-created ones from localStorage
@@ -709,9 +816,44 @@ async function coachingRenderStudents() {
 
 // ============ ADMIN: MANAGE SCENARIOS ============
 
+async function seedScenariosToDb() {
+  if (!coachingToken) return alert('Non connecte');
+  const btn = document.getElementById('btn-seed-scenarios');
+  if (btn) { btn.disabled = true; btn.textContent = 'Seeding...'; }
+  try {
+    const res = await fetch(`${API_BASE}/seed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+    alert(data.message || 'Seed termine !');
+    await fetchScenariosFromDB();
+    coachingRenderManageScenarios();
+  } catch (e) {
+    alert('Erreur seed : ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Initialiser les scenarios (Seed DB)'; }
+  }
+}
+
 function coachingRenderManageScenarios() {
   const list = document.getElementById('ch-manage-scenarios-list');
   if (!list) return;
+
+  // Seed button for admin
+  const wrap = list.parentElement;
+  if (wrap && !document.getElementById('btn-seed-scenarios') && coachingUserRole === 'admin') {
+    const seedBtn = document.createElement('button');
+    seedBtn.id = 'btn-seed-scenarios';
+    seedBtn.className = 'btn-primary';
+    seedBtn.style.cssText = 'margin-bottom:16px;background:rgba(0,200,120,0.15);border:1px solid rgba(0,200,120,0.3);color:#00c878;';
+    seedBtn.textContent = 'Initialiser les scenarios (Seed DB)';
+    seedBtn.title = 'Peupler la DB avec les 15 scenarios Valorant par defaut (admin uniquement)';
+    seedBtn.addEventListener('click', seedScenariosToDb);
+    wrap.insertBefore(seedBtn, list);
+  }
+
   list.innerHTML = '';
 
   coachingScenarios.forEach(s => {
@@ -841,76 +983,80 @@ const COURS_DATA = [
     desc: 'Le placement du viseur est LA skill qui separe les joueurs Gold des Immortal. Apprends a toujours avoir ton crosshair au niveau de la tete, pre-aim les angles, et minimiser tes ajustements.',
     sections: [
       {
-        title: 'Pourquoi c\'est important',
-        content: `<p>Le crosshair placement consiste a <strong>toujours garder ton viseur la ou la tete de l'ennemi va apparaitre</strong>. Un bon placement signifie que tu n'as presque pas besoin de bouger ta souris pour tuer — tu cliques juste.</p>
-        <div class="cours-tip">Un joueur avec un bon crosshair placement et une aim mediocre battra TOUJOURS un joueur avec une aim incroyable mais un mauvais placement.</div>`
+        title: 'Pourquoi c\'est la base absolue',
+        content: `<p>Le crosshair placement consiste a <strong>toujours garder ton viseur la ou la tete de l'ennemi va apparaitre</strong>. Un bon placement signifie que tu n'as presque pas besoin de bouger ta souris pour tuer — tu cliques juste au bon moment.</p>
+        <div class="cours-tip">Un joueur avec un bon crosshair placement et une aim mediocre battra TOUJOURS un joueur avec une aim incroyable mais un mauvais placement. C'est la skill avec le meilleur ratio effort/impact dans Valorant.</div>
+        <p>En pratique : si ton crosshair est deja au niveau de la tete quand l'ennemi apparait, tu as besoin d'un micro-ajustement de quelques pixels. Si ton crosshair est au sol, tu as besoin de bouger ta souris de 30+ cm. La difference est enorme sous pression.</p>`
       },
       {
         title: 'Les 3 regles d\'or',
         content: `<ul>
-          <li><strong>Hauteur de tete :</strong> Ton viseur doit TOUJOURS etre a hauteur de tete. Utilise les reperes visuels sur les murs (lignes, caisses, cadres de porte). Sur Valorant, la tete est a environ 70% de la hauteur du modele.</li>
-          <li><strong>Pre-aim les angles :</strong> Avant de peek un angle, place ton crosshair exactement la ou l'ennemi pourrait se trouver. Ne peek JAMAIS un angle avec le viseur au milieu de nulle part.</li>
-          <li><strong>Suis les murs :</strong> Quand tu te deplaces, garde ton crosshair colle au mur/coin le plus proche d'ou un ennemi peut sortir. Ajuste la distance du mur selon ta vitesse de reaction.</li>
+          <li><strong>Hauteur de tete constante :</strong> Ton viseur doit TOUJOURS etre a hauteur de tete, meme quand tu marches. Utilise les reperes visuels : bords de portes, caisses, lignes de mur. Sur Valorant, vise environ 70% de la hauteur d'un modele debout.</li>
+          <li><strong>Pre-aim chaque angle :</strong> Avant de decouvrir un angle (en marchant lateralement), place ton crosshair EXACTEMENT ou l'ennemi pourrait se tenir. Si tu penses "il pourrait etre derriere cette caisse", ton crosshair doit etre sur le cote de cette caisse.</li>
+          <li><strong>Suis les murs en avancant :</strong> Quand tu avances vers un angle inconnu, garde ton crosshair colle au mur/coin le plus proche d'ou un ennemi peut sortir. L'ennemi apparaitra dans ton viseur quasi automatiquement.</li>
         </ul>`
       },
       {
-        title: 'Erreurs courantes',
+        title: 'Erreurs courantes et corrections',
         content: `<ul>
-          <li><strong>Regarder le sol</strong> — L'erreur #1. Force-toi a garder le viseur en haut.</li>
-          <li><strong>Crosshair au centre de l'ecran sans but</strong> — Ton viseur doit toujours viser un angle specifique.</li>
-          <li><strong>Ne pas ajuster a la distance</strong> — Plus tu es loin, plus ton crosshair doit etre colle au mur (car l'ennemi apparait plus vite dans ton champ de vision).</li>
-          <li><strong>Oublier l'elevation</strong> — Ajuste ton viseur si l'ennemi est sur une plateforme elevee (Heaven, Box, etc).</li>
+          <li><strong>Regarder le sol en marchant</strong> — Force-toi mentalement a "tenir" ton viseur en haut. Si tu l'as remarque, tu as deja fait la moitie du travail.</li>
+          <li><strong>Crosshair au centre sans but</strong> — Ton viseur doit viser un angle specifique a tout moment. Si tu marches dans un couloir, il doit viser les deux coins en alternance.</li>
+          <li><strong>Ne pas ajuster a la distance</strong> — Plus l'ennemi est loin, plus il se materialisera vite dans ton FOV. Ajuste ton pre-aim en consequence.</li>
+          <li><strong>Oublier l'elevation</strong> — Sur Valorant, les positions hautes (Heaven, Box, Rafters) doivent faire partie de ton "rotation mentale" d'angles a verifier.</li>
+          <li><strong>Bouger le crosshair avec sa souris apres le peek</strong> — Le crosshair doit etre en place AVANT de bouger, pas pendant. Planifie, puis avance.</li>
         </ul>`
       },
       {
         title: 'Exercices pratiques',
         type: 'exercises',
         exercises: [
-          { mode: 'crosshair_drill', diff: 'easy', name: 'Head Level Drill', desc: 'Cibles fixes a hauteur de tete — clique le plus vite possible' },
-          { mode: 'crosshair_drill', diff: 'medium', name: 'Pre-aim Angles', desc: 'Cibles qui apparaissent aux coins — pre-aim et clique' },
-          { mode: 'crosshair_drill', diff: 'hard', name: 'Speed Placement', desc: 'Cibles rapides multi-angles, reaction pure' },
+          { mode: 'crosshair_drill', diff: 'easy', name: 'Head Level Fondation', desc: 'Cibles fixes a hauteur de tete — clique vite, aucun ajustement necessaire' },
+          { mode: 'crosshair_drill', diff: 'medium', name: 'Pre-aim des Angles', desc: 'Cibles apparaissant aux coins — pre-aim la position avant le spawn' },
+          { mode: 'crosshair_drill', diff: 'hard', name: 'Reaction Pure Multi-angle', desc: 'Cibles rapides dans tout le FOV — crosshair placement + reflexes combines' },
         ]
       }
     ]
   },
   {
     id: 'deadzoning',
-    title: 'Deadzoning',
+    title: 'Deadzoning & Tracking',
     icon: '&#9678;',
     tag: 'Avance',
-    desc: 'Le deadzoning consiste a maintenir ton viseur dans la "zone morte" autour de la cible pendant le tracking, minimisant tes micro-corrections inutiles pour un tracking plus smooth et precis.',
+    desc: 'Le deadzoning est la technique de tracking qui te permet de suivre une cible de maniere fluide et precise, en maintenant ton viseur dans une zone optimale autour de la cible.',
     sections: [
       {
         title: 'Qu\'est-ce que le deadzoning ?',
         content: `<p>La <strong>deadzone</strong> est une zone imaginaire autour de ta cible. Tant que ton viseur reste dans cette zone, tu n'as pas besoin de corriger. L'idee est de <strong>bouger ta souris de maniere fluide</strong> en suivant le mouvement general de la cible, plutot que de faire des micro-ajustements frenetiques.</p>
-        <div class="cours-tip">Pense au tracking comme a conduire une voiture : tu ne tournes pas le volant de maniere saccadee, tu fais des ajustements progressifs et fluides. Le deadzoning, c'est accepter que tu n'as pas besoin d'etre pixel-perfect a chaque frame.</div>`
+        <div class="cours-tip">Pense au tracking comme a conduire une voiture : tu ne tournes pas le volant de maniere saccadee, tu fais des ajustements progressifs et fluides. Le deadzoning, c'est accepter que tu n'as pas besoin d'etre pixel-perfect a chaque frame — la fluidite prime sur la precision brute.</div>
+        <p>En jeu, le deadzoning s'applique dans les situations ou l'ennemi bouge : spray transfer, peek qui court, strafe A-D. Au lieu de "chasser" pixel par pixel, tu maintiens une zone de 5-10 pixels autour de la cible et tu tires en continu.</p>`
       },
       {
-        title: 'Comment pratiquer',
+        title: 'Comment pratiquer efficacement',
         content: `<ul>
-          <li><strong>Phase 1 — Large deadzone :</strong> Commence par simplement suivre la direction generale de la cible. Accepte que ton viseur soit a cote parfois.</li>
-          <li><strong>Phase 2 — Reduire la zone :</strong> Progressivement, resserre ta zone de confort. Tes mouvements deviennent plus precis naturellement.</li>
-          <li><strong>Phase 3 — Smooth tracking :</strong> Concentre-toi sur la fluidite. Un mouvement smooth > des corrections saccadees meme si elles sont precises.</li>
+          <li><strong>Phase 1 — Deadzone large :</strong> Commence par accepter une grande zone (20-30px). Concentre-toi uniquement sur la direction generale. Aucune micro-correction.</li>
+          <li><strong>Phase 2 — Resserre progressivement :</strong> Reduis mentalement ta zone acceptable. Tes mouvements deviennent naturellement plus precis sans que tu forces.</li>
+          <li><strong>Phase 3 — Smooth tracking :</strong> La priorite est la fluidite du mouvement. Un tracking smooth a 85% de precision est superieur a un tracking saccade a 90%.</li>
+          <li><strong>Phase 4 — Mouvements de poignet :</strong> Pour les cibles rapides et impredictibles, switch du mouvement de bras vers le poignet pour des corrections plus rapides.</li>
         </ul>
-        <div class="cours-tip">Baisse ta sensibilite si tu n'arrives pas a etre smooth. Un cm/360 entre 30-45cm est ideal pour le tracking.</div>`
+        <div class="cours-tip">Si tu n'arrives pas a etre smooth, baisse ta sensibilite. Un cm/360 entre 30-45cm est ideal pour le tracking Valorant. Plus haut = trop de precision necessaire. Plus bas = trop lent pour les corrections rapides.</div>`
       },
       {
-        title: 'Application en jeu',
-        content: `<p>Le deadzoning s'applique quand tu :</p>
+        title: 'Application en jeu Valorant',
+        content: `<p>Le deadzoning s'applique dans ces situations concretes :</p>
         <ul>
-          <li>Track un ennemi qui strafe (A-D spam)</li>
-          <li>Suis un ennemi qui court avec ta mire</li>
-          <li>Spray transfer entre 2 ennemis</li>
-          <li>Tiens un angle ou un ennemi peut jiggle peek</li>
+          <li><strong>A-D spam ennemi :</strong> Ne pas essayer de suivre chaque micro-mouvement. Garde ton viseur sur le centre de l'oscillation et tire dans la deadzone.</li>
+          <li><strong>Ennemi qui court vers toi :</strong> Suivi de bras, mouvement progressif, pas de corrections brusques.</li>
+          <li><strong>Spray transfer :</strong> Apres le premier kill, swing vers la nouvelle cible et entre dans sa deadzone avant de continuer a tirer.</li>
+          <li><strong>Jiggle peek :</strong> Maintiens ton crosshair sur l'angle, ne "chasse" pas le mouvement. L'ennemi reviendra dans ta deadzone.</li>
         </ul>`
       },
       {
         title: 'Exercices pratiques',
         type: 'exercises',
         exercises: [
-          { mode: 'deadzone_drill', diff: 'easy', name: 'Smooth Track Easy', desc: 'Cible lente et large — reste dans la zone' },
-          { mode: 'deadzone_drill', diff: 'medium', name: 'Reactive Track', desc: 'Cible qui change de direction — anticipe' },
-          { mode: 'deadzone_drill', diff: 'hard', name: 'Micro Deadzone', desc: 'Petite cible rapide — precision maximale' },
+          { mode: 'deadzone_drill', diff: 'easy', name: 'Suivi Fluide — Introduction', desc: 'Cible lente et large — apprends la deadzone, reste smooth et ne sur-corrige pas' },
+          { mode: 'deadzone_drill', diff: 'medium', name: 'Changements de Direction', desc: 'Cible qui change brusquement — anticipe la direction, ne poursuis pas a la reaction' },
+          { mode: 'deadzone_drill', diff: 'hard', name: 'Deadzone Precision Maximale', desc: 'Petite cible rapide — deadzone serree, mouvements de poignet pour les corrections' },
         ]
       }
     ]
@@ -920,45 +1066,46 @@ const COURS_DATA = [
     title: 'Burst & Spray Control',
     icon: '&#9632;',
     tag: 'Fondamental',
-    desc: 'Maitriser le burst (tirs par rafales) et le spray control est essentiel pour gagner des gunfights. Apprends quand burst, quand spray, et comment controler le recul.',
+    desc: 'Maitriser le burst et le spray control est essentiel pour dominer les gunfights. Apprends quand tapper, burster ou sprayer, et comment le counter-strafe change tout.',
     sections: [
       {
-        title: 'Burst vs Spray vs Tap',
+        title: 'Tap vs Burst vs Spray',
         content: `<ul>
-          <li><strong>Tap (1 balle) :</strong> Longue distance. Clique une fois, attend que le recul se reset, reclique. Vandal/Guardian a 30m+.</li>
-          <li><strong>Burst (2-5 balles) :</strong> Moyenne distance. Le sweet spot sur Valorant. 2-3 balles Phantom, 2 balles Vandal. La majorite de tes kills doivent venir de bursts.</li>
-          <li><strong>Spray (6+ balles) :</strong> Courte distance uniquement. Tire en continu en compensant le recul vers le bas. Spectre, courte distance Phantom.</li>
+          <li><strong>Tap (1 balle) :</strong> Longue distance (30m+). Clique une fois, attends que le recul se reset completement (~0.5s), reclique. Ideal pour Vandal et Guardian.</li>
+          <li><strong>Burst (2-4 balles) :</strong> Moyenne distance (10-25m). Le SWEET SPOT sur Valorant. 2 balles Vandal = headshot + body = kill. 3 balles Phantom = kill quasi garanti. La majorite de tes kills doivent venir de bursts.</li>
+          <li><strong>Spray (5+ balles) :</strong> Courte distance UNIQUEMENT (moins de 10m). Tire en continu en poussant vers le bas. Spectre, ou Phantom/Vandal au corps a corps. Ne JAMAIS sprayer a moyenne distance.</li>
         </ul>
-        <div class="cours-tip">La regle d'or : si tu rates tes 3 premieres balles, ARRETE de tirer, deplace-toi (counter-strafe), et recommence un burst. Ne commit jamais un spray a moyenne distance.</div>`
+        <div class="cours-tip">La regle d'or : si tu rates tes 2-3 premieres balles, STOP. Deplace-toi (counter-strafe), reset, recommence un burst propre. Un spray desespere a moyenne distance te fera perdre quasi a coup sur.</div>`
       },
       {
-        title: 'Counter-strafing',
-        content: `<p>Le <strong>counter-strafe</strong> est la technique la plus importante liee au burst :</p>
+        title: 'Counter-strafing : la technique cle',
+        content: `<p>Le <strong>counter-strafe</strong> te permet de t'arreter INSTANTANEMENT pour tirer avec precision :</p>
         <ul>
-          <li>Tu te deplaces avec <span class="cours-key">A</span> ou <span class="cours-key">D</span></li>
-          <li>Tu appuies sur la direction opposee pour t'arreter net</li>
-          <li>Au moment EXACT ou tu es immobile → tu burst</li>
-          <li>Apres le burst → tu repars dans une direction</li>
+          <li>Tu te deplaces avec <span class="cours-key">A</span> — appuie brievement sur <span class="cours-key">D</span> pour annuler la vitesse</li>
+          <li>Au moment EXACT ou ta vitesse est 0 → tu burst (c'est une fraction de seconde)</li>
+          <li>Apres le burst → repars immediatement dans une direction</li>
+          <li>Repete : strafe → counter → burst → strafe</li>
         </ul>
-        <p>Le timing est crucial : tirer trop tot = balles imprecises. Tirer trop tard = tu es une cible statique.</p>`
+        <p>Sans counter-strafe, tes balles partent en dehors de la tete meme si ton crosshair est dessus. Avec le counter-strafe, tes balles vont exactement ou ton crosshair pointe.</p>
+        <div class="cours-tip">Exercice : mets-toi sur le range, deplace-toi en A-D et essaie de headshot la cible. Tu verras immediatement si tu counter-strafe correctement.</div>`
       },
       {
         title: 'Spray patterns Valorant',
-        content: `<p>Sur Valorant, le spray est relativement simple compare a CS :</p>
+        content: `<p>Sur Valorant, le spray est plus simple qu'a CS mais demande quand meme de la pratique :</p>
         <ul>
-          <li><strong>Balles 1-5 :</strong> Montent vers le haut → tire vers le bas</li>
-          <li><strong>Balles 6-10 :</strong> Devient horizontal → compense gauche/droite</li>
-          <li><strong>Balles 10+ :</strong> Random — evite d'en arriver la</li>
+          <li><strong>Balles 1-4 :</strong> Montent vers le haut → commence a tirer vers le bas pour compenser</li>
+          <li><strong>Balles 5-10 :</strong> Pattern horizontal aleatoire → microadjustements gauche/droite</li>
+          <li><strong>Balles 10+ :</strong> Quasi aleatoire → evite absolument d'en arriver la a distance</li>
         </ul>
-        <div class="cours-tip">Entraine-toi a tirer sur un mur au Range et observe le pattern. Phantom a un spray plus facile que le Vandal.</div>`
+        <p><strong>Vandal vs Phantom :</strong> Le Vandal a un recul plus fort mais tue en 2 balles tete. Le Phantom est plus facile a controller mais necessite parfois 3 balles. Pour progresser, entraine-toi avec les 2.</p>`
       },
       {
         title: 'Exercices pratiques',
         type: 'exercises',
         exercises: [
-          { mode: 'burst_drill', diff: 'easy', name: 'Burst Timing', desc: 'Cibles statiques — 2-3 clics rapides par cible' },
-          { mode: 'burst_drill', diff: 'medium', name: 'Burst + Move', desc: 'Cibles qui bougent — burst puis repositionne' },
-          { mode: 'burst_drill', diff: 'hard', name: 'Speed Burst', desc: 'Cibles rapides multiples — burst transfers' },
+          { mode: 'burst_drill', diff: 'easy', name: 'Burst Timing Fondation', desc: 'Cibles statiques — 2-3 clics rapides par cible, simule le tap-burst sur cible immobile' },
+          { mode: 'burst_drill', diff: 'medium', name: 'Burst sur Cible Mobile', desc: 'Cibles qui bougent — counter-strafe interne, burst propre puis repositionne' },
+          { mode: 'burst_drill', diff: 'hard', name: 'Spray Transfer Rapide', desc: 'Cibles multiples avec HP — gere le recul et transfer entre les cibles sans pause' },
         ]
       }
     ]
@@ -968,29 +1115,78 @@ const COURS_DATA = [
     title: 'Movement & Peeking',
     icon: '&#10148;',
     tag: 'Intermediaire',
-    desc: 'Le mouvement est la base de tout en FPS tactique. Jiggle peek, wide swing, slice the pie — chaque technique a son utilite. Apprends quand utiliser quoi.',
+    desc: 'Le mouvement est la base de tout en FPS tactique. Jiggle peek, wide swing, slice the pie — chaque technique a son utilite et sa situation optimale.',
     sections: [
       {
-        title: 'Les types de peeks',
+        title: 'Les types de peeks et quand les utiliser',
         content: `<ul>
-          <li><strong>Jiggle peek :</strong> Tu sors et rentres rapidement pour prendre l'info ou baiter un tir. Tu ne tires PAS pendant un jiggle peek.</li>
-          <li><strong>Wide swing :</strong> Tu sors large et rapide pour surprendre un joueur qui tient un angle serre. Tu counter-strafe + burst immediatement.</li>
-          <li><strong>Shoulder peek :</strong> Tu montres juste ton epaule pour baiter un tir d'Operator puis tu re-peek pendant qu'il recharge.</li>
-          <li><strong>Crouch peek :</strong> Tu sors en crouchant pour surprendre un joueur qui vise a hauteur de tete debout. A utiliser rarement car tu deviens lent.</li>
+          <li><strong>Jiggle peek :</strong> Tu exposes juste une partie de ton corps pour prendre l'info ou forcer un tir ennemi, puis tu rentres. Tu ne tires PAS. Utilise-le pour localiser un ennemi en securite ou pour baiter un AWP.</li>
+          <li><strong>Wide swing :</strong> Tu sors large et rapide pour surprendre un joueur qui tient un angle serre. Le timing est crucial : tu counter-strafe + burst immediatement en sortant. Fonctionne contre les joueurs qui tiennent trop pres du mur.</li>
+          <li><strong>Shoulder peek :</strong> Tu montres juste ton epaule (sans exposer la tete) pour baiter le tir d'un Operator, puis tu re-peek pendant qu'il bolt-action. Tres efficace contre les snipers.</li>
+          <li><strong>Crouch peek :</strong> Tu sors en crouchant pour surprendre un joueur qui vise a hauteur de tete debout. Deconseille en general car tu deviens lent — utilise ponctuellement et jamais deux fois de suite.</li>
         </ul>`
       },
       {
-        title: 'Slice the pie',
-        content: `<p>Le "slice the pie" consiste a <strong>decouvrir un angle progressivement</strong> en se deplacant lateralement plutot que de rusher droit dans l'angle.</p>
-        <p>Imagine que l'angle est un gateau (pie) et que tu le coupes en tranches — tu ne decouvres qu'un petit morceau a la fois, verifiant chaque tranche avant de passer a la suivante.</p>
-        <div class="cours-tip">Combine le slice the pie avec un bon crosshair placement : ton viseur doit etre exactement la ou la prochaine "tranche" peut contenir un ennemi.</div>`
+        title: 'Slice the pie : la technique fondamentale',
+        content: `<p>Le "slice the pie" consiste a <strong>decouvrir un angle progressivement</strong> en se deplacant lateralement plutot que de rusher droit dedans.</p>
+        <p>Methode : imagine l'angle comme un gateau. Tu en coupes une tranche a la fois en te deplacant lateralement. A chaque tranche, tu verifie qu'il n'y a personne avant de passer a la suivante.</p>
+        <div class="cours-tip">La distance au mur est cruciale : trop pres = angle mort trop long a decouvrir. Trop loin = tu es expose avant d'avoir vu l'ennemi. La distance ideale te permet de voir l'angle progressivement tout en gardant une couverture.</div>
+        <p>Combine toujours le slice the pie avec un bon crosshair placement : ton viseur doit etre exactement la ou la prochaine "tranche" peut contenir un ennemi.</p>`
+      },
+      {
+        title: 'Mouvement avance : timings et peeks agressifs',
+        content: `<ul>
+          <li><strong>Peek agressif en debut de round :</strong> Sortir tôt et agressivement peut surprendre un defender qui se setup encore. Fonctionne dans les premiers 5-8 secondes.</li>
+          <li><strong>Counter-peek :</strong> Quand un ennemi peeks ton angle, tu peux le counter-peek simultanement — son peek devient previsible et tu peux pre-aim sa trajectoire.</li>
+          <li><strong>Repositionnement apres un kill :</strong> Ne reste JAMAIS au meme endroit apres un kill. L'ennemi sait exactement ou tu es. Deplace-toi avant que ses mates pushent.</li>
+          <li><strong>Peekers advantage :</strong> Celui qui peeks voit l'autre en premier. Exploite ca en etant toujours celui qui initie le duel.</li>
+        </ul>`
       },
       {
         title: 'Exercices pratiques',
         type: 'exercises',
         exercises: [
-          { mode: 'speedflick', diff: 'easy', name: 'Flick Basique', desc: 'Cibles partout dans le FOV — simule les wide swings' },
-          { mode: 'pasu_reload', diff: 'medium', name: 'Repositionnement', desc: 'Track + click — simule le jiggle peek timing' },
+          { mode: 'crosshair_drill', diff: 'medium', name: 'Peek & Placement', desc: 'Cibles aux coins — pre-aim l\'angle avant qu\'il se revele, simule le slice the pie' },
+          { mode: 'pokeball_frenzy', diff: 'medium', name: 'Wide Swing Reaction', desc: 'Cibles partout dans le FOV — flicks rapides qui simulent les wide swings agressifs' },
+          { mode: 'w1w3ts_reload', diff: 'medium', name: 'Counter-peek & Fire', desc: 'Target switch rapide — simule les counter-peeks et repositionnements instantanes' },
+        ]
+      }
+    ]
+  },
+  {
+    id: 'flick_aim',
+    title: 'Flicks & Reactivite',
+    icon: '&#9889;',
+    tag: 'Intermediaire',
+    desc: 'Les flicks sont indispensables dans Valorant — pour repondre a un peek inattendu, un wide swing ennemi, ou un retake rapide. Developpe ta precision et ta vitesse de reaction.',
+    sections: [
+      {
+        title: 'Anatomie d\'un bon flick',
+        content: `<p>Un flick est un mouvement rapide et precis vers une cible inattendue. La plupart des joueurs pensent que les flicks dependent de la vitesse de reaction — en realite, ils dependent surtout du <strong>crosshair placement et de la lecture du jeu</strong>.</p>
+        <ul>
+          <li><strong>Pre-aim :</strong> Si ton crosshair est deja proche de l'ennemi, le "flick" n'est qu'un micro-ajustement. Le meilleur flick est celui que tu n'as presque pas besoin de faire.</li>
+          <li><strong>Mouvement de bras vs poignet :</strong> Les gros flicks (50+ degres) se font au bras. Les flicks courts et precis (moins de 30 degres) se font au poignet. Apprends a switcher naturellement.</li>
+          <li><strong>Precision > Vitesse :</strong> Un flick lent et precis bat un flick rapide et rate. La vitesse vient avec la pratique — la precision doit etre prioritaire.</li>
+        </ul>
+        <div class="cours-tip">Ne cherche pas a "snapper" sur la tete. Le vrai skill c'est d'atterrir pres de la tete avec ton premier flick, pas de headshot direct. Le headshot vient avec des milliers d'heures de pratique.</div>`
+      },
+      {
+        title: 'Vitesse de reaction vs lecture',
+        content: `<p>La reaction pure (voir → bouger la souris) est d'environ 200-250ms pour un humain normal. Ce n'est pas assez rapide pour repondre a un peek dans Valorant si tu pars de zero.</p>
+        <p>La solution : la <strong>lecture du jeu</strong>. Si tu anticipes qu'un ennemi peut apparaitre depuis un angle, ton cerveau est deja "pre-charge" pour cette reaction — tu reagis en 150ms au lieu de 250ms. C'est pour ca que le crosshair placement et la lecture sont si importants.</p>
+        <ul>
+          <li>Identifie les angles dangereux avant de les approcher</li>
+          <li>Anticipe les mouvements ennemis selon l'eco, le round time, les infos</li>
+          <li>Pre-aim les spots de spawn communs (les ennemis vont souvent aux memes endroits)</li>
+        </ul>`
+      },
+      {
+        title: 'Exercices pratiques',
+        type: 'exercises',
+        exercises: [
+          { mode: 'pokeball_frenzy', diff: 'easy', name: 'Flick Introduction', desc: 'Cibles larges partout dans le FOV — prends confiance, priorite a la precision' },
+          { mode: 'beants', diff: 'medium', name: 'Stabilite Post-flick', desc: 'Target switch avec cibles stables — travaille l\'atterrissage et la micro-correction' },
+          { mode: 'w1w3ts_reload', diff: 'hard', name: 'Flick + Fire Rapide', desc: 'Flicks serres avec reload — simule les duels rapides de haute intensite' },
         ]
       }
     ]
@@ -1000,33 +1196,44 @@ const COURS_DATA = [
     title: 'Game Sense & Info',
     icon: '&#128065;',
     tag: 'Strategique',
-    desc: 'L\'aim seul ne suffit pas. Le game sense — savoir ou sont les ennemis, quand pousser, quand rotate — c\'est ce qui fait un vrai joueur Valorant.',
+    desc: 'L\'aim seul ne suffit pas. Le game sense — savoir ou sont les ennemis, quand pousser, quand rotate — c\'est ce qui fait la difference entre un joueur qui stagne et un joueur qui climb.',
     sections: [
       {
-        title: 'Lire le jeu',
+        title: 'Lire le jeu : les fondamentaux',
         content: `<ul>
-          <li><strong>Compte les ennemis :</strong> Toujours savoir combien sont en vie et ou ils ont ete vus. Si 3 sont B, il n'en reste que 2 pour A + mid.</li>
-          <li><strong>Ecoute les sons :</strong> Les pas, les utils, les reloads — chaque son donne de l'info. Un joueur qui pose une smoke B = probablement un execute B.</li>
-          <li><strong>Economie :</strong> Regarde le score et les credits ennemis. S'ils ont eco, attend les rushes. S'ils ont full buy, respect les angles.</li>
-          <li><strong>Pattern recognition :</strong> Si l'equipe adverse fait le meme play 2 rounds de suite, ils vont probablement changer au 3eme.</li>
+          <li><strong>Compte les ennemis en permanence :</strong> Toujours savoir combien sont en vie et ou ils ont ete vus EN DERNIER. Si 3 sont signales B, il n'en reste que 2 pour A + mid — c'est un avantage numerique exploitable.</li>
+          <li><strong>Ecoute les sons activement :</strong> Les pas, les utils, les reloads donnent de l'info gratuite. Un joueur qui active une smoke B = probablement une execute B imminente. Un reload = il vient de tuer ou il est en position.</li>
+          <li><strong>Lire l'economie adverse :</strong> Si l'equipe adverse a perdu 3 rounds de suite, ils sont probablement en eco (pistolets/shorties). Expect les rushes et les angles inattendus.</li>
+          <li><strong>Pattern recognition :</strong> Si l'equipe adverse fait le meme play 2 rounds de suite, adapte-toi au 3eme. La plupart des equipes n'ont pas plus de 5-6 strats differentes.</li>
         </ul>`
       },
       {
-        title: 'Communication',
-        content: `<p>L'info ne sert a rien si tu ne la partages pas. Les regles d'or de la comm en Valorant :</p>
+        title: 'Timing et prise de decision',
+        content: `<p>Le timing est une des dimensions les plus sous-estimees du game sense :</p>
         <ul>
-          <li><strong>Court et precis :</strong> "2 B main" pas "je crois qu'il y a peut-etre des gens B"</li>
-          <li><strong>Callout + nombre :</strong> Toujours dire combien et ou</li>
-          <li><strong>Ne parle pas pendant un clutch</strong> sauf info critique</li>
-          <li><strong>Ne tilt pas en vocal</strong> — ca fait perdre plus de rounds que la mauvaise aim</li>
+          <li><strong>Early round (0-15s) :</strong> Phase d'info. Ne prends pas de risques inutiles. Priorise la collecte d'info et le setup de positions.</li>
+          <li><strong>Mid round (15-35s) :</strong> Phase de decision. Execute selon l'info disponible ou adapte ton plan.</li>
+          <li><strong>Late round (35s+) :</strong> Phase de clutch. Les regles changent completement. Un joueur doit jouer pour le temps si l'equipe perd.</li>
+        </ul>
+        <div class="cours-tip">Avant chaque round, pose-toi 3 questions : Ou sont-ils probablement ? Quel est leur plan le plus probable ? Quelle est notre meilleure reponse ? Ca prend 3 secondes et change completement ton efficacite.</div>`
+      },
+      {
+        title: 'Communication : l\'arme secrete',
+        content: `<p>L'info ne sert a rien si tu ne la partages pas efficacement :</p>
+        <ul>
+          <li><strong>Court et precis :</strong> "2 B main" et non "je crois qu'il y a peut-etre des gens B quelque part"</li>
+          <li><strong>Callout + nombre + HP si possible :</strong> "3 A main, un est bas HP"</li>
+          <li><strong>Ne parle pas pendant un clutch</strong> (sauf info vraiment critique)</li>
+          <li><strong>Ne tilt pas en vocal</strong> — ca fait perdre plus de rounds que la mauvaise aim. Un joueur tilt = equipe tilt = round perdu.</li>
+          <li><strong>Les calls proactifs battent les calls reactifs</strong> — dire "je pense qu'ils vont execute B" AVANT l'execute est infiniment plus utile que "ils executent B" quand c'est trop tard.</li>
         </ul>`
       },
       {
         title: 'Exercices pratiques',
         type: 'exercises',
         exercises: [
-          { mode: 'gridshot', diff: 'easy', name: 'Warm Up', desc: 'Gridshot pour chauffer avant de jouer' },
-          { mode: 'air_angelic', diff: 'medium', name: 'Multi-Target Awareness', desc: 'Tracking multi-cibles — comme gerer plusieurs ennemis' },
+          { mode: 'pasu_reload', diff: 'easy', name: 'Reaction sur Angle', desc: 'Cibles qui apparaissent — travaille la rapidite de detection et de reaction sur angle tenu' },
+          { mode: 'flicker_plaza', diff: 'medium', name: 'Multi-Info Tracking', desc: 'Suivi reactif multi-cibles — gere plusieurs menaces comme en clutch ou en retake' },
         ]
       }
     ]
