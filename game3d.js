@@ -1165,11 +1165,37 @@ function renderBenchmark() {
       Object.entries(SCENARIOS).filter(([,v])=>v.cat===catKey&&v.sub===sub).forEach(([key,sc])=>{
         const best=getBest(key), threads=calcThreads(key,best);
         const pct=Math.min(100,threads/getMaxThreads()*100);
-        const row=document.createElement('div'); row.className='bench-scenario';
-        row.onclick=()=>{G.benchmarkMode=true;startGame(key);};
         const mt=getMaxThreads();
-        row.innerHTML=`<span class="bench-scenario-name">${getLabel(key)}</span><span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span><div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div><span class="bench-scenario-threads">${threads}/${mt}</span>`;
-        div.appendChild(row);
+        const wrap=document.createElement('div'); wrap.className='bench-scenario-wrap';
+
+        const row=document.createElement('div'); row.className='bench-scenario';
+        row.innerHTML=`
+          <span class="bench-scenario-name">${getLabel(key)}</span>
+          <span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span>
+          <div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div>
+          <span class="bench-scenario-threads">${threads}/${mt}</span>
+          <span class="bench-th-toggle" title="Voir les seuils">&#9660;</span>`;
+
+        // Threshold table
+        const thTable=document.createElement('div'); thTable.className='bench-th-table hidden';
+        const thArr=getTh(key)||[];
+        thTable.innerHTML=`<table class="bench-th-inner">
+          <thead><tr>${thArr.map((_,i)=>`<th>${i+1}/${mt}</th>`).join('')}</tr></thead>
+          <tbody><tr>${thArr.map((v,i)=>`<td style="color:${RANK_COLORS[Math.min(i,7)]}">${v.toLocaleString()}</td>`).join('')}</tr></tbody>
+        </table>`;
+
+        // Toggle thresholds on arrow click, start game on row click
+        const toggle=row.querySelector('.bench-th-toggle');
+        toggle.addEventListener('click', e=>{
+          e.stopPropagation();
+          const hidden=thTable.classList.toggle('hidden');
+          toggle.textContent=hidden?'▼':'▲';
+        });
+        row.addEventListener('click', ()=>{G.benchmarkMode=true;startGame(key);});
+
+        wrap.appendChild(row);
+        wrap.appendChild(thTable);
+        div.appendChild(wrap);
       });
       col.appendChild(div);
     });

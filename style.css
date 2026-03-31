@@ -169,8 +169,16 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .bench-sub { margin-bottom:12px; }
 .bench-sub-title { font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--dim); margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; }
 .bench-sub-threads { font-size:0.6rem; padding:2px 7px; border-radius:3px; font-weight:700; }
-.bench-scenario { display:flex; align-items:center; gap:7px; padding:6px 9px; background:var(--bg); border-radius:7px; margin-bottom:3px; cursor:pointer; transition:all 0.12s; border:1px solid transparent; }
+.bench-scenario-wrap { margin-bottom:3px; }
+.bench-scenario { display:flex; align-items:center; gap:7px; padding:6px 9px; background:var(--bg); border-radius:7px; cursor:pointer; transition:all 0.12s; border:1px solid transparent; border-bottom:none; }
 .bench-scenario:hover { border-color:var(--accent); transform:translateX(2px); }
+.bench-th-toggle { margin-left:2px; font-size:0.65rem; color:var(--text-muted,#666); cursor:pointer; padding:1px 5px; border-radius:4px; flex-shrink:0; transition:color 0.12s; }
+.bench-th-toggle:hover { color:var(--accent); background:rgba(255,255,255,0.06); }
+.bench-th-table { background:rgba(0,0,0,0.2); border-radius:0 0 7px 7px; padding:5px 9px 7px; border:1px solid rgba(255,255,255,0.06); border-top:none; overflow-x:auto; }
+.bench-th-table.hidden { display:none; }
+.bench-th-inner { border-collapse:collapse; font-size:0.72rem; width:100%; }
+.bench-th-inner th { padding:2px 7px; text-align:center; color:var(--dim,#888); font-weight:500; border-bottom:1px solid rgba(255,255,255,0.07); white-space:nowrap; }
+.bench-th-inner td { padding:3px 7px; text-align:center; font-weight:700; white-space:nowrap; }
 .bench-scenario-name { font-size:0.7rem; font-weight:600; font-family:'Consolas',monospace; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bench-scenario-score { font-size:0.7rem; font-weight:700; color:var(--dim); min-width:40px; text-align:right; }
 .bench-scenario-score.has-score { color:var(--txt); }
