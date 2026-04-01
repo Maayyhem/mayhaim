@@ -82,129 +82,146 @@ const MAP_DATA = {
 };
 
 // Scenario annotations - coordinates are in 1024x1024 space matching the minimap
-// Approximate positions based on actual map layouts
+// These are starting templates; use the Map Editor to calibrate for your exact minimap orientation.
 const SCENARIO_ANNOTATIONS = {
-  1: { // B Site Take - Bind
+  1: { // B Site Execute - Bind
     map: 'Bind',
     steps: [
+      { label: "Setup", elements: [
+        { type:'player', x:540, y:610, label:'T1', team:'T' },
+        { type:'player', x:590, y:650, label:'T2', team:'T' },
+        { type:'player', x:480, y:640, label:'T3', team:'T' },
+      ]},
       { label: "Smokes", elements: [
-        { type:'smoke', x:620, y:340, label:'Hookah' },
-        { type:'smoke', x:720, y:280, label:'Elbow' },
+        { type:'smoke', x:560, y:490, label:'Hookah' },
+        { type:'smoke', x:650, y:440, label:'Elbow' },
+        { type:'smoke', x:490, y:430, label:'Garden' },
       ]},
-      { label: "Flash", elements: [
-        { type:'flash', x:650, y:420 },
-        { type:'player', x:600, y:520, label:'Flasher', team:'T' },
-      ]},
-      { label: "Entry", elements: [
-        { type:'player', x:660, y:300, label:'Entry', team:'T' },
-        { type:'arrow', x1:600, y1:520, x2:660, y2:320 },
-      ]},
-      { label: "Clear Garden", elements: [
-        { type:'player', x:560, y:400, label:'Support', team:'T' },
-        { type:'arrow', x1:560, y1:520, x2:560, y2:400 },
+      { label: "Flash + Entry", elements: [
+        { type:'flash', x:590, y:460 },
+        { type:'player', x:610, y:420, label:'Entry', team:'T' },
+        { type:'arrow', x1:590, y1:610, x2:610, y2:430 },
       ]},
       { label: "Plant", elements: [
-        { type:'plant', x:640, y:280 },
-        { type:'player', x:640, y:320, label:'Planter', team:'T' },
+        { type:'plant', x:640, y:400 },
+        { type:'player', x:680, y:440, label:'Anchor', team:'T' },
+        { type:'player', x:600, y:460, label:'Planter', team:'T' },
       ]},
     ]
   },
-  2: { // A Site Hold - Ascent
+  2: { // A Site Defense - Ascent
     map: 'Ascent',
     steps: [
-      { label: "Positions", elements: [
-        { type:'player', x:300, y:280, label:'Generator', team:'CT' },
-        { type:'player', x:380, y:200, label:'Heaven', team:'CT' },
+      { label: "Default Positions", elements: [
+        { type:'player', x:310, y:350, label:'Main', team:'CT' },
+        { type:'player', x:270, y:290, label:'Heaven', team:'CT' },
+        { type:'player', x:380, y:410, label:'Generator', team:'CT' },
       ]},
-      { label: "Crossfire", elements: [
-        { type:'sightline', x1:300, y1:280, x2:300, y2:500 },
-        { type:'sightline', x1:380, y1:200, x2:300, y2:500 },
+      { label: "Crossfire Setup", elements: [
+        { type:'sightline', x1:310, y1:350, x2:310, y2:560 },
+        { type:'sightline', x1:270, y1:290, x2:310, y2:560 },
+        { type:'sightline', x1:380, y1:410, x2:420, y2:560 },
       ]},
-      { label: "If Push", elements: [
-        { type:'arrow', x1:300, y1:500, x2:300, y2:300, color:'#ff4444' },
-        { type:'text', x:400, y:550, label:'CALL + ROTATE' },
+      { label: "If They Push", elements: [
+        { type:'smoke', x:310, y:520 },
+        { type:'flash', x:280, y:490 },
+        { type:'arrow', x1:310, y1:560, x2:310, y2:370, color:'#ff4444' },
+        { type:'text', x:510, y:610, label:'COMM + ROTATE' },
       ]},
     ]
   },
   3: { // A Site Retake - Haven
     map: 'Haven',
     steps: [
-      { label: "Regroup", elements: [
-        { type:'player', x:250, y:550, label:'P1', team:'CT' },
-        { type:'player', x:300, y:550, label:'P2', team:'CT' },
-        { type:'player', x:275, y:600, label:'P3', team:'CT' },
+      { label: "Regroup CT", elements: [
+        { type:'player', x:500, y:600, label:'P1', team:'CT' },
+        { type:'player', x:540, y:620, label:'P2', team:'CT' },
+        { type:'player', x:460, y:620, label:'P3', team:'CT' },
       ]},
-      { label: "Utils", elements: [
-        { type:'flash', x:250, y:400 },
-        { type:'smoke', x:300, y:380 },
+      { label: "Utility", elements: [
+        { type:'smoke', x:320, y:490, label:'Long' },
+        { type:'flash', x:340, y:450 },
+        { type:'smoke', x:390, y:430, label:'Switch' },
       ]},
-      { label: "Flash Long A", elements: [
-        { type:'flash', x:220, y:380 },
-        { type:'arrow', x1:250, y1:550, x2:250, y2:400 },
+      { label: "Rotate + Flash", elements: [
+        { type:'flash', x:310, y:420 },
+        { type:'arrow', x1:500, y1:600, x2:340, y2:450 },
+        { type:'arrow', x1:500, y1:600, x2:460, y2:440 },
       ]},
-      { label: "Swing Together", elements: [
-        { type:'player', x:250, y:280, label:'P1', team:'CT' },
-        { type:'player', x:320, y:280, label:'P2', team:'CT' },
-        { type:'arrow', x1:250, y1:400, x2:250, y2:280 },
-        { type:'arrow', x1:300, y1:400, x2:320, y2:280 },
-      ]},
-      { label: "Defuse", elements: [
-        { type:'plant', x:280, y:260 },
-        { type:'player', x:360, y:320, label:'Cover', team:'CT' },
+      { label: "Swing + Defuse", elements: [
+        { type:'player', x:310, y:370, label:'P1', team:'CT' },
+        { type:'player', x:390, y:380, label:'P2', team:'CT' },
+        { type:'plant', x:350, y:360 },
+        { type:'player', x:430, y:410, label:'Cover', team:'CT' },
       ]},
     ]
   },
   4: { // Mid Control - Split
     map: 'Split',
     steps: [
-      { label: "Smoke Vent + Mail", elements: [
-        { type:'smoke', x:500, y:320 },
-        { type:'smoke', x:460, y:480 },
+      { label: "Mid Smokes", elements: [
+        { type:'smoke', x:500, y:400, label:'Vent' },
+        { type:'smoke', x:470, y:480, label:'Mail' },
       ]},
       { label: "Clear Mid", elements: [
-        { type:'flash', x:500, y:400 },
-        { type:'arrow', x1:500, y1:620, x2:500, y2:400 },
+        { type:'flash', x:505, y:460 },
+        { type:'arrow', x1:500, y1:620, x2:500, y2:470 },
+        { type:'player', x:500, y:620, label:'Push', team:'T' },
       ]},
       { label: "Hold Mid", elements: [
-        { type:'player', x:500, y:400, label:'Hold', team:'T' },
-        { type:'sightline', x1:500, y1:400, x2:500, y2:300 },
+        { type:'player', x:500, y:450, label:'Mid', team:'T' },
+        { type:'sightline', x1:500, y1:450, x2:500, y2:350 },
       ]},
-      { label: "Execute A or B", elements: [
-        { type:'arrow', x1:500, y1:400, x2:300, y2:280, color:'#58a6ff' },
-        { type:'arrow', x1:500, y1:400, x2:700, y2:280, color:'#58a6ff' },
-        { type:'text', x:500, y:560, label:'DECIDE BASED ON INFO' },
+      { label: "Split A or B", elements: [
+        { type:'arrow', x1:500, y1:450, x2:300, y2:310, color:'#58a6ff' },
+        { type:'arrow', x1:500, y1:450, x2:700, y2:310, color:'#58a6ff' },
+        { type:'text', x:500, y:540, label:'READ + DECIDE' },
       ]},
     ]
   },
-  5: { // Full Execute - Lotus
+  5: { // A Site Execute - Lotus
     map: 'Lotus',
     steps: [
-      { label: "Drone/Haunt", elements: [
-        { type:'flash', x:280, y:250 },
-        { type:'arrow', x1:280, y1:550, x2:280, y2:260 },
+      { label: "Info Util", elements: [
+        { type:'flash', x:300, y:360, label:'Haunt' },
+        { type:'player', x:340, y:560, label:'IGL', team:'T' },
+        { type:'arrow', x1:340, y1:560, x2:300, y2:370 },
       ]},
       { label: "Smokes", elements: [
-        { type:'smoke', x:320, y:240, label:'Tree' },
-        { type:'smoke', x:220, y:220, label:'Rubble' },
+        { type:'smoke', x:260, y:310, label:'Tree' },
+        { type:'smoke', x:340, y:300, label:'Rubble' },
+        { type:'smoke', x:280, y:270, label:'Heaven' },
       ]},
-      { label: "Flash + Stun", elements: [
-        { type:'flash', x:260, y:300 },
-        { type:'flash', x:340, y:300 },
+      { label: "Flash + Push", elements: [
+        { type:'flash', x:290, y:320 },
+        { type:'flash', x:330, y:320 },
+        { type:'player', x:270, y:290, label:'E1', team:'T' },
+        { type:'player', x:350, y:290, label:'E2', team:'T' },
+        { type:'arrow', x1:290, y1:450, x2:280, y2:300 },
+        { type:'arrow', x1:340, y1:450, x2:350, y2:300 },
       ]},
-      { label: "Entry", elements: [
-        { type:'player', x:240, y:240, label:'Entry 1', team:'T' },
-        { type:'player', x:360, y:240, label:'Entry 2', team:'T' },
-        { type:'arrow', x1:240, y1:450, x2:240, y2:240 },
-        { type:'arrow', x1:360, y1:450, x2:360, y2:240 },
-      ]},
-      { label: "Plant Default", elements: [
-        { type:'plant', x:300, y:250 },
-        { type:'player', x:240, y:300, label:'Post 1', team:'T' },
-        { type:'player', x:360, y:300, label:'Post 2', team:'T' },
+      { label: "Plant", elements: [
+        { type:'plant', x:300, y:280 },
+        { type:'player', x:270, y:310, label:'Post 1', team:'T' },
+        { type:'player', x:340, y:320, label:'Post 2', team:'T' },
+        { type:'player', x:450, y:390, label:'Flank W.', team:'T' },
       ]},
     ]
   },
 };
+
+// Render blank minimap (no annotations) — used in scenario modal
+function renderBlankMap(containerId, mapName) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const mapData = MAP_DATA[mapName];
+  if (!mapData) { container.innerHTML = ''; return; }
+  const w = mapData.width, h = mapData.height;
+  container.innerHTML = `<svg width="100%" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="border-radius:8px;max-height:280px;background:#0a0e14">
+    <rect x="0" y="0" width="${w}" height="${h}" fill="#0d1117"/>
+    <image href="${mapData.img}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" onerror="this.style.display='none'"/>
+  </svg>`;
+}
 
 // Render map with real minimap image + SVG annotation overlay
 function renderTacticalMap(containerId, scenarioId, stepIndex) {
@@ -234,13 +251,18 @@ function renderTacticalMap(containerId, scenarioId, stepIndex) {
   // SVG with embedded minimap image as background
   let svg = `<svg width="100%" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="border-radius:8px;max-height:400px;background:#0a0e14">`;
 
+  // Fallback background pattern (grid) in case image doesn't load
+  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#0d1117"/>`;
+  svg += `<defs><pattern id="mgrid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M 64 0 L 0 0 0 64" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/></pattern></defs>`;
+  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="url(#mgrid)"/>`;
+
   // Real minimap image (rotated)
   svg += `<g transform="rotate(${rot} ${w/2} ${h/2})">`;
-  svg += `<image href="${mapData.img}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
+  svg += `<image href="${mapData.img}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" onerror="this.style.display='none'"/>`;
   svg += `</g>`;
 
   // Semi-transparent overlay for better annotation visibility
-  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="rgba(0,0,0,0.15)"/>`;
+  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="rgba(0,0,0,0.2)"/>`;
 
   // Draw step annotations (scaled for 1024x1024)
   if (step && step.elements) {
