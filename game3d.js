@@ -744,34 +744,41 @@ function spawn_speedflick() {
 function updateTrackTarget(dt) {
   if(!trackTarget||!trackTarget.alive) return;
   const t=trackTarget, d=DIFF[G.diff], spd=d.spd;
+  // Amplitude modifier: easy=wider range, hard=tighter but faster
+  const tA = G.diff==='easy'?1.3:G.diff==='hard'?0.72:1.0;
   t.phase = (t.phase||0) + dt;
 
   switch(t.mv) {
     // Control Tracking - Arm (large, smooth)
     case 'whisphereraw':
-      t.x = Math.sin(t.phase*spd*0.2)*4 + Math.sin(t.phase*spd*0.13)*2;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.17)*1.2;
-      t.z = -10 + Math.cos(t.phase*spd*0.1)*1.5;
+      t.x = Math.sin(t.phase*spd*0.2)*4*tA + Math.sin(t.phase*spd*0.13)*2*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.17)*1.2*tA;
+      t.z = -10 + Math.cos(t.phase*spd*0.1)*1.5*tA;
       break;
     case 'whisphere':
-      t.x = Math.sin(t.phase*spd*0.25)*5;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1.5;
-      t.z = -10 + Math.cos(t.phase*spd*0.15)*2;
+      t.x = Math.sin(t.phase*spd*0.25)*5*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1.5*tA;
+      t.z = -10 + Math.cos(t.phase*spd*0.15)*2*tA;
       break;
     case 'smoothbot':
-      t.x = Math.sin(t.phase*spd*0.22)*4.5 + Math.cos(t.phase*spd*0.31)*1.5;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.18)*1.3;
-      t.z = -10 + Math.sin(t.phase*spd*0.12)*1.8;
+      t.x = Math.sin(t.phase*spd*0.22)*4.5*tA + Math.cos(t.phase*spd*0.31)*1.5*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.18)*1.3*tA;
+      t.z = -10 + Math.sin(t.phase*spd*0.12)*1.8*tA;
       break;
     // Wrist (tighter, quicker)
     case 'leaptrack':
       // Leaptrack: sauts soudains vers une position complètement nouvelle, puis légère dérive
       t.jumpTimer = (t.jumpTimer||0) + dt;
       { const leapInt = G.diff==='hard'?0.65:G.diff==='easy'?1.35:0.95;
+        // easy: large jumps (wide range, must track arm movement)
+        // hard: tighter zone (requires precise micro-adjusts after each jump)
+        const xRange = G.diff==='hard'?3.5:G.diff==='easy'?5.5:4.5;
+        const yLo   = G.diff==='hard'?1.1:G.diff==='easy'?0.6:0.8;
+        const yHi   = G.diff==='hard'?2.8:G.diff==='easy'?3.3:3.0;
         if(t.jumpTimer > leapInt) {
           t.jumpTimer=0;
-          t.x = rand(-4.5,4.5);  // reset complet à une nouvelle position
-          t.y = rand(0.8,3.0);
+          t.x = rand(-xRange, xRange);
+          t.y = rand(yLo, yHi);
           t.vx = rand(-0.5,0.5)*spd*0.4;
           t.vy = rand(-0.3,0.3)*spd*0.3;
         }
@@ -780,89 +787,92 @@ function updateTrackTarget(dt) {
       }
       break;
     case 'ctrlsphere_aim':
-      t.x = Math.sin(t.phase*spd*0.3)*3;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.25)*1.2;
-      t.z = -10 + Math.sin(t.phase*spd*0.2)*1.5;
+      t.x = Math.sin(t.phase*spd*0.3)*3*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.25)*1.2*tA;
+      t.z = -10 + Math.sin(t.phase*spd*0.2)*1.5*tA;
       break;
     case 'vt_ctrlsphere':
-      t.x = Math.sin(t.phase*spd*0.35)*2.5 + Math.cos(t.phase*spd*0.5)*1;
-      t.y = 1.7 + Math.cos(t.phase*spd*0.3)*1;
-      t.z = -10 + Math.sin(t.phase*spd*0.25)*1.2;
+      t.x = Math.sin(t.phase*spd*0.35)*2.5*tA + Math.cos(t.phase*spd*0.5)*1*tA;
+      t.y = 1.7 + Math.cos(t.phase*spd*0.3)*1*tA;
+      t.z = -10 + Math.sin(t.phase*spd*0.25)*1.2*tA;
       break;
     // Fingertip (micro movements)
     case 'air_angelic':
       // Angelic Air: slow graceful 3D floating — tiny amplitude, depth variation
-      t.x = Math.sin(t.phase*spd*0.18)*1.8 + Math.sin(t.phase*spd*0.31)*0.6;
-      t.y = 2 + Math.sin(t.phase*spd*0.14)*0.7 + Math.cos(t.phase*spd*0.22)*0.25;
-      t.z = -10 + Math.cos(t.phase*spd*0.11)*1.6 + Math.sin(t.phase*spd*0.19)*0.5;
+      t.x = Math.sin(t.phase*spd*0.18)*1.8*tA + Math.sin(t.phase*spd*0.31)*0.6*tA;
+      t.y = 2 + Math.sin(t.phase*spd*0.14)*0.7*tA + Math.cos(t.phase*spd*0.22)*0.25*tA;
+      t.z = -10 + Math.cos(t.phase*spd*0.11)*1.6*tA + Math.sin(t.phase*spd*0.19)*0.5*tA;
       break;
     case 'cloverraw':
       // True Lissajous clover: sin(2t)*A, sin(t)*B — creates a proper figure-8/clover shape
       { const freq = spd*0.22;
-        t.x = Math.sin(2*t.phase*freq)*3.5;
-        t.y = 1.7 + Math.sin(t.phase*freq)*1.4;
-        t.z = -10 + Math.cos(t.phase*freq*1.3)*0.6;
+        t.x = Math.sin(2*t.phase*freq)*3.5*tA;
+        t.y = 1.7 + Math.sin(t.phase*freq)*1.4*tA;
+        t.z = -10 + Math.cos(t.phase*freq*1.3)*0.6*tA;
       }
       break;
     case 'ctrlsphere_far':
-      t.x = Math.sin(t.phase*spd*0.25)*2;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1;
-      t.z = -14 + Math.sin(t.phase*spd*0.18)*1;
+      t.x = Math.sin(t.phase*spd*0.25)*2*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1*tA;
+      t.z = -14 + Math.sin(t.phase*spd*0.18)*1*tA;
       break;
     // Blending (mixed)
     case 'pgti':
       // PGT Invincible: smooth sinusoidal base + occasional reactive kick (like real KovaaK's)
-      { const baseX = Math.sin(t.phase*spd*0.28)*4.2 + Math.sin(t.phase*spd*0.47)*0.9;
-        const baseY = 1.7 + Math.sin(t.phase*spd*0.22)*1.4;
-        // reactive kick: random impulse every ~1.5-3s layered on top
+      { const baseX = Math.sin(t.phase*spd*0.28)*4.2*tA + Math.sin(t.phase*spd*0.47)*0.9*tA;
+        const baseY = 1.7 + Math.sin(t.phase*spd*0.22)*1.4*tA;
+        // reactive kick — frequency scales with difficulty
         t.kTimer = (t.kTimer||0) + dt;
-        if(t.kTimer > (t.kInt||2)) { t.kTimer=0; t.kInt=1.5+Math.random()*1.5; t.kx=rand(-1,1)*spd*0.5; t.ky=rand(-0.4,0.4)*spd*0.3; }
+        const kBase = G.diff==='hard'?0.7:G.diff==='easy'?2.5:1.5;
+        const kRange = G.diff==='hard'?1.1:G.diff==='easy'?2.0:1.5;
+        if(t.kTimer > (t.kInt||kBase)) { t.kTimer=0; t.kInt=kBase+Math.random()*kRange; t.kx=rand(-1,1)*spd*0.5; t.ky=rand(-0.4,0.4)*spd*0.3; }
         t.kx = (t.kx||0)*Math.exp(-3*dt); t.ky = (t.ky||0)*Math.exp(-3*dt);
         t.x = baseX + t.kx;
         t.y = baseY + t.ky;
-        t.z = -10 + Math.cos(t.phase*spd*0.18)*2;
+        t.z = -10 + Math.cos(t.phase*spd*0.18)*2*tA;
       }
       break;
     case 'air_celestial':
       // Celestial: very slow, wide, graceful arcs — low frequency, large amplitude
-      t.x = Math.sin(t.phase*spd*0.1)*4.5 + Math.cos(t.phase*spd*0.17)*1.2;
-      t.y = 2 + Math.sin(t.phase*spd*0.09)*1.6 + Math.sin(t.phase*spd*0.19)*0.5;
-      t.z = -10 + Math.cos(t.phase*spd*0.08)*2.2;
+      t.x = Math.sin(t.phase*spd*0.1)*4.5*tA + Math.cos(t.phase*spd*0.17)*1.2*tA;
+      t.y = 2 + Math.sin(t.phase*spd*0.09)*1.6*tA + Math.sin(t.phase*spd*0.19)*0.5*tA;
+      t.z = -10 + Math.cos(t.phase*spd*0.08)*2.2*tA;
       break;
     case 'whisphere_slow':
-      t.x = Math.sin(t.phase*spd*0.12)*5;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.1)*1.5;
-      t.z = -10 + Math.cos(t.phase*spd*0.08)*2;
+      t.x = Math.sin(t.phase*spd*0.12)*5*tA;
+      t.y = 1.7 + Math.sin(t.phase*spd*0.1)*1.5*tA;
+      t.z = -10 + Math.cos(t.phase*spd*0.08)*2*tA;
       break;
     // Reactive Tracking (sudden direction changes)
     case 'ground_plaza':
       // Ground Plaza: locked at ground/knee level, pure horizontal strafing — simulates a crouching/running enemy
       t.ct = (t.ct||0)+dt;
-      { const interval = G.diff==='hard'?rand(0.5,1.0):G.diff==='easy'?rand(1.0,2.0):rand(0.6,1.4);
-        if(t.ct >= (t.nc||interval)) {
-          t.ct=0; t.nc=rand(0.6,1.4);
-          t.vx = rand(-1,1)*spd*(G.diff==='hard'?1.1:0.85);
-          t.vx += (Math.random()>0.5?1:-1)*spd*0.15; // slight asymmetry
+      { const ncMin = G.diff==='hard'?0.5:G.diff==='easy'?1.0:0.6;
+        const ncMax = G.diff==='hard'?1.0:G.diff==='easy'?2.0:1.4;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
+          const vMult = G.diff==='hard'?1.1:G.diff==='easy'?0.6:0.85;
+          t.vx = rand(-1,1)*spd*vMult;
+          t.vx += (Math.random()>0.5?1:-1)*spd*0.12;
         }
         t.x += (t.vx||0)*dt;
-        // ground-locked height with very slight bob
         t.y = 0.8 + Math.sin(Date.now()*0.0035)*0.12;
         t.x = Math.max(-6.5, Math.min(6.5, t.x));
-        // bounce off walls
         if(t.x >= 6.5 || t.x <= -6.5) t.vx *= -1;
       }
       break;
     case 'ctrlsphere_ow':
       // Controlsphere OW: smooth OW-style strafe with gentle height floats, moderate direction changes
       t.ct = (t.ct||0)+dt;
-      { const interval = G.diff==='hard'?rand(0.7,1.3):G.diff==='easy'?rand(1.5,2.5):rand(1.0,2.0);
-        if(t.ct >= (t.nc||interval)) {
-          t.ct=0; t.nc=rand(1.0,2.0);
-          t.vx = rand(-1,1)*spd*0.75;
-          t.vy = rand(-0.3,0.3)*spd*0.25;
+      { const ncMin = G.diff==='hard'?0.7:G.diff==='easy'?1.5:1.0;
+        const ncMax = G.diff==='hard'?1.3:G.diff==='easy'?2.5:2.0;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
+          const vMult = G.diff==='hard'?0.85:G.diff==='easy'?0.55:0.75;
+          t.vx = rand(-1,1)*spd*vMult;
+          t.vy = rand(-0.3,0.3)*spd*(vMult*0.33);
         }
         t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
-        // smooth height oscillation layered on top
         t.y += Math.sin(t.phase*spd*0.3)*0.004;
         t.x = Math.max(-5.5, Math.min(5.5, t.x));
         t.y = Math.max(1.0, Math.min(3.2, t.y));
@@ -873,29 +883,32 @@ function updateTrackTarget(dt) {
     case 'flicker_plaza':
       // Flicker Plaza: teleports to completely new position at rapid intervals (no smooth movement between)
       t.ct = (t.ct||0)+dt;
-      { const flickerInt = G.diff==='hard'?rand(0.22,0.5):G.diff==='easy'?rand(0.55,1.0):rand(0.3,0.7);
-        if(t.ct >= (t.nc||flickerInt)) {
-          t.ct=0; t.nc=rand(0.28,0.65);
-          // Hard teleport — instant position reset
-          t.x = rand(-5.5, 5.5);
-          t.y = rand(1.0, 3.2);
-          t.vx=0; t.vy=0; // no momentum after teleport
+      { const ncMin = G.diff==='hard'?0.22:G.diff==='easy'?0.55:0.3;
+        const ncMax = G.diff==='hard'?0.5:G.diff==='easy'?1.0:0.7;
+        // teleport zone: hard=tighter (more micro-adjust), easy=wide
+        const xRange = G.diff==='hard'?4.5:G.diff==='easy'?6.0:5.5;
+        const yMin  = G.diff==='hard'?1.2:G.diff==='easy'?0.8:1.0;
+        const yMax  = G.diff==='hard'?3.0:G.diff==='easy'?3.4:3.2;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
+          t.x = rand(-xRange, xRange);
+          t.y = rand(yMin, yMax);
+          t.vx=0; t.vy=0;
         }
-        // minimal drift between teleports
         t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
         t.x = Math.max(-6, Math.min(6, t.x));
-        t.y = Math.max(0.5, Math.min(3.5, t.y));
+        t.y = Math.max(0.4, Math.min(3.6, t.y));
       }
       break;
     case 'polarized_hell':
       // Polarized Hell: extremely rapid direction changes, very aggressive — tests reaction & wrist snap
       t.ct = (t.ct||0)+dt;
-      { const interval = G.diff==='hard'?rand(0.15,0.35):G.diff==='easy'?rand(0.4,0.75):rand(0.18,0.45);
-        if(t.ct >= (t.nc||interval)) {
-          t.ct=0; t.nc=rand(0.18,0.45);
-          // High speed, fully random direction
+      { const ncMin = G.diff==='hard'?0.15:G.diff==='easy'?0.4:0.18;
+        const ncMax = G.diff==='hard'?0.35:G.diff==='easy'?0.75:0.45;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
           const ang = Math.random()*Math.PI*2;
-          const mag = spd*(G.diff==='hard'?1.2:0.9);
+          const mag = spd*(G.diff==='hard'?1.2:G.diff==='easy'?0.65:0.9);
           t.vx = Math.cos(ang)*mag;
           t.vy = Math.sin(ang)*mag*0.55;
         }
@@ -909,11 +922,13 @@ function updateTrackTarget(dt) {
     case 'air_pure':
       // Air Pure: clean 3D reactive with full height variation — standard reactive air scenario
       t.ct = (t.ct||0)+dt;
-      { const interval = G.diff==='hard'?rand(0.5,1.1):G.diff==='easy'?rand(1.2,2.2):rand(0.7,1.5);
-        if(t.ct >= (t.nc||interval)) {
-          t.ct=0; t.nc=rand(0.7,1.5);
-          t.vx = rand(-1,1)*spd*0.85;
-          t.vy = rand(-0.6,0.6)*spd*0.55;
+      { const ncMin = G.diff==='hard'?0.5:G.diff==='easy'?1.2:0.7;
+        const ncMax = G.diff==='hard'?1.1:G.diff==='easy'?2.2:1.5;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
+          const vMult = G.diff==='hard'?0.95:G.diff==='easy'?0.6:0.85;
+          t.vx = rand(-1,1)*spd*vMult;
+          t.vy = rand(-0.6,0.6)*spd*vMult*0.65;
         }
         t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
         t.x = Math.max(-6, Math.min(6, t.x));
@@ -925,11 +940,12 @@ function updateTrackTarget(dt) {
     case 'air_voltaic':
       // Air Voltaic: more aggressive than air_pure — stronger vx, wider height swings, shorter interval
       t.ct = (t.ct||0)+dt;
-      { const interval = G.diff==='hard'?rand(0.35,0.8):G.diff==='easy'?rand(0.9,1.8):rand(0.45,1.1);
-        if(t.ct >= (t.nc||interval)) {
-          t.ct=0; t.nc=rand(0.45,1.1);
+      { const ncMin = G.diff==='hard'?0.35:G.diff==='easy'?0.9:0.45;
+        const ncMax = G.diff==='hard'?0.8:G.diff==='easy'?1.8:1.1;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct=0; t.nc=rand(ncMin,ncMax);
           const ang = Math.random()*Math.PI*2;
-          const mag = spd*(G.diff==='hard'?1.15:0.95);
+          const mag = spd*(G.diff==='hard'?1.15:G.diff==='easy'?0.7:0.95);
           t.vx = Math.cos(ang)*mag;
           t.vy = Math.sin(ang)*mag*0.65;
         }
