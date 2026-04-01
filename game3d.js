@@ -126,6 +126,9 @@ const SCENARIOS = {
   crosshair_drill: { cat:'cours', sub:'placement', type:'click', label:'Crosshair Placement Drill' },
   deadzone_drill:  { cat:'cours', sub:'tracking', type:'track', label:'Deadzone Drill' },
   burst_drill:     { cat:'cours', sub:'burst', type:'click', label:'Burst Transfer Drill' },
+  strafe_drill:    { cat:'cours', sub:'strafe', type:'track', label:'Strafe Drill' },
+  reaction_drill:  { cat:'cours', sub:'reaction', type:'click', label:'Reaction Drill' },
+  micro_drill:     { cat:'cours', sub:'micro_precision', type:'click', label:'Micro Precision Drill' },
 };
 
 // Current tier: 'easier', 'medium', or 'hard'
@@ -460,11 +463,19 @@ function spawn_polarized_hell() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,
 function spawn_air_pure() { mkTrackTarget(0,2,-10,tR(0.4),M.t5,{mv:'air_pure',vx:1,vy:1,ct:0,nc:G.diff==='hard'?0.6:1.2}); }
 function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.45),M.t4,{mv:'air_voltaic',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.3:0.6}); }
 
-// ═══ FLICK TECH SPAWNS (click-based switching) ═══
+// ═══ FLICK TECH SPAWNS ═══
+// Pokeball Frenzy: fast random targets, click as many as possible before they expire
 function spawn_pokeball_frenzy() {
-  const d=DIFF[G.diff];
-  mkSwitchTargets([[-3,1.7,-10],[0,2.5,-11],[3,1.5,-10]], tR(0.4), {mv:'switch_move', spd:d.spd*0.8});
-  G.switchInterval = G.diff==='hard'?0.8:G.diff==='easy'?2.2:1.5;
+  if(!G.running) return;
+  G.targets = G.targets.filter(t => t.alive);
+  const maxT = G.diff==='hard' ? 6 : G.diff==='easy' ? 3 : 5;
+  if(G.targets.filter(t=>t.alive).length >= maxT) return;
+  const r = G.diff==='hard' ? rand(0.12,0.18) : G.diff==='easy' ? rand(0.28,0.38) : rand(0.16,0.24);
+  const x = rand(-5.5,5.5), y = rand(0.5,3.8), z = rand(-9,-14);
+  const mesh = mkSphere(x, y, z, r, M.t2);
+  const vx = rand(-1.5,1.5), vy = rand(-0.8,0.8);
+  const ttl = G.diff==='hard' ? rand(0.5,0.9) : G.diff==='easy' ? rand(1.5,2.5) : rand(0.8,1.5);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), vx, vy, dynamic:true, ttl, age:0, pokeball:true});
 }
 function spawn_w1w3ts_reload() {
   if(!G.running) return;
@@ -514,16 +525,28 @@ function spawn_tamts() {
 }
 
 // ═══ CLICK TIMING SPAWNS ═══
+// Pasu Reload: diagonal arc wall pattern, targets reload (respawn) after being clicked
 function spawn_pasu_reload() {
   if(!G.running) return;
   G.targets=G.targets.filter(t=>t.alive);
   const d=DIFF[G.diff];
-  while(G.targets.filter(t=>t.alive).length < 5) {
-    const r=rand(d.pR[0],d.pR[1]), x=rand(-5,5), y=rand(0.8,3.8);
-    const mesh=mkSphere(x,y,-13,r,M.t3);
-    const vx=rand(-2,2)*d.spd*0.3, vy=rand(-1.5,1.5)*d.spd*0.3;
-    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
-  }
+  const maxT = G.diff==='hard' ? 3 : 5;
+  if(G.targets.filter(t=>t.alive).length >= maxT) return;
+  // Arc pattern positions — like Kovaaks 1wall5targets diagonal
+  const wallZ = G.diff==='hard' ? -15 : G.diff==='easy' ? -11 : -13;
+  const r = G.diff==='hard' ? rand(0.1,0.16) : G.diff==='easy' ? rand(0.22,0.32) : rand(0.13,0.2);
+  const slots = [
+    {x:-4.5,y:2.9},{x:-3,y:2.3},{x:-1.5,y:1.8},{x:0,y:1.55},{x:1.5,y:1.8},{x:3,y:2.3},{x:4.5,y:2.9},
+    {x:-4,y:3.4},{x:4,y:3.4}
+  ];
+  const taken = new Set(G.targets.filter(t=>t.alive).map(t=>Math.round(t.mesh.position.x*2)));
+  const free = slots.filter(p => !taken.has(Math.round(p.x*2)));
+  const pos = free.length > 0 ? free[Math.floor(Math.random()*free.length)] : slots[Math.floor(Math.random()*slots.length)];
+  const noise = G.diff==='hard' ? 0.08 : 0.18;
+  const vx = rand(0.6,1.5)*(Math.random()<0.5?1:-1)*d.spd*0.18;
+  const vy = rand(-0.4,0.4)*d.spd*0.1;
+  const mesh=mkSphere(pos.x+rand(-noise,noise), pos.y+rand(-noise,noise), wallZ, r, M.t3);
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
 }
 function spawn_vt_bounceshot() {
   if(!G.running) return;
@@ -654,6 +677,41 @@ function spawn_burst_drill() {
     vx:spd?rand(-1,1)*spd:0, vy:spd?rand(-0.3,0.3)*spd:0, dynamic:spd>0, bounce:true});
 }
 
+// Strafe Drill: single tracking target at head height, pure horizontal movement
+function spawn_strafe_drill() {
+  if(!G.running) return;
+  if(trackTarget && trackTarget.alive) return;
+  const r = G.diff==='easy' ? 0.38 : G.diff==='hard' ? 0.2 : 0.28;
+  const spd = G.diff==='easy' ? 1.5 : G.diff==='hard' ? 4.0 : 2.5;
+  const dir = Math.random()>0.5?1:-1;
+  mkTrackTarget(0, 1.7, -11, r, M.t4, {mv:'strafe_drill', vx:dir*spd, vy:0, ct:0});
+}
+
+// Reaction Drill: target appears at random position and auto-expires if not clicked in time
+function spawn_reaction_drill() {
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const r = G.diff==='easy' ? 0.28 : G.diff==='hard' ? 0.16 : 0.21;
+  const ttl = G.diff==='easy' ? 1.3 : G.diff==='hard' ? 0.55 : 0.85;
+  const x = rand(-5,5), y = 1.7 + rand(-0.6,0.6);
+  const mesh = mkSphere(x, y, rand(-10,-13), r, M.t3);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), dynamic:true, reaction:true, ttl});
+}
+
+// Micro Precision Drill: very small static targets at varying angles — pure precision
+function spawn_micro_drill() {
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const r = G.diff==='easy' ? 0.13 : G.diff==='hard' ? 0.06 : 0.09;
+  const angles = [{x:-6,z:-12},{x:-5,z:-10},{x:-4,z:-13},{x:-2,z:-11},{x:0,z:-14},
+    {x:2,z:-11},{x:4,z:-13},{x:5,z:-10},{x:6,z:-12},{x:-7,z:-9},{x:7,z:-9}];
+  const pos = angles[Math.floor(Math.random()*angles.length)];
+  const mesh = mkSphere(pos.x, 1.7+rand(-0.05,0.05), pos.z, r, M.t1);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
+}
+
 // Free play only
 function spawn_gridshot() {
   if(!G.running) return;
@@ -782,6 +840,20 @@ function updateTrackTarget(dt) {
         G.pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, G.pitch));
         camera.rotation.y=G.yaw; camera.rotation.x=G.pitch; }
       break;
+    case 'strafe_drill':
+      // Pure horizontal strafe at head height — simulates a player strafing
+      t.x += (t.vx||0)*dt;
+      if(t.x > 5.5 || t.x < -5.5) { t.vx = -(t.vx||2.5); t.x = Math.max(-5.5, Math.min(5.5, t.x)); }
+      t.y = 1.7; // fixed head height
+      // Occasional direction/speed change
+      t.ct = (t.ct||0)+dt;
+      const strafeCd = G.diff==='easy'?2.5:G.diff==='hard'?0.9:1.6;
+      if(t.ct > strafeCd) {
+        t.ct=0;
+        const sSpd = G.diff==='easy'?rand(1.2,2.2):G.diff==='hard'?rand(3.5,5.5):rand(2,3.5);
+        t.vx = (Math.random()>0.5?1:-1)*sSpd;
+      }
+      break;
   }
 
   t.mesh.position.set(t.x, Math.max(0.3,t.y), t.z);
@@ -852,9 +924,23 @@ function updateDynamic(dt) {
       t.vy -= 6*dt; t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += t.vy*dt;
       t.age += dt;
       if(t.age > t.ttl || t.mesh.position.y < -1) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+    } else if(t.pokeball) {
+      // Pokeball Frenzy: drifting targets that shrink and expire
+      t.age += dt;
+      t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += (t.vy||0)*dt;
+      if(t.mesh.position.x < -6.5||t.mesh.position.x > 6.5) t.vx *= -1;
+      if(t.mesh.position.y < 0.3||t.mesh.position.y > 4.5) t.vy *= -1;
+      const lifeFrac = Math.min(1, t.age / t.ttl);
+      t.mesh.scale.setScalar(Math.max(0.15, 1 - lifeFrac * 0.55));
+      if(t.age >= t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
     } else if(t.floater) {
       t.mesh.position.y += t.vy*dt; t.mesh.position.x += (t.vx||0)*dt;
       if(t.mesh.position.y > 5) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+    } else if(t.reaction) {
+      // Reaction Drill: target auto-expires if not clicked in time
+      const age = (Date.now()-t.spawnTime)/1000;
+      if(age > t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+      else { const frac=age/t.ttl; t.mesh.material.emissiveIntensity=0.3+frac*0.7; } // pulse red as timer runs out
     } else if(t.orbit) {
       t.phase += dt*1.5;
       t.mesh.position.x = t.ox + Math.sin(t.phase)*1.5;
@@ -879,10 +965,10 @@ function updateDynamic(dt) {
 // ---- Determine scenario type ----
 function isTrackMode(m) { const s=SCENARIOS[m]; return s && (s.type==='track'||s.type==='track_pct'); }
 function isSwitchMode(m) {
-  return ['pokeball_frenzy','vox_ts2','beants','floatts','waldots','devts','domiswitch','tamts'].includes(m);
+  return ['vox_ts2','beants','floatts','waldots','devts','domiswitch','tamts'].includes(m);
 }
 function isDynamicMode(m) {
-  return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click'].includes(m);
+  return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click','pokeball_frenzy'].includes(m);
 }
 
 // ---- SHOOTING ----
@@ -962,6 +1048,8 @@ function hitTarget(t) {
   if(G.mode==='gridshot'&&G.targets.filter(t=>t.alive).length<=3) setTimeout(()=>spawn_gridshot(),150);
   else if(G.mode==='speedflick') setTimeout(()=>spawn_speedflick(),80);
   else if(G.mode==='ctrlsphere_clk') setTimeout(()=>spawn_ctrlsphere_clk(),50);
+  else if(G.mode==='pokeball_frenzy') setTimeout(()=>spawn_pokeball_frenzy(),60);
+  else if(G.mode==='pasu_reload') setTimeout(()=>spawn_pasu_reload(),120);
 }
 
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
@@ -1026,14 +1114,15 @@ const SPAWN_MAP = {
   pasu_micro:spawn_pasu_micro, floatheads_t:spawn_floatheads_t, vox_click:spawn_vox_click,
   gridshot:spawn_gridshot, speedflick:spawn_speedflick,
   crosshair_drill:spawn_crosshair_drill, deadzone_drill:spawn_deadzone_drill, burst_drill:spawn_burst_drill,
+  strafe_drill:spawn_strafe_drill, reaction_drill:spawn_reaction_drill, micro_drill:spawn_micro_drill,
 };
 
 // Modes that need interval respawn
 const INTERVAL_MODES = {
-  crosshair_drill:150, burst_drill:400,
-  w1w3ts_reload:200, pasu_reload:300, vt_bounceshot:300, ctrlsphere_clk:100,
+  crosshair_drill:150, burst_drill:400, reaction_drill:200, micro_drill:150,
+  w1w3ts_reload:200, pasu_reload:150, vt_bounceshot:300, ctrlsphere_clk:100,
   popcorn_mv:400, pasu_angelic:300, pasu_perfected:300, pasu_micro:200,
-  floatheads_t:600, vox_click:250,
+  floatheads_t:600, vox_click:250, pokeball_frenzy:180,
 };
 
 function startGame(mode) {
