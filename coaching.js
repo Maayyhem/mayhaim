@@ -297,9 +297,8 @@ async function fetchScenariosFromDB() {
     const defaultIds = new Set(DEFAULT_SCENARIOS.map(s => s.id));
     const merged = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
     scenarios.forEach(s => {
-      const idx = merged.findIndex(m => m.id === s.id);
-      if (idx !== -1) merged[idx] = { ...merged[idx], ...s };
-      else if (!defaultIds.has(s.id)) merged.push(s); // only truly new custom scenarios
+      // Never let DB override DEFAULT_SCENARIOS — only add truly new custom scenarios
+      if (!defaultIds.has(s.id)) merged.push(s);
     });
     coachingScenarios = merged;
     persistScenarios();
