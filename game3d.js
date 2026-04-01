@@ -40,18 +40,18 @@ const RANK_COLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5'
 const SCENARIOS = {
   // ═══ CONTROL TRACKING - Arm ═══
   // Seuils recalibrés : précision × 10 (500=50%, 900=90%)
-  whisphereraw:   { cat:'control_tracking', sub:'arm', type:'track', label:'WhisphereRawControl', labelH:'WhisphereRawCtrl 30% Small', labelE:'WhisphereRawCtrl Larger',
+  whisphereraw:   { cat:'control_tracking', sub:'arm', type:'track', label:'WhisphereRawControl', labelH:'WhisphereRawControl 30% Small', labelE:'WhisphereRawControl Larger',
     th:[500,600,680,750,800,840,870,900], thH:[700,748,792,828,858,888], thE:[420,525,615,695,755,808,848,875] },
   whisphere:      { cat:'control_tracking', sub:'arm', type:'track', label:'Whisphere', labelH:'Whisphere Small & Slow', labelE:'Whisphere 80%',
     th:[480,590,670,740,795,840,870,900], thH:[718,762,806,836,864,892], thE:[405,510,600,680,750,808,848,875] },
-  smoothbot:      { cat:'control_tracking', sub:'arm', type:'track', label:'SmoothBot Goated', labelH:'SmoothBot Goated Smaller', labelE:'SmoothBot Goated 75%',
+  smoothbot:      { cat:'control_tracking', sub:'arm', type:'track', label:'SmoothBot Invincible Goated', labelH:'SmoothBot Invincible Goated Smaller', labelE:'SmoothBot Goated 75%',
     th:[490,592,672,742,792,836,870,900], thH:[698,745,788,822,852,882], thE:[415,518,608,688,755,812,852,882] },
   // ═══ CONTROL TRACKING - Wrist ═══
   leaptrack:      { cat:'control_tracking', sub:'wrist', type:'track', label:'Leaptrack Goated', labelH:'Leaptrack Goated 80%', labelE:'Leaptrack Goated 60% Larger',
     th:[450,558,638,710,768,818,852,878], thH:[678,728,770,806,838,870], thE:[375,485,578,658,728,788,838,868] },
   ctrlsphere_aim: { cat:'control_tracking', sub:'wrist', type:'track', label:'Controlsphere rAim', labelH:'Controlsphere rAim', labelE:'Controlsphere rAim Easy 90%',
     th:[458,565,645,718,774,820,854,880], thH:[688,738,780,815,845,876], thE:[385,495,588,668,738,798,845,875] },
-  vt_ctrlsphere:  { cat:'control_tracking', sub:'wrist', type:'track', label:'VT Controlsphere', labelH:'VT Controlsphere Hard', labelE:'VT Controlsphere 80%',
+  vt_ctrlsphere:  { cat:'control_tracking', sub:'wrist', type:'track', label:'VT Controlsphere', labelH:'VT Controlsphere Intermediate Hard', labelE:'VT Controlsphere 80%',
     th:[465,570,650,720,775,820,854,880], thH:[686,736,778,812,842,873], thE:[392,498,590,668,738,798,842,872] },
   // ═══ CONTROL TRACKING - Fingertip ═══
   air_angelic:    { cat:'control_tracking', sub:'fingertip', type:'track', label:'Air Angelic 4', labelH:'Air Angelic 4 Voltaic', labelE:'Air Angelic 4 Easy 80%',
@@ -65,11 +65,11 @@ const SCENARIOS = {
     th:[428,532,618,698,756,806,844,875], thH:[662,718,760,798,832,865], thE:[355,462,555,638,708,770,826,858] },
   air_celestial:  { cat:'control_tracking', sub:'blending', type:'track_pct', label:'Air CELESTIAL', labelH:'Air CELESTIAL', labelE:'Air CELESTIAL Slowed',
     th:[825,840,855,865,881,890,902,908], thH:[867,875,885,890,894,897], thE:[820,835,850,861,870,878,884,890] },
-  whisphere_slow: { cat:'control_tracking', sub:'blending', type:'track', label:'Whisphere Slow', labelH:'Whisphere Extra Small', labelE:'Whisphere Slow 55%',
+  whisphere_slow: { cat:'control_tracking', sub:'blending', type:'track', label:'Whisphere Slow', labelH:'Whisphere Extra Small & Slow', labelE:'Whisphere Slow 55%',
     th:[458,562,648,718,774,820,854,882], thH:[708,752,792,822,852,880], thE:[388,495,585,665,735,795,842,872] },
 
   // ═══ REACTIVE TRACKING ═══
-  ground_plaza:   { cat:'reactive_tracking', sub:'control', type:'track_pct', label:'Ground Plaza Sparky', labelH:'Ground Plaza Thin', labelE:'Air Voltaic Inv 7 Easy 80%',
+  ground_plaza:   { cat:'reactive_tracking', sub:'control', type:'track_pct', label:'Ground Plaza Sparky', labelH:'Ground Plaza Sparky v3 Thin', labelE:'Air Voltaic Inv 7 Easy 80%',
     th:[862,872,882,888,894,900,905,909], thH:[881,886,891,895,898,901], thE:[780,812,838,855,868,878,886,893] },
   ctrlsphere_ow:  { cat:'reactive_tracking', sub:'control', type:'track', label:'Controlsphere OW', labelH:'Controlsphere OW 150%', labelE:'Controlsphere OW Long 90%',
     th:[438,542,623,703,760,810,847,878], thH:[675,725,768,804,837,870], thE:[368,475,568,648,718,778,832,862] },
@@ -83,11 +83,11 @@ const SCENARIOS = {
     th:[418,522,608,688,748,798,836,868], thH:[648,705,748,788,822,856], thE:[345,452,547,630,700,762,820,852] },
 
   // ═══ FLICK TECH ═══
-  pokeball_frenzy:{ cat:'flick_tech', sub:'speed', type:'click', label:'Pokeball Frenzy', labelH:'Pokeball Frenzy TE Wide', labelE:'Pokeball Frenzy TE Wide',
+  pokeball_frenzy:{ cat:'flick_tech', sub:'speed', type:'click', label:'Pokeball Frenzy', labelH:'Pokeball Frenzy Auto TE Wide', labelE:'Pokeball Frenzy TE Wide',
     th:[1950,2250,2550,2850,3150,3400,3600,3800], thH:[3550,3725,3850,4000,4100,4200], thE:[650,950,1250,1500,1750,2000,2300,2700] },
   w1w3ts_reload:  { cat:'flick_tech', sub:'speed', type:'click', label:'1w3ts Reload', labelH:'1w2ts Reload', labelE:'1w3ts Reload Larger',
     th:[66,76,86,96,106,116,126,135], thH:[106,114,121,127,133,138], thE:[36,43,50,58,70,82,92,102] },
-  vox_ts2:        { cat:'flick_tech', sub:'speed', type:'click', label:'voxTargetSwitch 2', labelH:'voxTS 2 20% Smaller', labelE:'voxTargetSwitch 2 Large',
+  vox_ts2:        { cat:'flick_tech', sub:'speed', type:'click', label:'voxTargetSwitch 2', labelH:'voxTargetSwitch 2 20% Smaller', labelE:'voxTargetSwitch 2 Large',
     th:[78,88,98,107,116,123,130,136], thH:[103,111,116,121,127,133], thE:[67,78,87,95,103,110,117,123] },
   beants:         { cat:'flick_tech', sub:'stability', type:'click', label:'BeanTS', labelH:'BeanTS 30% Smaller', labelE:'BeanTS Larger',
     th:[88,103,115,127,136,143,149,156], thH:[119,127,134,139,143,147], thE:[65,78,90,100,110,120,130,142] },
@@ -95,11 +95,11 @@ const SCENARIOS = {
     th:[70,79,86,93,100,107,115,123], thH:[94,100,105,110,114,118], thE:[65,74,81,88,95,101,106,111] },
   waldots:        { cat:'flick_tech', sub:'micro', type:'click', label:'WaldoTS', labelH:'WaldoTS', labelE:'WaldoTS Novice',
     th:[108,117,126,135,144,153,162,170], thH:[145,153,160,166,173,178], thE:[65,78,90,100,110,120,130,140] },
-  devts:          { cat:'flick_tech', sub:'micro', type:'click', label:'devTS Goated 5Bot', labelH:'devTS Static Small 5Bot', labelE:'devTS Goated 5Bot',
+  devts:          { cat:'flick_tech', sub:'micro', type:'click', label:'devTS NR Goated 5Bot', labelH:'devTS Goated NR Static Small 5Bot', labelE:'devTS Goated 5Bot',
     th:[600,650,705,760,810,840,870,900], thH:[750,775,800,825,850,870], thE:[350,400,450,500,550,600,640,680] },
   domiswitch:     { cat:'flick_tech', sub:'postflick', type:'click', label:'domiSwitch', labelH:'domiSwitch', labelE:'domiSwitch Easy Slower',
     th:[4200,4700,5200,5700,6150,6600,7100,7600], thH:[5550,5950,6250,6550,6850,7200], thE:[3200,3700,4200,4600,5000,5400,5800,6300] },
-  tamts:          { cat:'flick_tech', sub:'postflick', type:'click', label:'tamTargetSwitch', labelH:'tamTS Smooth', labelE:'tamTS Smooth Easy',
+  tamts:          { cat:'flick_tech', sub:'postflick', type:'click', label:'tamTargetSwitch', labelH:'tamTargetSwitch Smooth', labelE:'tamTargetSwitch Smooth Easy',
     th:[22,26,29,32,34,36,38,41], thH:[32,35,37,39,42,45], thE:[7,11,15,18,21,24,26,28] },
 
   // ═══ CLICK TIMING ═══
@@ -107,19 +107,19 @@ const SCENARIOS = {
     th:[70,85,100,115,130,142,155,165], thH:[110,120,130,140,150,160], thE:[76,88,100,110,120,130,140,150] },
   vt_bounceshot:  { cat:'click_timing', sub:'reading', type:'click', label:'VT Bounceshot', labelH:'VT Bounceshot Advanced', labelE:'B180 Voltaic Easy',
     th:[550,640,720,780,850,900,980,1060], thH:[730,790,850,910,950,1000], thE:[26,38,50,58,65,72,78,87] },
-  ctrlsphere_clk: { cat:'click_timing', sub:'reading', type:'click', label:'Controlsphere Click', labelH:'Ctrlsphere Click Smaller', labelE:'Controlsphere Click Easy',
+  ctrlsphere_clk: { cat:'click_timing', sub:'reading', type:'click', label:'Controlsphere Click', labelH:'Controlsphere Click Smaller', labelE:'Controlsphere Click Easy',
     th:[27,33,39,45,50,56,61,67], thH:[39,45,51,56,60,64], thE:[15,21,27,33,39,45,50,55] },
   popcorn_mv:     { cat:'click_timing', sub:'precision', type:'click', label:'Popcorn MV', labelH:'Popcorn MV Advanced', labelE:'Popcorn MV Novice',
     th:[150,190,240,280,330,380,430,480], thH:[290,330,370,420,460,500], thE:[50,100,150,190,230,270,300,330] },
   pasu_angelic:   { cat:'click_timing', sub:'precision', type:'click', label:'Pasu Angelic', labelH:'Pasu Angelic', labelE:'Pasu Angelic 20% Larger 80%',
     th:[72,79,85,90,96,103,110,115], thH:[87,94,102,110,118,125], thE:[51,58,65,72,78,84,90,97] },
-  pasu_perfected: { cat:'click_timing', sub:'precision', type:'click', label:'1w2ts Pasu Perfected', labelH:'1w2ts Pasu 30% Smaller', labelE:'1w2ts Pasu Perfected Easy',
+  pasu_perfected: { cat:'click_timing', sub:'precision', type:'click', label:'1w2ts Pasu Perfected', labelH:'1w2ts Pasu Perfected 30% Smaller', labelE:'1w2ts Pasu Perfected Easy',
     th:[60,70,80,88,96,101,107,112], thH:[75,82,87,93,98,103], thE:[58,69,80,87,93,99,105,110] },
-  pasu_micro:     { cat:'click_timing', sub:'ct_stability', type:'click', label:'1w3ts Pasu Micro', labelH:'1w3ts Pasu Micro Goated', labelE:'1w3ts Pasu Micro Larger 80%',
+  pasu_micro:     { cat:'click_timing', sub:'ct_stability', type:'click', label:'1w3ts Pasu Perfected Micro', labelH:'1w3ts Pasu Perfected Micro Goated', labelE:'1w3ts Pasu Micro Larger 80%',
     th:[900,1000,1100,1200,1300,1400,1500,1600], thH:[1100,1200,1300,1400,1500,1560], thE:[600,700,800,900,1000,1100,1200,1300] },
-  floatheads_t:   { cat:'click_timing', sub:'ct_stability', type:'click', label:'Floating Heads Timing', labelH:'Floating Heads Fixed', labelE:'Floating Heads 400% Larger',
+  floatheads_t:   { cat:'click_timing', sub:'ct_stability', type:'click', label:'Floating Heads Timing', labelH:'Floating Heads Timing 400% Fixed', labelE:'Floating Heads 400% Larger',
     th:[1950,2300,2650,3000,3350,3650,3900,4200], thH:[3200,3484,3648,3848,4048,4248], thE:[400,700,1000,1350,1700,2050,2400,2750] },
-  vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', label:'voxTargetClick', labelH:'voxTargetClick Small', labelE:'voxTargetSwitch Click',
+  vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', label:'voxTargetClick', labelH:'VoxTargetSwitch Click Small', labelE:'voxTargetSwitch Click',
     th:[62,72,80,87,95,102,108,116], thH:[90,96,101,106,111,115], thE:[49,59,67,74,81,88,94,100] },
 
   // ═══ COURS DRILLS (not in benchmark, free play only) ═══
