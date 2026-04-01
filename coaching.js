@@ -879,7 +879,7 @@ function coachingRenderScenarios() {
   const map = document.getElementById('ch-map-filter')?.value || '';
   const type = document.getElementById('ch-type-filter')?.value || '';
 
-  const RANK_ORDER = ['IRON','BRONZE','SILVER','GOLD','PLATINUM','DIAMOND','IMMORTAL','RADIANT'];
+  const RANK_ORDER = ['IRON','BRONZE','SILVER','GOLD','PLATINUM','DIAMOND','ASCENDANT','IMMORTAL','RADIANT'];
   let filtered = coachingScenarios;
   if (rank) filtered = filtered.filter(s => s.rank === rank);
   if (map) filtered = filtered.filter(s => s.map === map);
