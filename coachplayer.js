@@ -221,7 +221,7 @@ async function cpOpenPlayer(playerId, username, relId) {
   modal.classList.add('active');
 
   // Fetch best scores
-  const data = await cpFetch('GET', `/benchmark?view=best&user_id=${playerId}`);
+  const data = await cpFetch('GET', `/benchmark?view=best&user_id=${encodeURIComponent(playerId)}`);
   cpRenderPlayerStats(data.best || [], playerId);
 }
 
