@@ -512,9 +512,8 @@ async function globalRegister() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     err.style.display = 'none';
-    _mfaPartialToken = data.partial_token;
-    _mfaPendingUser  = data.user;
-    await globalMfaSetupLoad();
+    // Students get a full token directly
+    authFinalize(data.token, data.user);
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
 

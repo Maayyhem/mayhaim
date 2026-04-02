@@ -51,16 +51,15 @@ module.exports = async function handler(req, res) {
     `;
 
     const user = result[0];
-    // After register, return a partial token — MFA setup is required
-    const partial_token = jwt.sign(
-      { id: user.id, partial: true },
+    // Students get a full token directly — MFA not required
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, mfa_verified: true },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     return res.status(201).json({
-      mfa_setup_required: true,
-      partial_token,
+      token,
       user: { id: user.id, email: user.email, username: user.username, role: user.role }
     });
   } catch (err) {

@@ -79,7 +79,22 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    // Partial token valable 10 min pour l'étape MFA
+    const isPrivileged = user.role === 'coach' || user.role === 'admin';
+
+    // Student sans MFA → accès direct
+    if (!isPrivileged && !user.mfa_enabled) {
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      return res.status(200).json({
+        token,
+        user: { id: user.id, email: user.email, username: user.username, role: user.role }
+      });
+    }
+
+    // Sinon : étape MFA (partial token 10 min)
     const partial_token = jwt.sign(
       { id: user.id, partial: true },
       process.env.JWT_SECRET,
@@ -89,6 +104,7 @@ module.exports = async function handler(req, res) {
     if (user.mfa_enabled) {
       return res.status(200).json({ mfa_required: true, partial_token });
     } else {
+      // Coach/admin sans MFA → configuration obligatoire
       return res.status(200).json({ mfa_setup_required: true, partial_token });
     }
 
