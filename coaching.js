@@ -2,6 +2,13 @@
 
 const API_BASE = '/api';
 
+// XSS sanitization — wrap all user data before inserting in innerHTML
+function san(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+
 let coachingUser = null;
 let coachingUserRole = null;
 let coachingToken = null;
@@ -1113,9 +1120,9 @@ async function coachingRenderStudents() {
       const card = document.createElement('div');
       card.className = 'ch-card';
       card.innerHTML = `
-        <div class="ch-card-title">${s.username}</div>
-        <span class="ch-badge role-${s.role}">${roleLabels[s.role] || s.role}</span>
-        <div class="ch-card-meta" style="margin-top:8px">${s.email}</div>
+        <div class="ch-card-title">${san(s.username)}</div>
+        <span class="ch-badge role-${s.role}">${roleLabels[s.role] || san(s.role)}</span>
+        <div class="ch-card-meta" style="margin-top:8px">${san(s.email)}</div>
         <div class="ch-card-desc">Inscrit le ${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
         ${coachingUserRole === 'admin' ? `
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
@@ -1124,7 +1131,7 @@ async function coachingRenderStudents() {
               <option value="coach" ${s.role==='coach'?'selected':''}>Coach</option>
               <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
             </select>
-            <button class="ch-delete-user-btn" data-user-id="${s.id}" data-username="${s.username}"
+            <button class="ch-delete-user-btn" data-user-id="${s.id}" data-username="${san(s.username)}"
               style="padding:6px 12px;background:rgba(255,70,85,0.15);color:#ff4655;border:1px solid rgba(255,70,85,0.4);border-radius:6px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:var(--font)">
               Supprimer
             </button>
@@ -2061,7 +2068,7 @@ function meRenderSaved() {
   strats.forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'me-saved-item';
-    item.innerHTML = `<span style="font-weight:700">${s.name}</span> <span style="color:var(--dim);font-size:0.7rem">${s.map}</span> <span class="me-del" data-idx="${i}">&times;</span>`;
+    item.innerHTML = `<span style="font-weight:700">${san(s.name)}</span> <span style="color:var(--dim);font-size:0.7rem">${san(s.map)}</span> <span class="me-del" data-idx="${i}">&times;</span>`;
     item.addEventListener('click', (e) => {
       if (e.target.classList.contains('me-del')) { meDeleteStrat(parseInt(e.target.dataset.idx)); return; }
       meLoadStrat(i);
@@ -2208,7 +2215,7 @@ async function coachingRenderLeaderboard() {
         const nameColor = isMe ? 'color:var(--accent)' : i===0?'color:#e8c56d':'';
         return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);${bg?'background:'+bg:''}">
           <td style="padding:10px;text-align:center;font-size:1rem">${rank}</td>
-          <td style="padding:10px;font-weight:600;${nameColor}">${p.username || 'Joueur'}${isMe?' (moi)':''}</td>
+          <td style="padding:10px;font-weight:600;${nameColor}">${san(p.username) || 'Joueur'}${isMe?' (moi)':''}</td>
           <td style="padding:10px;text-align:right;color:var(--accent);font-weight:700">${Number(p.total_score).toLocaleString()}</td>
           <td style="padding:10px;text-align:right">${p.total_games}</td>
           <td style="padding:10px;text-align:right">${p.avg_accuracy}%</td>

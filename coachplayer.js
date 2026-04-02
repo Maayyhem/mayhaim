@@ -3,6 +3,13 @@
 // Dépend de : coachingToken, coachingUser, coachingUserRole, API_BASE
 // ============================================================
 
+// XSS sanitization
+function san(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+
 // ── Helpers API ──────────────────────────────────────────────
 async function cpFetch(method, path, body) {
   const opts = {
@@ -282,7 +289,7 @@ async function cpOpenPlayer(playerId, username, relId) {
       <div class="cp-player-avatar" style="width:48px;height:48px;font-size:1.4rem">
         ${username[0].toUpperCase()}</div>
       <div>
-        <div style="font-size:1.2rem;font-weight:700;color:var(--txt)">${username}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--txt)">${san(username)}</div>
         <div style="font-size:0.8rem;color:var(--dim)" id="cp-modal-energy-summary">Chargement...</div>
       </div>
       <button onclick="cpEndRelationship(${relId})"
@@ -316,7 +323,7 @@ function cpRenderPlayerStats(bests, playerId) {
 
   const rows = bests.map(r => `
     <tr>
-      <td style="color:var(--txt)">${r.scenario}</td>
+      <td style="color:var(--txt)">${san(r.scenario)}</td>
       <td style="text-align:right">${r.score?.toLocaleString() || 0}</td>
       <td style="text-align:right">${r.accuracy || 0}%</td>
       <td style="text-align:right">${(r.energy || 0).toFixed(1)}</td>
@@ -431,10 +438,10 @@ async function cpLoadFeedbackHistory(playerId) {
     ${fbs.map(f => `
       <div class="cp-feedback-card">
         <div class="cp-fb-date">${new Date(f.created_at).toLocaleDateString('fr-FR')}</div>
-        <p class="cp-fb-content">${f.content}</p>
-        ${f.strengths ? `<div class="cp-fb-row"><span style="color:#4ade80">+ </span>${f.strengths}</div>` : ''}
-        ${f.weaknesses ? `<div class="cp-fb-row"><span style="color:#f87171">- </span>${f.weaknesses}</div>` : ''}
-        ${f.week_objective ? `<div class="cp-fb-row"><span style="color:var(--accent)">&#127945; </span>${f.week_objective}</div>` : ''}
+        <p class="cp-fb-content">${san(f.content)}</p>
+        ${f.strengths ? `<div class="cp-fb-row"><span style="color:#4ade80">+ </span>${san(f.strengths)}</div>` : ''}
+        ${f.weaknesses ? `<div class="cp-fb-row"><span style="color:#f87171">- </span>${san(f.weaknesses)}</div>` : ''}
+        ${f.week_objective ? `<div class="cp-fb-row"><span style="color:var(--accent)">&#127945; </span>${san(f.week_objective)}</div>` : ''}
       </div>`).join('')}`;
 }
 
@@ -555,10 +562,10 @@ async function cpLoadPlan() {
   el.innerHTML = `
     <div class="cp-plan-header">
       <div>
-        <h3 style="color:var(--txt);font-size:1.1rem;margin:0 0 4px">${plan.title}</h3>
-        ${plan.description ? `<p style="color:var(--dim);font-size:0.85rem;margin:0">${plan.description}</p>` : ''}
+        <h3 style="color:var(--txt);font-size:1.1rem;margin:0 0 4px">${san(plan.title)}</h3>
+        ${plan.description ? `<p style="color:var(--dim);font-size:0.85rem;margin:0">${san(plan.description)}</p>` : ''}
         <div style="font-size:0.75rem;color:var(--dim);margin-top:4px">
-          Coach : <strong style="color:var(--accent)">${plan.coach_username || 'Coach'}</strong>
+          Coach : <strong style="color:var(--accent)">${san(plan.coach_username || 'Coach')}</strong>
           &nbsp;·&nbsp; Assigné le ${new Date(plan.created_at).toLocaleDateString('fr-FR')}
         </div>
       </div>
@@ -570,7 +577,7 @@ async function cpLoadPlan() {
     <div class="cp-progress-bar"><div class="cp-progress-fill" style="width:${pct}%"></div></div>
     ${plan.target_scenario ? `
       <div class="cp-plan-target">
-        &#127945; Objectif : atteindre <strong>${plan.target_scenario}</strong>
+        &#127945; Objectif : atteindre <strong>${san(plan.target_scenario)}</strong>
         ${plan.target_energy ? ` avec <strong>${plan.target_energy}</strong> energy` : ''}
       </div>` : ''}
     <div class="cp-scenarios-checklist" id="cp-plan-checklist">
@@ -583,9 +590,9 @@ async function cpLoadPlan() {
             <div>
               <div style="font-weight:600;color:${s.done ? 'var(--dim)' : 'var(--txt)'};
                 ${s.done ? 'text-decoration:line-through' : ''}">
-                ${s.scenario} <span style="color:var(--dim);font-weight:400">× ${s.reps}</span>
+                ${san(s.scenario)} <span style="color:var(--dim);font-weight:400">× ${s.reps}</span>
               </div>
-              ${s.note ? `<div style="font-size:0.78rem;color:var(--dim);margin-top:2px">${s.note}</div>` : ''}
+              ${s.note ? `<div style="font-size:0.78rem;color:var(--dim);margin-top:2px">${san(s.note)}</div>` : ''}
             </div>
           </label>
         </div>`).join('')}
@@ -638,21 +645,21 @@ async function cpLoadFeedbacks() {
         <div class="cp-player-avatar" style="width:34px;height:34px;font-size:1rem">
           ${(f.coach_username||'?')[0].toUpperCase()}</div>
         <div>
-          <span style="font-weight:600;color:var(--txt)">${f.coach_username || 'Coach'}</span>
+          <span style="font-weight:600;color:var(--txt)">${san(f.coach_username || 'Coach')}</span>
           <span class="cp-fb-date">${new Date(f.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'})}</span>
         </div>
-        ${f.scenario ? `<div style="margin-left:auto;font-size:0.75rem;color:var(--dim)">sur ${f.scenario}</div>` : ''}
+        ${f.scenario ? `<div style="margin-left:auto;font-size:0.75rem;color:var(--dim)">sur ${san(f.scenario)}</div>` : ''}
       </div>
-      <p class="cp-fb-content">${f.content}</p>
+      <p class="cp-fb-content">${san(f.content)}</p>
       ${f.strengths || f.weaknesses ? `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          ${f.strengths ? `<div class="cp-fb-section good"><span>&#128994; Points forts</span><p>${f.strengths}</p></div>` : '<div></div>'}
-          ${f.weaknesses ? `<div class="cp-fb-section bad"><span>&#128308; À améliorer</span><p>${f.weaknesses}</p></div>` : ''}
+          ${f.strengths ? `<div class="cp-fb-section good"><span>&#128994; Points forts</span><p>${san(f.strengths)}</p></div>` : '<div></div>'}
+          ${f.weaknesses ? `<div class="cp-fb-section bad"><span>&#128308; À améliorer</span><p>${san(f.weaknesses)}</p></div>` : ''}
         </div>` : ''}
       ${f.week_objective ? `
         <div class="cp-fb-section objective">
           <span>&#127945; Objectif semaine prochaine</span>
-          <p>${f.week_objective}</p>
+          <p>${san(f.week_objective)}</p>
         </div>` : ''}
     </div>`).join('');
 }

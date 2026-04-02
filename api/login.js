@@ -3,14 +3,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+function setCors(req, res) {
+  const o = req.headers.origin || '';
+  const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
+  res.setHeader('Access-Control-Allow-Origin', (o===a||/^https:\/\/mayhaim[^.]*\.vercel\.app$/.test(o))?o:a);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
 }
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -66,7 +69,8 @@ module.exports = async function handler(req, res) {
     }
 
     const result = await sql`
-      SELECT id, email, username, password_hash, role, mfa_secret, mfa_enabled
+      SELECT id, email, username, password_hash, role, mfa_secret, mfa_enabled,
+             failed_attempts, locked_until
       FROM users WHERE email = ${email}
     `;
     if (result.length === 0) {
@@ -74,10 +78,27 @@ module.exports = async function handler(req, res) {
     }
 
     const user = result[0];
+
+    // Account lockout check
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+      return res.status(429).json({ error: `Compte temporairement bloqué. Réessaie dans ${mins} min.` });
+    }
+
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      const attempts = (user.failed_attempts || 0) + 1;
+      if (attempts >= 5) {
+        const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        await sql`UPDATE users SET failed_attempts = ${attempts}, locked_until = ${lockUntil} WHERE id = ${user.id}`;
+        return res.status(429).json({ error: 'Trop de tentatives. Compte bloqué 15 minutes.' });
+      }
+      await sql`UPDATE users SET failed_attempts = ${attempts} WHERE id = ${user.id}`;
+      return res.status(401).json({ error: `Email ou mot de passe incorrect (${5 - attempts} essai${5 - attempts > 1 ? 's' : ''} restant${5 - attempts > 1 ? 's' : ''})` });
     }
+
+    // Reset on success
+    await sql`UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ${user.id}`;
 
     const isPrivileged = user.role === 'coach' || user.role === 'admin';
 

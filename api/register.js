@@ -2,8 +2,11 @@ const { neon } = require('@neondatabase/serverless');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+function setCors(req, res) {
+  const o = req.headers.origin || '';
+  const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
+  res.setHeader('Access-Control-Allow-Origin', (o===a||/^https:\/\/mayhaim[^.]*\.vercel\.app$/.test(o))?o:a);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
 }
@@ -11,7 +14,7 @@ function setCors(res) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -24,8 +27,11 @@ module.exports = async function handler(req, res) {
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Adresse email invalide' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Mot de passe minimum 6 caractères' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Mot de passe minimum 8 caractères' });
+    }
+    if (!/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins un chiffre' });
     }
     if (username.length < 3) {
       return res.status(400).json({ error: 'Pseudo minimum 3 caractères' });
