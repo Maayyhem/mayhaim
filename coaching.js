@@ -525,6 +525,8 @@ function showApp() {
   document.querySelectorAll('.ch-coach-only').forEach(el => {
     el.style.display = isStaff ? (el.dataset.display || '') : 'none';
   });
+  // Init coaching platform (roles, student tabs, pending badge)
+  if (typeof cpInit === 'function') setTimeout(cpInit, 0);
 }
 
 // ============ COACHING INIT ============
@@ -606,6 +608,10 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
   if (tabId === 'ch-historique') coachingRenderHistory();
   if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
+  if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
+  if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
+  if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
+  if (tabId === 'ch-students')   { if (typeof cpLoadPlayers   === 'function') cpLoadPlayers(); }
 }
 
 // ============ DASHBOARD ============

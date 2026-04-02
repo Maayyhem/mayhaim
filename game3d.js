@@ -1352,6 +1352,12 @@ function endGame() {
   }
 
   saveCareer(G.score, acc);
+  // Missions — use G.bestCombo as max streak (G.combo resets on miss, G.bestCombo tracks the peak)
+  updateMissions('score',    G.score);
+  updateMissions('hits',     G.hits);
+  updateMissions('accuracy', acc);
+  updateMissions('streak',   G.bestCombo);
+  updateMissions('sessions', 1);
   // Save to server if logged in
   if(typeof coachingToken !== 'undefined' && coachingToken) {
     // Historique général
@@ -1381,6 +1387,104 @@ function showScreen(id) { $$('.screen').forEach(s=>s.classList.remove('active'))
 function loadCareer() { try{return JSON.parse(localStorage.getItem('visc_career'))||{best:0,acc:0,games:0};}catch{return{best:0,acc:0,games:0};} }
 function saveCareer(score,accuracy) { const s=loadCareer(); s.best=Math.max(s.best,score); s.acc=s.games>0?((s.acc*s.games)+accuracy)/(s.games+1):accuracy; s.games++; localStorage.setItem('visc_career',JSON.stringify(s)); updateMenuStats(); }
 function updateMenuStats() { const s=loadCareer(); $('#menu-best').textContent=s.best.toLocaleString(); $('#menu-acc').textContent=Math.round(s.acc)+'%'; $('#menu-games').textContent=s.games; }
+
+// ============ MISSIONS ============
+let activeMissions = [];
+
+const MISSION_DEFS = [
+  { id:'score_500',   type:'score',    target:500,   label:'Marquer 500 points',          xp:30  },
+  { id:'score_1000',  type:'score',    target:1000,  label:'Marquer 1 000 points',         xp:60  },
+  { id:'score_2500',  type:'score',    target:2500,  label:'Marquer 2 500 points',         xp:120 },
+  { id:'score_5000',  type:'score',    target:5000,  label:'Marquer 5 000 points',         xp:200 },
+  { id:'hits_20',     type:'hits',     target:20,    label:'Toucher 20 cibles',            xp:30  },
+  { id:'hits_50',     type:'hits',     target:50,    label:'Toucher 50 cibles',            xp:60  },
+  { id:'hits_100',    type:'hits',     target:100,   label:'Toucher 100 cibles',           xp:100 },
+  { id:'hits_200',    type:'hits',     target:200,   label:'Toucher 200 cibles',           xp:180 },
+  { id:'acc_70',      type:'accuracy', target:70,    label:'Finir avec 70% de précision',  xp:40  },
+  { id:'acc_80',      type:'accuracy', target:80,    label:'Finir avec 80% de précision',  xp:80  },
+  { id:'acc_90',      type:'accuracy', target:90,    label:'Finir avec 90% de précision',  xp:150 },
+  { id:'streak_5',    type:'streak',   target:5,     label:'5 kills consécutifs',          xp:50  },
+  { id:'streak_10',   type:'streak',   target:10,    label:'10 kills consécutifs',         xp:100 },
+  { id:'streak_20',   type:'streak',   target:20,    label:'20 kills consécutifs',         xp:200 },
+  { id:'session_3',   type:'sessions', target:3,     label:'Jouer 3 sessions',             xp:40  },
+  { id:'session_5',   type:'sessions', target:5,     label:'Jouer 5 sessions',             xp:80  },
+  { id:'session_10',  type:'sessions', target:10,    label:'Jouer 10 sessions',            xp:150 },
+];
+
+function loadMissions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('valAim3D_missions') || '[]');
+    activeMissions = saved.filter(m => m && m.id && m.type && typeof m.progress === 'number');
+  } catch { activeMissions = []; }
+  fillMissions();
+}
+
+function saveMissions() {
+  localStorage.setItem('valAim3D_missions', JSON.stringify(activeMissions));
+}
+
+// Keep exactly 3 active missions at all times.
+// Completed missions are kept in history (max 3) and their id returns to the pool.
+function fillMissions() {
+  const activeIds = activeMissions.filter(m => !m.completed).map(m => m.id);
+  const needed = 3 - activeIds.length;
+  if (needed > 0) {
+    const pool = MISSION_DEFS.filter(d => !activeIds.includes(d.id));
+    for (let i = 0; i < needed && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      const def = pool.splice(idx, 1)[0];
+      activeMissions.push({ ...def, progress: 0, completed: false });
+    }
+  }
+  // Keep at most 3 completed entries as history
+  const done = activeMissions.filter(m => m.completed)
+    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+    .slice(0, 3);
+  activeMissions = [...activeMissions.filter(m => !m.completed), ...done];
+  saveMissions();
+}
+
+// Called at end of each game with the session's final stats.
+// type: 'score' | 'hits' | 'accuracy' | 'streak' | 'sessions'
+function updateMissions(type, value) {
+  let anyCompleted = false;
+  activeMissions.forEach(m => {
+    if (m.completed || m.type !== type) return;
+    if (type === 'accuracy' || type === 'streak') {
+      // Non-cumulative: progress tracks best value this game; complete if threshold met
+      m.progress = Math.round(value);
+      if (value >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; }
+    } else {
+      // Cumulative: score, hits, sessions add up across games
+      m.progress = Math.min(m.progress + value, m.target);
+      if (m.progress >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; }
+    }
+  });
+  if (anyCompleted) fillMissions();
+  else saveMissions();
+  renderMissions();
+}
+
+function renderMissions() {
+  const container = document.getElementById('missions-container');
+  if (!container) return;
+  const active = activeMissions.filter(m => !m.completed);
+  const done   = activeMissions.filter(m => m.completed);
+  container.innerHTML = [...active, ...done].map(m => {
+    const pct = Math.min(100, Math.round(m.progress / m.target * 100));
+    return `<div class="mission-card${m.completed ? ' completed' : ''}">
+      <div class="mission-header">
+        <span class="mission-label">${m.label}</span>
+        <span class="mission-xp">+${m.xp} XP</span>
+      </div>
+      <div class="mission-progress-bar"><div class="mission-progress-fill" style="width:${pct}%"></div></div>
+      <div class="mission-footer">
+        <span>${m.progress}/${m.target}</span>
+        ${m.completed ? '<span class="mission-done">✓ Complétée</span>' : `<span>${pct}%</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ============================================================
 // BENCHMARK DASHBOARD
@@ -1648,4 +1752,4 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 // ---- INIT ----
-initThree(); gameLoop(); applySettings(); updateMenuStats();
+initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions();
