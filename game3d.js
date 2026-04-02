@@ -1451,13 +1451,11 @@ function updateMissions(type, value) {
   activeMissions.forEach(m => {
     if (m.completed || m.type !== type) return;
     if (type === 'accuracy' || type === 'streak') {
-      // Non-cumulative: progress tracks best value this game; complete if threshold met
       m.progress = Math.round(value);
-      if (value >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; }
+      if (value >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; addXP(m.xp); }
     } else {
-      // Cumulative: score, hits, sessions add up across games
       m.progress = Math.min(m.progress + value, m.target);
-      if (m.progress >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; }
+      if (m.progress >= m.target) { m.completed = true; m.completedAt = Date.now(); anyCompleted = true; addXP(m.xp); }
     }
   });
   if (anyCompleted) fillMissions();
@@ -1484,6 +1482,71 @@ function renderMissions() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ============ XP & LEVELS ============
+// Cumulative XP needed to reach each level (index = level - 1)
+const XP_LEVELS = [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200,
+                   4000, 5000, 6200, 7600, 9200, 11000, 13200, 15700, 18500, 22000];
+const MAX_LEVEL = XP_LEVELS.length;
+
+const LEVEL_NAMES = [
+  '', 'Rookie','Rookie','Rookie',
+  'Contender','Contender','Contender',
+  'Rising','Rising','Rising',
+  'Veteran','Veteran','Veteran',
+  'Expert','Expert','Expert',
+  'Elite','Elite',
+  'Master','Master'
+];
+
+function loadXP() { return parseInt(localStorage.getItem('valAim3D_xp') || '0', 10); }
+function saveXP(xp) { localStorage.setItem('valAim3D_xp', String(xp)); }
+
+function getLevel(xp) {
+  let level = 1;
+  for (let i = 1; i < XP_LEVELS.length; i++) {
+    if (xp >= XP_LEVELS[i]) level = i + 1; else break;
+  }
+  return Math.min(level, MAX_LEVEL);
+}
+
+function getLevelProgress(xp) {
+  const level = getLevel(xp);
+  if (level >= MAX_LEVEL) return { current: xp, needed: xp, pct: 100 };
+  const lo = XP_LEVELS[level - 1], hi = XP_LEVELS[level];
+  return { current: xp - lo, needed: hi - lo, pct: Math.round((xp - lo) / (hi - lo) * 100) };
+}
+
+function addXP(amount) {
+  const prev = loadXP();
+  const oldLevel = getLevel(prev);
+  const newXP = prev + amount;
+  saveXP(newXP);
+  const newLevel = getLevel(newXP);
+  renderLevelUI();
+  if (newLevel > oldLevel) showLevelUp(newLevel);
+}
+
+function renderLevelUI() {
+  const xp = loadXP();
+  const level = getLevel(xp);
+  const prog = getLevelProgress(xp);
+  const name = LEVEL_NAMES[level - 1] || 'Rookie';
+  const levelEl = document.getElementById('menu-level');
+  const fillEl  = document.getElementById('menu-xp-fill');
+  const textEl  = document.getElementById('menu-xp-text');
+  if (levelEl) levelEl.textContent = 'Niv. ' + level + ' — ' + name;
+  if (fillEl)  fillEl.style.width = prog.pct + '%';
+  if (textEl)  textEl.textContent = prog.current + ' / ' + prog.needed + ' XP';
+}
+
+function showLevelUp(level) {
+  const n = document.createElement('div');
+  n.className = 'levelup-notif';
+  n.innerHTML = '&#127942; Niveau ' + level + ' — ' + (LEVEL_NAMES[level - 1] || '') + ' !';
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3500);
 }
 
 // ============================================================
@@ -1752,4 +1815,4 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 // ---- INIT ----
-initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions();
+initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions(); renderLevelUI();

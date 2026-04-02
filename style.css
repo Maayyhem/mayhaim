@@ -433,3 +433,15 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .mission-card.completed .mission-progress-fill { background:var(--green); }
 .mission-footer { display:flex; justify-content:space-between; font-size:0.7rem; color:var(--dim); }
 .mission-done { color:var(--green); font-weight:700; }
+
+/* ── XP Bar & Level ── */
+.xp-bar-wrap { width:100%; max-width:860px; margin:14px 0 4px; }
+.xp-level-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.xp-level-badge { font-size:0.85rem; font-weight:700; color:var(--accent); letter-spacing:1px; }
+.xp-bar-text { font-size:0.72rem; color:var(--dim); }
+.xp-bar-track { width:100%; height:7px; background:var(--card); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+.xp-bar-fill { height:100%; background:linear-gradient(90deg, var(--accent), var(--gold)); border-radius:4px; transition:width 0.6s cubic-bezier(.4,0,.2,1); }
+
+/* ── Level-up notification ── */
+.levelup-notif { position:fixed; top:24px; left:50%; transform:translateX(-50%); background:var(--card); border:2px solid var(--gold); color:var(--gold); padding:12px 28px; border-radius:12px; font-size:1rem; font-weight:700; letter-spacing:1px; z-index:9999; box-shadow:0 4px 30px rgba(0,0,0,0.5); animation:levelupPop .4s cubic-bezier(.175,.885,.32,1.275); pointer-events:none; }
+@keyframes levelupPop { from { opacity:0; transform:translateX(-50%) scale(0.7); } to { opacity:1; transform:translateX(-50%) scale(1); } }
