@@ -14,7 +14,11 @@ function verifyToken(req, allowPartial = false) {
   if (!h || !h.startsWith('Bearer ')) return null;
   try {
     const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
-    if (!allowPartial && decoded.partial) return null;
+    if (decoded.partial) {
+      return allowPartial ? decoded : null;
+    }
+    // Full token must have mfa_verified — rejects all pre-MFA sessions
+    if (!decoded.mfa_verified) return null;
     return decoded;
   } catch { return null; }
 }
@@ -85,7 +89,7 @@ module.exports = async function handler(req, res) {
       await sql`UPDATE users SET mfa_enabled = true WHERE id = ${decoded.id}`;
 
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );

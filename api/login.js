@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
       if (!valid) return res.status(401).json({ error: 'Code incorrect ou expiré' });
 
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
