@@ -47,7 +47,8 @@ function cpRankBadge(rank) {
 // ── Init — appelé quand le coaching screen s'ouvre ───────────
 function cpInit() {
   if (!coachingUser) return;
-  const isCoach   = coachingUserRole === 'coach' || coachingUserRole === 'admin';
+  const isAdmin   = coachingUserRole === 'admin';
+  const isCoach   = coachingUserRole === 'coach' || isAdmin;
   const isStudent = coachingUserRole === 'student';
 
   // Afficher/masquer les onglets selon le rôle
@@ -55,9 +56,87 @@ function cpInit() {
     el.style.display = isStudent ? '' : 'none';
   });
 
+  // Section admin
+  const adminSection = cpEl('cp-admin-section');
+  if (adminSection) adminSection.style.display = isAdmin ? 'block' : 'none';
+
   // Pré-charger le bon contenu selon le rôle
   if (isCoach)   cpLoadPlayers();
-  if (isStudent) cpLoadMyCoach();
+  if (isAdmin)   cpLoadAdminRelationships();
+  if (isStudent) { cpLoadMyCoach(); cpCheckPendingBadge(); }
+}
+
+// Badge de notification sur l'onglet "Mon Coach"
+async function cpCheckPendingBadge() {
+  const data = await cpFetch('GET', '/coaching?view=pending');
+  const count = (data.pending || []).length;
+  const tab = document.querySelector('.ch-tab-btn[data-tab="cp-mon-coach"]');
+  if (!tab) return;
+  const existing = tab.querySelector('.cp-badge');
+  if (existing) existing.remove();
+  if (count > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'cp-badge';
+    badge.textContent = count;
+    tab.appendChild(badge);
+  }
+}
+
+// Vue admin — toutes les relations
+async function cpLoadAdminRelationships() {
+  const data = await cpFetch('GET', '/coaching?view=all-relationships');
+  const el = cpEl('cp-all-relationships');
+  if (!el) return;
+  const rels = data.relationships || [];
+  if (rels.length === 0) {
+    el.innerHTML = '<p class="ch-empty">Aucune relation de coaching pour l\'instant.</p>';
+    return;
+  }
+  const statusColor = { pending:'#e8c56d', active:'#4ade80', declined:'#f87171', ended:'#888' };
+  const statusLabel = { pending:'En attente', active:'Actif', declined:'Refusé', ended:'Terminé' };
+  el.innerHTML = `
+    <table class="cp-stats-table">
+      <thead><tr>
+        <th>Coach</th><th>Joueur</th><th>Statut</th><th>Date</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+        ${rels.map(r => `
+          <tr>
+            <td style="color:var(--accent);font-weight:600">${r.coach_username}
+              <span style="font-size:0.7rem;color:var(--dim);margin-left:4px">(${r.coach_role})</span></td>
+            <td>${r.player_username}</td>
+            <td><span style="color:${statusColor[r.status]||'#aaa'};font-weight:600">
+              ${statusLabel[r.status]||r.status}</span></td>
+            <td style="color:var(--dim);font-size:0.78rem">
+              ${new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
+            <td>
+              ${r.status === 'pending' ? `
+                <button onclick="cpAdminAccept(${r.rel_id})"
+                  style="font-size:0.7rem;padding:3px 10px;background:rgba(74,222,128,0.15);
+                    border:1px solid rgba(74,222,128,0.3);color:#4ade80;border-radius:5px;cursor:pointer">
+                  Accepter</button>` : ''}
+              ${r.status === 'active' ? `
+                <button onclick="cpAdminEnd(${r.rel_id})"
+                  style="font-size:0.7rem;padding:3px 10px;background:rgba(255,70,85,0.12);
+                    border:1px solid rgba(255,70,85,0.3);color:#ff4655;border-radius:5px;cursor:pointer">
+                  Terminer</button>` : ''}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function cpAdminAccept(relId) {
+  await cpFetch('POST', '/coaching', { action: 'accept', rel_id: relId });
+  cpLoadAdminRelationships();
+  cpLoadPlayers();
+}
+
+async function cpAdminEnd(relId) {
+  if (!confirm('Terminer cette relation ?')) return;
+  await cpFetch('POST', '/coaching', { action: 'end', rel_id: relId });
+  cpLoadAdminRelationships();
+  cpLoadPlayers();
 }
 
 // ── Hook sur les tabs cp-* ─────────────────────────────────

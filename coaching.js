@@ -850,7 +850,7 @@ async function coachingRenderStudents() {
   list.innerHTML = '<p class="ch-empty">Chargement...</p>';
 
   try {
-    const res = await fetch(`${API_BASE}/students`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const res = await fetch(`${API_BASE}/coaching?view=all-users`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
     if (!res.ok) throw new Error('Erreur chargement');
     const data = await res.json();
 

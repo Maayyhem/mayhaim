@@ -79,7 +79,32 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ pending: rows });
     }
 
-    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending' });
+    // Admin : tous les utilisateurs avec leur rôle
+    if (view === 'all-users') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const rows = await sql`
+        SELECT id, email, username, role, created_at FROM users ORDER BY created_at DESC
+      `;
+      return res.status(200).json({ students: rows });
+    }
+
+    // Admin : toutes les relations coaching
+    if (view === 'all-relationships') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const rows = await sql`
+        SELECT
+          r.id AS rel_id, r.status, r.created_at, r.updated_at,
+          c.id AS coach_id, c.username AS coach_username, c.role AS coach_role,
+          p.id AS player_id, p.username AS player_username
+        FROM coaching_relationships r
+        JOIN users c ON c.id = r.coach_id
+        JOIN users p ON p.id = r.player_id
+        ORDER BY r.created_at DESC
+      `;
+      return res.status(200).json({ relationships: rows });
+    }
+
+    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships' });
   }
 
   // ── POST ─────────────────────────────────────────────────────────────────
