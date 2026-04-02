@@ -1354,8 +1354,22 @@ function endGame() {
   saveCareer(G.score, acc);
   // Save to server if logged in
   if(typeof coachingToken !== 'undefined' && coachingToken) {
+    // Historique général
     fetch('/api/history', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+coachingToken},
       body: JSON.stringify({ mode:G.mode, score:G.score, accuracy:acc, hits:G.hits, misses:G.misses, avg_reaction:avgR, best_combo:G.bestCombo, duration:G.duration })
+    }).catch(()=>{});
+
+    // Run benchmark persisté en DB
+    const isBench  = !!(G.benchmarkMode && SCENARIOS[G.mode]);
+    const bScore   = isBench ? getBenchmarkScore() : G.score;
+    const threads  = isBench ? calcThreads(G.mode, bScore) : 0;
+    const maxTh    = getMaxThreads();
+    const energy   = isBench ? Math.round(threads / maxTh * 100) : 0;
+    const _TNAMES  = ['Unranked','Iron','Bronze','Silver','Gold','Platinum','Diamond','Legendary','Mythic'];
+    const rankName = isBench ? (_TNAMES[Math.min(threads, 8)] || 'Unranked') : null;
+    fetch('/api/benchmark', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+coachingToken},
+      body: JSON.stringify({ scenario:G.mode, score:bScore, accuracy:acc, hits:G.hits, misses:G.misses,
+        energy, rank_name:rankName, difficulty:currentTier||G.diff, duration:G.duration, is_benchmark:isBench })
     }).catch(()=>{});
   }
   showScreen('results-screen');
