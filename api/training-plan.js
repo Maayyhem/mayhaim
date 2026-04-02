@@ -70,8 +70,7 @@ module.exports = async function handler(req, res) {
     // Plan spécifique par ID
     if (plan_id) {
       const rows = await sql`
-        SELECT tp.*, u.username AS coach_username, u.avatar_url AS coach_avatar
-        FROM training_plans tp
+        SELECT tp.*, u.username AS coach_username        FROM training_plans tp
         LEFT JOIN users u ON u.id = tp.coach_id
         WHERE tp.id = ${parseInt(plan_id)}
           AND (tp.player_id = ${decoded.id} OR tp.coach_id = ${decoded.id})
@@ -92,8 +91,7 @@ module.exports = async function handler(req, res) {
 
     // Joueur : son plan actif
     const rows = await sql`
-      SELECT tp.*, u.username AS coach_username, u.avatar_url AS coach_avatar
-      FROM training_plans tp
+      SELECT tp.*, u.username AS coach_username      FROM training_plans tp
       LEFT JOIN users u ON u.id = tp.coach_id
       WHERE tp.player_id = ${decoded.id} AND tp.status = 'active'
       ORDER BY tp.created_at DESC

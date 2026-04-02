@@ -77,7 +77,7 @@ module.exports = async function handler(req, res) {
     const rows = await sql`
       SELECT
         f.*,
-        u.username AS coach_username, u.avatar_url AS coach_avatar,
+        u.username AS coach_username,
         br.scenario, br.score, br.energy, br.played_at AS run_date
       FROM feedback f
       JOIN users u ON u.id = f.coach_id
