@@ -1636,6 +1636,10 @@ $('#btn-retry').addEventListener('click',()=>startGame(G.mode));
 $('#btn-menu').addEventListener('click',()=>showScreen('menu-screen'));
 $('#btn-benchmark').addEventListener('click',()=>{showScreen('benchmark-screen');renderBenchmark();});
 $('#btn-bench-back').addEventListener('click',()=>showScreen('menu-screen'));
+$('#btn-freeplay').addEventListener('click',()=>showScreen('free-play-screen'));
+$('#btn-freeplay-back').addEventListener('click',()=>showScreen('menu-screen'));
+$('#btn-settings-menu').addEventListener('click',()=>showScreen('settings-screen'));
+$('#btn-settings-back').addEventListener('click',()=>showScreen('menu-screen'));
 $('#opt-tier').addEventListener('change',e=>{currentTier=e.target.value;renderBenchmark();});
 
 $('#opt-sens-mode').addEventListener('change',e=>{

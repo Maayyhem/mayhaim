@@ -81,12 +81,38 @@
         <h2 class="section-title" style="margin-top:18px">Missions</h2>
         <div id="missions-container" class="missions-grid"></div>
 
-        <div class="bench-btn-wrap">
-          <button id="btn-benchmark" class="btn-primary btn-big">Viscose Benchmark</button>
-          <button id="btn-coaching" class="btn-secondary btn-big" style="margin-top:10px;display:block;margin-left:auto;margin-right:auto">Coaching Hub</button>
+        <div class="hub-grid">
+          <button class="hub-card hub-card-primary" id="btn-benchmark">
+            <div class="hub-card-icon">&#128202;</div>
+            <div class="hub-card-title">Viscose Benchmark</div>
+            <div class="hub-card-desc">Évalue ton niveau sur 32 scénarios classés</div>
+          </button>
+          <button class="hub-card" id="btn-coaching">
+            <div class="hub-card-icon">&#127942;</div>
+            <div class="hub-card-title">Coaching Hub</div>
+            <div class="hub-card-desc">Cours, VODs, Map Editor, Suivi coach</div>
+          </button>
+          <button class="hub-card" id="btn-freeplay">
+            <div class="hub-card-icon">&#9889;</div>
+            <div class="hub-card-title">Free Play</div>
+            <div class="hub-card-desc">Entraînement libre sur tous les modes</div>
+          </button>
+          <button class="hub-card" id="btn-settings-menu">
+            <div class="hub-card-icon">&#9881;</div>
+            <div class="hub-card-title">Paramètres</div>
+            <div class="hub-card-desc">Crosshair, sensibilité, thème, room</div>
+          </button>
         </div>
+      </div>
+    </div>
 
-        <h2 class="section-title">Free Play</h2>
+    <!-- FREE PLAY -->
+    <div id="free-play-screen" class="screen scrollable">
+      <div class="menu-wrap">
+        <div class="fp-header">
+          <button id="btn-freeplay-back" class="btn-back">&larr; Menu</button>
+          <h1 class="logo" style="font-size:1.4rem">Free <span>Play</span></h1>
+        </div>
         <div class="mode-grid">
           <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">&#127919;</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
           <button class="mode-card" data-mode="gridshot"><div class="mode-icon">&#9889;</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
@@ -103,7 +129,7 @@
           <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">&#128498;</div><h3>Reaction Drill</h3><p>Cibles ephemeres. Clique avant qu'elles disparaissent.</p><span class="mode-tag">Cours</span></button>
           <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">&#9673;</div><h3>Micro Precision</h3><p>Cibles minuscules aux angles cles. Precision absolue.</p><span class="mode-tag">Cours</span></button>
         </div>
-
+        <h2 class="section-title" style="margin-top:20px">Options</h2>
         <div class="settings-row">
           <label>Duree: <select id="opt-duration"><option value="30">30s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
           <label>Difficulte: <select id="opt-diff"><option value="easy">Easier</option><option value="medium" selected>Medium</option><option value="hard">Harder</option></select></label>
@@ -121,7 +147,17 @@
           </label>
           <label>Son: <input type="checkbox" id="opt-sound" checked></label>
         </div>
-        <div class="settings-row" style="margin-top:10px">
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings-screen" class="screen scrollable">
+      <div class="menu-wrap">
+        <div class="fp-header">
+          <button id="btn-settings-back" class="btn-back">&larr; Menu</button>
+          <h1 class="logo" style="font-size:1.4rem">Para<span>mètres</span></h1>
+        </div>
+        <div class="settings-row" style="margin-top:16px">
           <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
           <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
         </div>
@@ -240,6 +276,7 @@
           <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
           <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
           <button class="ch-tab-btn" data-tab="ch-cours">Cours</button>
+          <button class="ch-tab-btn" data-tab="ch-warmup">&#128293; Échauffement</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
@@ -312,6 +349,105 @@
         <div id="ch-cours-detail" class="ch-panel">
           <button id="cours-back" class="btn-back" style="margin-bottom:16px">&larr; Retour aux cours</button>
           <div id="cours-content"></div>
+        </div>
+
+        <!-- ÉCHAUFFEMENT -->
+        <div id="ch-warmup" class="ch-panel">
+          <h2 class="ch-section-title">&#128293; Routine d'Échauffement</h2>
+          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Une session de warm-up complète avant de jouer. Inspirée de la méthode Oblivity.</p>
+
+          <div class="warmup-phases">
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">01</span>
+                <div>
+                  <div class="warmup-phase-title">&#129374; Physique — 5 min</div>
+                  <div class="warmup-phase-sub">Préparer le corps avant de toucher la souris</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step"><strong>Poignets :</strong> Cercles lents x10 dans chaque sens. Étire vers le haut et vers le bas, maintiens 15s.</div>
+                <div class="warmup-step"><strong>Doigts :</strong> Ouvre et ferme le poing 10 fois. Étire chaque doigt individuellement.</div>
+                <div class="warmup-step"><strong>Cou :</strong> Rotations lentes. Incline droite/gauche, maintiens 10s chaque côté.</div>
+                <div class="warmup-step"><strong>Épaules :</strong> Cercles vers l'arrière x10. Relève les épaules puis relâche brusquement.</div>
+                <div class="warmup-tip">&#128161; Oblivity insiste : une blessure de poignet peut te mettre hors jeu plusieurs semaines. Ces 5 minutes sont non-négociables.</div>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">02</span>
+                <div>
+                  <div class="warmup-phase-title">&#128065;&#65039; Visuel — 5 min</div>
+                  <div class="warmup-phase-sub">Réveiller les yeux et la coordination oeil-main</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step"><strong>Focus switch :</strong> Alterne le regard entre un objet proche (doigts) et lointain (mur) x15. Active la mise au point rapide.</div>
+                <div class="warmup-step"><strong>Tracking visuel :</strong> Suis lentement les bords de ton écran avec les yeux dans les 4 coins. Pas de mouvement de tête.</div>
+                <div class="warmup-step"><strong>Saccades :</strong> Regarde rapidement 4 points fixes sur l'écran (coins) en ordre aléatoire x20. Améliore la réactivité visuelle.</div>
+                <div class="warmup-step"><strong>Repos :</strong> Ferme les yeux 30s. Respire profondément. L'écran est lumineux — tes yeux ont besoin de cette pause.</div>
+                <div class="warmup-tip">&#128161; La fatigue visuelle est la cause #1 de baisse de performance invisible. Tes yeux travaillent autant que ta main.</div>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">03</span>
+                <div>
+                  <div class="warmup-phase-title">&#127919; Aim — Tracking lent (5 min)</div>
+                  <div class="warmup-phase-sub">Activer la connexion cerveau-souris, ne pas forcer</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Commence sur <strong>Easier</strong>. L'objectif n'est PAS la performance — c'est ressentir la souris. Si tu forces dès maintenant, tu accumules de la tension musculaire.</div>
+                <div class="warmup-step">Concentre-toi sur la <strong>fluidité</strong> du mouvement, pas sur le score. Aucune correction brusque.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="whisphere" data-diff="easy">
+                <span>Lancer Whisphere</span>
+                <span class="warmup-ex-tag">Easier · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">04</span>
+                <div>
+                  <div class="warmup-phase-title">&#127919; Aim — Clicking medium (5 min)</div>
+                  <div class="warmup-phase-sub">Activer la précision de clic</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Monte en <strong>Medium</strong>. Vise la consistance, pas le score maximum. Si ta main tremble encore, tu t'es pas assez échauffé en phase 03.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="pasu_reload" data-diff="medium">
+                <span>Lancer Pasu Reload</span>
+                <span class="warmup-ex-tag">Medium · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">05</span>
+                <div>
+                  <div class="warmup-phase-title">&#9889; Aim — Switch (5 min)</div>
+                  <div class="warmup-phase-sub">Activer les transferts rapides entre cibles</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Le switching est souvent négligé dans le warm-up. C'est pourtant ce qui simule le mieux les gunfights multi-ennemis de Valorant.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="vox_ts2" data-diff="medium">
+                <span>Lancer VoxTS Switch</span>
+                <span class="warmup-ex-tag">Medium · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-summary">
+              <div class="warmup-summary-title">Total : ~20 minutes</div>
+              <div class="warmup-summary-sub">Après cette routine tu peux lancer le Benchmark ou tes parties ranked. Tu ne devrais jamais jouer ranked sans t'être échauffé.</div>
+            </div>
+          </div>
         </div>
 
         <!-- MAP EDITOR -->

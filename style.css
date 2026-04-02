@@ -448,3 +448,33 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 
 /* ── Tab separator ── */
 .ch-tab-sep { color:var(--border); font-size:1.1rem; padding:0 4px; align-self:center; user-select:none; pointer-events:none; }
+
+/* ── Hub Grid (menu principal) ── */
+.hub-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:860px; margin:20px 0; }
+.hub-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px 18px; text-align:center; cursor:pointer; transition:all 0.15s; color:var(--txt); font-family:var(--font); }
+.hub-card:hover { background:var(--card-h); border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 20px var(--red-g); }
+.hub-card-primary { border-color:var(--accent); background:var(--red-g); }
+.hub-card-icon { font-size:1.8rem; margin-bottom:8px; }
+.hub-card-title { font-size:1rem; font-weight:700; margin-bottom:4px; }
+.hub-card-desc { font-size:0.72rem; color:var(--dim); line-height:1.4; }
+
+/* ── Free Play / Settings screens ── */
+.fp-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; width:100%; max-width:860px; }
+
+/* ── Warm-up panel ── */
+.warmup-phases { display:flex; flex-direction:column; gap:16px; width:100%; max-width:860px; }
+.warmup-phase { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
+.warmup-phase-header { display:flex; align-items:flex-start; gap:14px; margin-bottom:14px; }
+.warmup-phase-num { font-size:1.8rem; font-weight:900; color:var(--accent); opacity:0.4; line-height:1; min-width:32px; }
+.warmup-phase-title { font-size:0.95rem; font-weight:700; color:var(--txt); }
+.warmup-phase-sub { font-size:0.75rem; color:var(--dim); margin-top:2px; }
+.warmup-steps { display:flex; flex-direction:column; gap:8px; }
+.warmup-step { font-size:0.82rem; color:var(--dim); line-height:1.5; padding-left:12px; border-left:2px solid var(--border); }
+.warmup-tip { margin-top:10px; background:var(--red-g); border-left:3px solid var(--accent); padding:8px 12px; border-radius:0 6px 6px 0; font-size:0.78rem; color:var(--txt); line-height:1.4; }
+.warmup-exercise-btn { margin-top:12px; display:flex; justify-content:space-between; align-items:center; background:var(--bg); border:1px solid var(--accent); border-radius:8px; padding:10px 16px; cursor:pointer; transition:all 0.15s; }
+.warmup-exercise-btn:hover { background:var(--red-g); }
+.warmup-exercise-btn span:first-child { font-size:0.85rem; font-weight:600; color:var(--accent); }
+.warmup-ex-tag { font-size:0.7rem; color:var(--dim); }
+.warmup-summary { background:var(--red-g); border:1px solid var(--accent); border-radius:12px; padding:18px 20px; text-align:center; }
+.warmup-summary-title { font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:6px; }
+.warmup-summary-sub { font-size:0.82rem; color:var(--dim); line-height:1.5; }

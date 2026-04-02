@@ -608,6 +608,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
   if (tabId === 'ch-historique') coachingRenderHistory();
   if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
+  if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
   if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
   if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
@@ -848,6 +849,27 @@ function coachingCloseVodModal() {
   if (modal) { modal.classList.remove('active'); document.getElementById('ch-vm-iframe').src = ''; }
 }
 
+function initWarmupPanel() {
+  const panel = document.getElementById('ch-warmup');
+  if (!panel) return;
+  panel.querySelectorAll('.warmup-exercise-btn').forEach(btn => {
+    // Prevent double-binding
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      const diff = btn.dataset.diff;
+      document.getElementById('coaching-screen').classList.remove('active');
+      document.getElementById('opt-diff').value = diff;
+      setTimeout(() => {
+        const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
+        if (modeBtn) modeBtn.click();
+        else if (typeof startGame === 'function') startGame(mode);
+      }, 100);
+    });
+  });
+}
+
 // ============ ADMIN: STUDENTS ============
 
 async function coachingRenderStudents() {
@@ -1083,6 +1105,59 @@ async function saveScenario() {
 // ============ COURS & EXERCICES ============
 
 const COURS_DATA = [
+  {
+    id: 'warmup',
+    title: 'L\'Importance de l\'Échauffement',
+    icon: '&#128293;',
+    tag: 'Essentiel',
+    desc: 'Le warm-up est la différence entre une session frustrante et une session productive. Comprends pourquoi s\'échauffer physiquement, visuellement et en aim est non-négociable.',
+    sections: [
+      {
+        title: 'Pourquoi la plupart des joueurs négligent le warm-up',
+        content: `<p>La majorité des joueurs lancent directement une partie ranked sans s'être échauffés. Le résultat : les 3 premières rounds sont catastrophiques, ils s'énervent, et toute la session est compromise dès le départ.</p>
+        <div class="cours-tip">Oblivity, coach Valorant professionnel, insiste dans toutes ses vidéos : "Le warm-up n'est pas optionnel. C'est la base. Si tu n'as pas 20 minutes pour t'échauffer, tu n'as pas le temps de jouer sérieusement."</div>
+        <p>Le cerveau a besoin d'un temps d'activation pour connecter efficacement la vision, la coordination motrice fine, et les réflexes. Tu ne peux pas passer de 0 à 100% instantanément — aucun athlète professionnel ne le fait.</p>`
+      },
+      {
+        title: 'Échauffement physique — Pourquoi les mains d\'abord',
+        content: `<p>La souris est manipulée par des <strong>tendons et muscles fins du poignet et des doigts</strong>. Ces structures nécessitent une activation progressive pour performer et pour éviter les blessures (tendinite, syndrome du canal carpien).</p>
+        <ul>
+          <li><strong>Cercles de poignets :</strong> x10 dans chaque sens, lentement. Active la synovie articulaire.</li>
+          <li><strong>Étirements des doigts :</strong> Étire chaque doigt vers l'arrière, maintiens 10s. Prévent les crampes mid-session.</li>
+          <li><strong>Relâchement des épaules :</strong> Tensions accumulées = mouvements de bras rigides = aim inconsistant.</li>
+          <li><strong>Posture :</strong> Vérifie ta position assise. Dos droit, coude à ~90°, poignet dans l'axe de l'avant-bras.</li>
+        </ul>
+        <div class="cours-tip">Des études sur les esportifs professionnels montrent que 60% d'entre eux ont développé des douleurs chroniques au poignet avant 25 ans. L'échauffement physique est une assurance long terme.</div>`
+      },
+      {
+        title: 'Échauffement visuel — La dimension oubliée',
+        content: `<p>Les yeux aussi ont besoin d'activation. Les muscles oculaires contrôlent les <strong>saccades</strong> (mouvements rapides vers une nouvelle cible) et le <strong>smooth pursuit</strong> (suivi d'une cible en mouvement) — exactement ce qu'on utilise en jeu.</p>
+        <ul>
+          <li><strong>Switch focus distance :</strong> Alterne regard proche/loin x15. Active l'accommodation rapide (crucial pour réagir aux ennemis qui apparaissent).</li>
+          <li><strong>Tracking des bords d'écran :</strong> Suis lentement les 4 côtés avec les yeux. Réveille le suivi périphérique.</li>
+          <li><strong>Saccades entraînées :</strong> Regarde 4 points fixes en ordre aléatoire rapidement x20. Améliore le temps de réaction visuelle.</li>
+        </ul>
+        <p>La <strong>fatigue oculaire</strong> est la cause #1 de baisse de performance invisible. Après 2h de jeu sans pause, tes yeux sont 30-40% moins efficaces dans les saccades rapides.</p>`
+      },
+      {
+        title: 'Échauffement aim — La progression par phases',
+        content: `<p>Le warm-up aim doit suivre une <strong>progression de difficulté stricte</strong>. Commencer fort est contre-productif — ça crée de la tension musculaire et des habitudes compensatoires.</p>
+        <p><strong>Phase 1 — Tracking lent (Easier) :</strong> Active la connexion cerveau-souris. Aucune performance attendue. Fluidité uniquement.</p>
+        <p><strong>Phase 2 — Clicking medium :</strong> Monte progressivement. La main doit être chaude mais pas fatiguée.</p>
+        <p><strong>Phase 3 — Switch medium :</strong> Simule les situations de jeu réel. Transferts entre cibles, réflexes de changement de focus.</p>
+        <div class="cours-tip">Total recommandé : 15-20 minutes. Oblivity utilise exactement cette structure dans sa routine quotidienne : Whisphere Easy → Pasu Medium → VoxTS Medium → Benchmark.</div>`
+      },
+      {
+        title: 'Exercices de warm-up',
+        type: 'exercises',
+        exercises: [
+          { mode: 'whisphere',    diff: 'easy',   name: 'Tracking Activation',  desc: 'Whisphere Easier — activer la connexion cerveau-souris, fluidité avant tout' },
+          { mode: 'pasu_reload',  diff: 'medium', name: 'Clicking Warm-up',     desc: 'Pasu Reload Medium — precision de clic progressive' },
+          { mode: 'vox_ts2',      diff: 'medium', name: 'Switch Activation',    desc: 'VoxTS Medium — transferts rapides entre cibles' },
+        ]
+      }
+    ]
+  },
   {
     id: 'crosshair_placement',
     title: 'Crosshair Placement',
