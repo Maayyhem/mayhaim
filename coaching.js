@@ -428,18 +428,31 @@ function initGlobalAuth() {
   document.getElementById('auth-reg-password2')?.addEventListener('keydown', e => { if (e.key === 'Enter') globalRegister(); });
   // Toggle forms
   document.getElementById('auth-toggle-register')?.addEventListener('click', () => {
-    document.getElementById('auth-login-form').style.display = 'none';
-    document.getElementById('auth-register-form').style.display = 'block';
+    authShowForm('register');
   });
   document.getElementById('auth-toggle-login')?.addEventListener('click', () => {
-    document.getElementById('auth-login-form').style.display = 'block';
-    document.getElementById('auth-register-form').style.display = 'none';
+    authShowForm('login');
   });
+  // MFA verify (code login)
+  document.getElementById('auth-mfa-btn')?.addEventListener('click', globalMfaVerify);
+  document.getElementById('auth-mfa-code')?.addEventListener('keydown', e => { if (e.key === 'Enter') globalMfaVerify(); });
+  document.getElementById('auth-mfa-back')?.addEventListener('click', () => authShowForm('login'));
+  // MFA setup (premier lancement)
+  document.getElementById('auth-mfa-setup-btn')?.addEventListener('click', globalMfaEnable);
+  document.getElementById('auth-mfa-setup-code')?.addEventListener('keydown', e => { if (e.key === 'Enter') globalMfaEnable(); });
   // Logout
   document.getElementById('btn-logout')?.addEventListener('click', globalLogout);
 
   // Check existing session
   globalCheckSession();
+}
+
+// Affiche uniquement le formulaire demandé
+function authShowForm(name) {
+  ['login','register','mfa','mfa-setup'].forEach(f => {
+    const el = document.getElementById(`auth-${f}-form`);
+    if (el) el.style.display = f === name ? 'block' : 'none';
+  });
 }
 
 async function globalCheckSession() {
@@ -458,43 +471,106 @@ async function globalCheckSession() {
   } catch (e) { /* ignore */ }
 }
 
+// Partial token stocké pendant l'étape MFA
+let _mfaPartialToken = null;
+let _mfaPendingUser  = null;
+
 async function globalLogin() {
-  const email = document.getElementById('auth-login-email').value;
-  const pw = document.getElementById('auth-login-password').value;
-  const err = document.getElementById('auth-login-error');
+  const email = document.getElementById('auth-login-email').value.trim();
+  const pw    = document.getElementById('auth-login-password').value;
+  const err   = document.getElementById('auth-login-error');
   if (!email || !pw) { err.textContent = 'Remplis tous les champs'; err.style.display = 'block'; return; }
   try {
-    const res = await fetch(`${API_BASE}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
+    const res  = await fetch(`${API_BASE}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    coachingToken = data.token;
-    localStorage.setItem('ch_token', data.token);
-    coachingUser = data.user;
-    coachingUserRole = data.user.role;
     err.style.display = 'none';
-    showApp();
+    _mfaPartialToken = data.partial_token;
+    _mfaPendingUser  = data.user || null;
+    if (data.mfa_required) {
+      authShowForm('mfa');
+      document.getElementById('auth-mfa-code').value = '';
+      document.getElementById('auth-mfa-error').style.display = 'none';
+    } else if (data.mfa_setup_required) {
+      await globalMfaSetupLoad();
+    }
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
 
 async function globalRegister() {
-  const username = document.getElementById('auth-reg-username').value;
-  const email = document.getElementById('auth-reg-email').value;
-  const pw = document.getElementById('auth-reg-password').value;
-  const pw2 = document.getElementById('auth-reg-password2').value;
-  const err = document.getElementById('auth-reg-error');
+  const username = document.getElementById('auth-reg-username').value.trim();
+  const email    = document.getElementById('auth-reg-email').value.trim();
+  const pw       = document.getElementById('auth-reg-password').value;
+  const pw2      = document.getElementById('auth-reg-password2').value;
+  const err      = document.getElementById('auth-reg-error');
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if (!email || !pw || !username) { err.textContent = 'Remplis tous les champs'; err.style.display = 'block'; return; }
-  if (pw !== pw2) { err.textContent = 'Mots de passe differents'; err.style.display = 'block'; return; }
+  if (!EMAIL_RE.test(email)) { err.textContent = 'Adresse email invalide'; err.style.display = 'block'; return; }
+  if (pw !== pw2) { err.textContent = 'Mots de passe différents'; err.style.display = 'block'; return; }
   try {
-    const res = await fetch(`${API_BASE}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw, username }) });
+    const res  = await fetch(`${API_BASE}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw, username }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    coachingToken = data.token;
-    localStorage.setItem('ch_token', data.token);
-    coachingUser = data.user;
-    coachingUserRole = data.user.role;
     err.style.display = 'none';
-    showApp();
+    _mfaPartialToken = data.partial_token;
+    _mfaPendingUser  = data.user;
+    await globalMfaSetupLoad();
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+}
+
+// Charge le QR et affiche le formulaire de configuration MFA
+async function globalMfaSetupLoad() {
+  authShowForm('mfa-setup');
+  document.getElementById('auth-mfa-qr').src = '';
+  document.getElementById('auth-mfa-secret').textContent = 'Chargement...';
+  document.getElementById('auth-mfa-setup-code').value = '';
+  document.getElementById('auth-mfa-setup-error').style.display = 'none';
+  try {
+    const res  = await fetch(`${API_BASE}/profile?action=mfa-setup`, { headers: { 'Authorization': `Bearer ${_mfaPartialToken}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    document.getElementById('auth-mfa-qr').src        = data.qr;
+    document.getElementById('auth-mfa-secret').textContent = data.secret;
+  } catch (e) {
+    document.getElementById('auth-mfa-secret').textContent = 'Erreur : ' + e.message;
+  }
+}
+
+// Étape 2 login : vérifie le code TOTP
+async function globalMfaVerify() {
+  const code = document.getElementById('auth-mfa-code').value.replace(/\s/g, '');
+  const err  = document.getElementById('auth-mfa-error');
+  if (!code) { err.textContent = 'Entre le code'; err.style.display = 'block'; return; }
+  try {
+    const res  = await fetch(`${API_BASE}/login?action=mfa-verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ partial_token: _mfaPartialToken, code }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    _mfaPartialToken = null;
+    authFinalize(data.token, data.user);
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+}
+
+// Étape activation MFA : vérifie code + active + obtient full JWT
+async function globalMfaEnable() {
+  const code = document.getElementById('auth-mfa-setup-code').value.replace(/\s/g, '');
+  const err  = document.getElementById('auth-mfa-setup-error');
+  if (!code) { err.textContent = 'Entre le code de vérification'; err.style.display = 'block'; return; }
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_mfaPartialToken}` }, body: JSON.stringify({ action: 'mfa-enable', code }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    _mfaPartialToken = null;
+    authFinalize(data.token, data.user);
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+}
+
+// Finalise l'auth : stocke le token + affiche l'app
+function authFinalize(token, user) {
+  coachingToken    = token;
+  coachingUser     = user;
+  coachingUserRole = user.role;
+  localStorage.setItem('ch_token', token);
+  showApp();
 }
 
 function globalLogout() {

@@ -27,14 +27,48 @@
           </div>
           <div id="auth-register-form" style="display:none">
             <h2 style="text-align:center;margin-bottom:6px">Inscription</h2>
-            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Cree ton compte pour commencer</p>
-            <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="auth-reg-username" placeholder="Ton pseudo"></div>
+            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Crée ton compte pour commencer</p>
+            <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="auth-reg-username" placeholder="Ton pseudo (min. 3 car.)"></div>
             <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-reg-email" placeholder="ton@email.com"></div>
-            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 6 caracteres"></div>
+            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 6 caractères"></div>
             <div class="ch-auth-field"><label>Confirmer</label><input type="password" id="auth-reg-password2" placeholder="Confirmer"></div>
             <button id="auth-register-btn" class="btn-primary" style="width:100%;margin-top:12px">S'inscrire</button>
             <div id="auth-reg-error" class="ch-auth-error"></div>
-            <div class="ch-auth-toggle">Deja un compte ? <a id="auth-toggle-login">Se connecter</a></div>
+            <div class="ch-auth-toggle">Déjà un compte ? <a id="auth-toggle-login">Se connecter</a></div>
+          </div>
+
+          <!-- MFA : saisie du code (login) -->
+          <div id="auth-mfa-form" style="display:none">
+            <div style="text-align:center;font-size:2rem;margin-bottom:8px">&#128274;</div>
+            <h2 style="text-align:center;margin-bottom:6px">Authentification</h2>
+            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Entre le code à 6 chiffres de ton application</p>
+            <div class="ch-auth-field">
+              <label>Code TOTP</label>
+              <input type="text" id="auth-mfa-code" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing:0.25em;text-align:center;font-size:1.3rem;font-weight:700">
+            </div>
+            <button id="auth-mfa-btn" class="btn-primary" style="width:100%;margin-top:12px">Vérifier</button>
+            <div id="auth-mfa-error" class="ch-auth-error"></div>
+            <div class="ch-auth-toggle"><a id="auth-mfa-back" style="cursor:pointer">← Retour</a></div>
+          </div>
+
+          <!-- MFA : configuration initiale (scan QR) -->
+          <div id="auth-mfa-setup-form" style="display:none">
+            <div style="text-align:center;font-size:2rem;margin-bottom:8px">&#128737;</div>
+            <h2 style="text-align:center;margin-bottom:6px">Configurer le MFA</h2>
+            <p style="text-align:center;color:var(--dim);font-size:0.83rem;margin-bottom:16px">Scanne ce QR avec <strong>Google Authenticator</strong> ou <strong>Authy</strong></p>
+            <div style="text-align:center;margin-bottom:14px">
+              <img id="auth-mfa-qr" src="" alt="QR Code" style="width:180px;height:180px;border-radius:10px;background:#fff;padding:8px;display:inline-block">
+            </div>
+            <p style="text-align:center;font-size:0.72rem;color:var(--dim);margin-bottom:4px">Ou entre manuellement :</p>
+            <div style="text-align:center;margin-bottom:16px">
+              <code id="auth-mfa-secret" style="font-size:0.78rem;background:var(--bg);border:1px solid var(--border);padding:5px 10px;border-radius:6px;color:var(--accent);letter-spacing:0.12em;word-break:break-all"></code>
+            </div>
+            <div class="ch-auth-field">
+              <label>Code de vérification (6 chiffres)</label>
+              <input type="text" id="auth-mfa-setup-code" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing:0.25em;text-align:center;font-size:1.3rem;font-weight:700">
+            </div>
+            <button id="auth-mfa-setup-btn" class="btn-primary" style="width:100%;margin-top:12px">Activer le MFA</button>
+            <div id="auth-mfa-setup-error" class="ch-auth-error"></div>
           </div>
         </div>
       </div>
