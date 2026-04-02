@@ -133,19 +133,6 @@
         <div class="settings-row">
           <label>Duree: <select id="opt-duration"><option value="30">30s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
           <label>Difficulte: <select id="opt-diff"><option value="easy">Easier</option><option value="medium" selected>Medium</option><option value="hard">Harder</option></select></label>
-          <label>DPI: <input type="number" id="opt-dpi" min="100" max="32000" value="800" step="50" style="width:65px"></label>
-          <label>Sens:
-            <select id="opt-sens-mode" style="width:90px">
-              <option value="cm360">cm/360</option>
-              <option value="valorant">Valorant</option>
-              <option value="cs2">CS2</option>
-              <option value="overwatch">Overwatch</option>
-              <option value="apex">Apex</option>
-              <option value="fortnite">Fortnite</option>
-            </select>
-            <input type="number" id="opt-sens-val" min="0.01" max="500" value="34" step="0.01" style="width:70px">
-          </label>
-          <label>Son: <input type="checkbox" id="opt-sound" checked></label>
         </div>
       </div>
     </div>
@@ -160,6 +147,22 @@
         <div class="settings-row" style="margin-top:16px">
           <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
           <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
+          <label>Son: <input type="checkbox" id="opt-sound" checked></label>
+        </div>
+        <h2 class="section-title" style="margin-top:20px">Sensibilité</h2>
+        <div class="settings-row">
+          <label>DPI: <input type="number" id="opt-dpi" min="100" max="32000" value="800" step="50" style="width:65px"></label>
+          <label>Sens:
+            <select id="opt-sens-mode" style="width:90px">
+              <option value="cm360">cm/360</option>
+              <option value="valorant">Valorant</option>
+              <option value="cs2">CS2</option>
+              <option value="overwatch">Overwatch</option>
+              <option value="apex">Apex</option>
+              <option value="fortnite">Fortnite</option>
+            </select>
+            <input type="number" id="opt-sens-val" min="0.01" max="500" value="34" step="0.01" style="width:70px">
+          </label>
         </div>
         <h2 class="section-title" style="margin-top:20px">Crosshair</h2>
         <div class="xh-preview-wrap"><div class="xh-preview-box" id="xh-preview"></div></div>
