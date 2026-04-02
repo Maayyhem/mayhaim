@@ -357,98 +357,110 @@
         <!-- ÉCHAUFFEMENT -->
         <div id="ch-warmup" class="ch-panel">
           <h2 class="ch-section-title">&#128293; Routine d'Échauffement</h2>
-          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Une session de warm-up complète avant de jouer. Inspirée de la méthode Oblivity.</p>
+          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Routine complète ~15 min. À faire avant toute session ranked.</p>
 
           <div class="warmup-phases">
+
+            <!-- Phase 01 : Eyes Tracking -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">01</span>
                 <div>
-                  <div class="warmup-phase-title">&#129374; Physique — 5 min</div>
-                  <div class="warmup-phase-sub">Préparer le corps avant de toucher la souris</div>
+                  <div class="warmup-phase-title">&#128065; Eyes Tracking — 2 min</div>
+                  <div class="warmup-phase-sub">Suis la balle uniquement avec les yeux. Aucun mouvement de tête.</div>
                 </div>
               </div>
-              <div class="warmup-steps">
-                <div class="warmup-step"><strong>Poignets :</strong> Cercles lents x10 dans chaque sens. Étire vers le haut et vers le bas, maintiens 15s.</div>
-                <div class="warmup-step"><strong>Doigts :</strong> Ouvre et ferme le poing 10 fois. Étire chaque doigt individuellement.</div>
-                <div class="warmup-step"><strong>Cou :</strong> Rotations lentes. Incline droite/gauche, maintiens 10s chaque côté.</div>
-                <div class="warmup-step"><strong>Épaules :</strong> Cercles vers l'arrière x10. Relève les épaules puis relâche brusquement.</div>
-                <div class="warmup-tip">&#128161; Oblivity insiste : une blessure de poignet peut te mettre hors jeu plusieurs semaines. Ces 5 minutes sont non-négociables.</div>
+              <div class="warmup-eye-controls">
+                <button id="wu-eye-start" class="wu-btn">&#9654; Démarrer</button>
+                <label class="wu-label">Vitesse :
+                  <select id="wu-eye-speed" class="wu-select">
+                    <option value="slow">Lent</option>
+                    <option value="medium" selected>Moyen</option>
+                    <option value="fast">Rapide</option>
+                  </select>
+                </label>
+                <span id="wu-eye-timer" class="wu-timer">0:30</span>
               </div>
+              <canvas id="wu-eye-canvas" class="wu-canvas"></canvas>
+              <div class="warmup-step" style="margin-top:10px">Effectue <strong>4 cycles</strong> (~2 min). Change la vitesse entre chaque cycle : lent → moyen → rapide → moyen.</div>
             </div>
 
+            <!-- Phase 02 : Eyes Rest + Breathing -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">02</span>
                 <div>
-                  <div class="warmup-phase-title">&#128065;&#65039; Visuel — 5 min</div>
-                  <div class="warmup-phase-sub">Réveiller les yeux et la coordination oeil-main</div>
+                  <div class="warmup-phase-title">&#128564; Eyes Rest + Breathing — 2 min</div>
+                  <div class="warmup-phase-sub">Récupération oculaire et activation parasympathique</div>
                 </div>
               </div>
-              <div class="warmup-steps">
-                <div class="warmup-step"><strong>Focus switch :</strong> Alterne le regard entre un objet proche (doigts) et lointain (mur) x15. Active la mise au point rapide.</div>
-                <div class="warmup-step"><strong>Tracking visuel :</strong> Suis lentement les bords de ton écran avec les yeux dans les 4 coins. Pas de mouvement de tête.</div>
-                <div class="warmup-step"><strong>Saccades :</strong> Regarde rapidement 4 points fixes sur l'écran (coins) en ordre aléatoire x20. Améliore la réactivité visuelle.</div>
-                <div class="warmup-step"><strong>Repos :</strong> Ferme les yeux 30s. Respire profondément. L'écran est lumineux — tes yeux ont besoin de cette pause.</div>
-                <div class="warmup-tip">&#128161; La fatigue visuelle est la cause #1 de baisse de performance invisible. Tes yeux travaillent autant que ta main.</div>
+              <div class="wu-breathing-wrap">
+                <div class="wu-breath-circle" id="wu-breath-circle"><span id="wu-breath-text">Inspire</span></div>
+                <button id="wu-breath-start" class="wu-btn" style="margin-top:14px">&#9654; Box Breathing</button>
+                <p style="font-size:0.72rem;color:var(--dim);margin-top:6px;text-align:center">4s inspire · 4s retiens · 4s expire · 4s retiens</p>
+              </div>
+              <div class="warmup-steps" style="margin-top:14px">
+                <div class="warmup-step"><strong>Clignement :</strong> Cligne lentement 15 fois, en maintenant chaque fermeture ~1s. Réhydrate la surface oculaire.</div>
+                <div class="warmup-step"><strong>Repos :</strong> Ferme les yeux, pose les paumes dessus (sans appuyer) pendant 20s. Aucun stimulus lumineux.</div>
               </div>
             </div>
 
+            <!-- Phase 03 : Wrist -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">03</span>
                 <div>
-                  <div class="warmup-phase-title">&#127919; Aim — Tracking lent (5 min)</div>
-                  <div class="warmup-phase-sub">Activer la connexion cerveau-souris, ne pas forcer</div>
+                  <div class="warmup-phase-title">&#128080; Wrist Warm-up — 3 min</div>
+                  <div class="warmup-phase-sub">Prévention des blessures. Non-négociable.</div>
                 </div>
               </div>
-              <div class="warmup-steps">
-                <div class="warmup-step">Commence sur <strong>Easier</strong>. L'objectif n'est PAS la performance — c'est ressentir la souris. Si tu forces dès maintenant, tu accumules de la tension musculaire.</div>
-                <div class="warmup-step">Concentre-toi sur la <strong>fluidité</strong> du mouvement, pas sur le score. Aucune correction brusque.</div>
+              <div class="wu-wrist-grid">
+                <div class="wu-wrist-card">
+                  <div class="wu-wrist-icon">&#128260;</div>
+                  <div class="wu-wrist-title">Wrist Lock Rotation</div>
+                  <div class="wu-wrist-desc">Coude posé sur la table, avant-bras immobile. Cercles lents du poignet uniquement. 10× sens horaire puis 10× anti-horaire. Les deux mains.</div>
+                </div>
+                <div class="wu-wrist-card">
+                  <div class="wu-wrist-icon">&#9995;</div>
+                  <div class="wu-wrist-title">Lumbrical Stretch</div>
+                  <div class="wu-wrist-desc">Doigts tendus et serrés, plie la 1re phalange à 90° (MCP fléchi, IP tendu) comme une griffe. Maintiens 15s. Répète 3×. Chaque main.</div>
+                </div>
+                <div class="wu-wrist-card">
+                  <div class="wu-wrist-icon">&#128400;</div>
+                  <div class="wu-wrist-title">Wrist Extensor Stretch</div>
+                  <div class="wu-wrist-desc">Bras tendu, paume vers le bas. Autre main tire doucement les doigts vers toi. Maintiens 20s. Répète 2×. Les deux bras.</div>
+                </div>
               </div>
-              <div class="warmup-exercise-btn" data-mode="whisphere" data-diff="easy">
-                <span>Lancer Whisphere</span>
-                <span class="warmup-ex-tag">Easier · 60s</span>
-              </div>
+              <div class="warmup-tip">&#128161; Une blessure de poignet peut t'écarter plusieurs semaines. Ces 3 minutes sont la meilleure assurance que tu puisses prendre.</div>
             </div>
 
+            <!-- Phase 04 : Aim Activator -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">04</span>
                 <div>
-                  <div class="warmup-phase-title">&#127919; Aim — Clicking medium (5 min)</div>
-                  <div class="warmup-phase-sub">Activer la précision de clic</div>
+                  <div class="warmup-phase-title">&#127919; Aim Activator — 10 min</div>
+                  <div class="warmup-phase-sub">Connexion cerveau-souris. Progression de difficulté stricte.</div>
                 </div>
               </div>
               <div class="warmup-steps">
-                <div class="warmup-step">Monte en <strong>Medium</strong>. Vise la consistance, pas le score maximum. Si ta main tremble encore, tu t'es pas assez échauffé en phase 03.</div>
+                <div class="warmup-step">Commence sur <strong>Easier</strong>. Objectif : <em>ressentir</em> la souris, pas performer. Aucune correction brusque.</div>
+                <div class="warmup-step">Monte en difficulté seulement si ta main est détendue et fluide sur l'exercice précédent.</div>
               </div>
-              <div class="warmup-exercise-btn" data-mode="pasu_reload" data-diff="medium">
-                <span>Lancer Pasu Reload</span>
-                <span class="warmup-ex-tag">Medium · 60s</span>
+              <div class="warmup-exercise-btn" data-mode="whisphere" data-diff="easy">
+                <span>Whisphere</span><span class="warmup-ex-tag">Tracking · Easier · 60s</span>
               </div>
-            </div>
-
-            <div class="warmup-phase">
-              <div class="warmup-phase-header">
-                <span class="warmup-phase-num">05</span>
-                <div>
-                  <div class="warmup-phase-title">&#9889; Aim — Switch (5 min)</div>
-                  <div class="warmup-phase-sub">Activer les transferts rapides entre cibles</div>
-                </div>
+              <div class="warmup-exercise-btn" data-mode="pasu_reload" data-diff="medium" style="margin-top:8px">
+                <span>Pasu Reload</span><span class="warmup-ex-tag">Clicking · Medium · 60s</span>
               </div>
-              <div class="warmup-steps">
-                <div class="warmup-step">Le switching est souvent négligé dans le warm-up. C'est pourtant ce qui simule le mieux les gunfights multi-ennemis de Valorant.</div>
-              </div>
-              <div class="warmup-exercise-btn" data-mode="vox_ts2" data-diff="medium">
-                <span>Lancer VoxTS Switch</span>
-                <span class="warmup-ex-tag">Medium · 60s</span>
+              <div class="warmup-exercise-btn" data-mode="vox_ts2" data-diff="medium" style="margin-top:8px">
+                <span>VoxTS Switch</span><span class="warmup-ex-tag">Switch · Medium · 60s</span>
               </div>
             </div>
 
             <div class="warmup-summary">
-              <div class="warmup-summary-title">Total : ~20 minutes</div>
-              <div class="warmup-summary-sub">Après cette routine tu peux lancer le Benchmark ou tes parties ranked. Tu ne devrais jamais jouer ranked sans t'être échauffé.</div>
+              <div class="warmup-summary-title">Total : ~15 minutes</div>
+              <div class="warmup-summary-sub">Après cette routine, lance le Benchmark ou tes parties ranked. Ne joue jamais ranked sans warm-up.</div>
             </div>
           </div>
         </div>

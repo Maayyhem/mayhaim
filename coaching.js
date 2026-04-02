@@ -852,8 +852,9 @@ function coachingCloseVodModal() {
 function initWarmupPanel() {
   const panel = document.getElementById('ch-warmup');
   if (!panel) return;
+
+  // ── Exercise buttons ─────────────────────────────────────────────────
   panel.querySelectorAll('.warmup-exercise-btn').forEach(btn => {
-    // Prevent double-binding
     if (btn.dataset.bound) return;
     btn.dataset.bound = '1';
     btn.addEventListener('click', () => {
@@ -868,6 +869,153 @@ function initWarmupPanel() {
       }, 100);
     });
   });
+
+  // ── Eyes Tracker (zig-zag canvas) ────────────────────────────────────
+  const canvas   = document.getElementById('wu-eye-canvas');
+  const startBtn = document.getElementById('wu-eye-start');
+  const timerEl  = document.getElementById('wu-eye-timer');
+  const speedSel = document.getElementById('wu-eye-speed');
+
+  if (canvas && startBtn && !startBtn.dataset.bound) {
+    startBtn.dataset.bound = '1';
+    const ctx = canvas.getContext('2d');
+    let animId = null, animStart = null, sessionStart = null, running = false;
+    const SESSION_MS = 30000;
+
+    // Zig-zag waypoints [x%, y%] — left→right then right→left loop
+    const WP = [
+      [0,50],[14,10],[28,90],[42,10],[56,90],[70,10],[84,90],[100,50],
+      [86,10],[72,90],[58,10],[44,90],[30,10],[16,90],[0,50]
+    ];
+    const SPEEDS = { slow: 9000, medium: 5500, fast: 3000 };
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function getPos(t) {
+      const n = WP.length - 1;
+      const seg = t * n;
+      const i = Math.min(Math.floor(seg), n - 1);
+      const f = seg - i;
+      return { x: lerp(WP[i][0], WP[i+1][0], f), y: lerp(WP[i][1], WP[i+1][1], f) };
+    }
+
+    function draw(ts) {
+      if (!animStart)   animStart   = ts;
+      if (!sessionStart) sessionStart = ts;
+
+      const cycleMs   = SPEEDS[speedSel?.value || 'medium'];
+      const t         = ((ts - animStart) % cycleMs) / cycleMs;
+      const remaining = Math.max(0, SESSION_MS - (ts - sessionStart));
+
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Dashed guide path
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,70,85,0.14)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      WP.forEach(([wx, wy], i) => {
+        i === 0 ? ctx.moveTo(wx/100*W, wy/100*H) : ctx.lineTo(wx/100*W, wy/100*H);
+      });
+      ctx.stroke();
+      ctx.restore();
+
+      // Waypoint dots
+      WP.forEach(([wx, wy]) => {
+        ctx.beginPath();
+        ctx.arc(wx/100*W, wy/100*H, 2.5, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,70,85,0.22)';
+        ctx.fill();
+      });
+
+      // Ball
+      const pos = getPos(t);
+      const bx = pos.x/100*W, by = pos.y/100*H;
+
+      // Glow
+      const grad = ctx.createRadialGradient(bx, by, 0, bx, by, 24);
+      grad.addColorStop(0, 'rgba(255,70,85,0.4)');
+      grad.addColorStop(1, 'rgba(255,70,85,0)');
+      ctx.beginPath(); ctx.arc(bx, by, 24, 0, Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+
+      // Core
+      ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2);
+      ctx.fillStyle = '#ff4655'; ctx.fill();
+
+      // Highlight
+      ctx.beginPath(); ctx.arc(bx-2.5, by-2.5, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fill();
+
+      // Timer
+      const secs = Math.ceil(remaining / 1000);
+      if (timerEl) timerEl.textContent = `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
+
+      if (remaining <= 0) { stopEye(); return; }
+      animId = requestAnimationFrame(draw);
+    }
+
+    function startEye() {
+      running = true;
+      animStart = sessionStart = null;
+      canvas.width  = canvas.offsetWidth  || 700;
+      canvas.height = 150;
+      startBtn.textContent = '⏹ Stop';
+      animId = requestAnimationFrame(draw);
+    }
+    function stopEye() {
+      running = false;
+      if (animId) cancelAnimationFrame(animId);
+      animId = null;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      startBtn.textContent = '▶ Démarrer';
+      if (timerEl) timerEl.textContent = '0:30';
+    }
+    startBtn.addEventListener('click', () => running ? stopEye() : startEye());
+  }
+
+  // ── Box Breathing ─────────────────────────────────────────────────────
+  const breathBtn    = document.getElementById('wu-breath-start');
+  const breathCircle = document.getElementById('wu-breath-circle');
+  const breathText   = document.getElementById('wu-breath-text');
+
+  if (breathBtn && !breathBtn.dataset.bound) {
+    breathBtn.dataset.bound = '1';
+    let timer = null, breathRunning = false, phaseIdx = 0;
+
+    const PHASES = [
+      { text: 'Inspire',  scale: 1.5, color: '#4ade80', dur: 4000 },
+      { text: 'Retiens',  scale: 1.5, color: '#60a5fa', dur: 4000 },
+      { text: 'Expire',   scale: 1.0, color: '#f87171', dur: 4000 },
+      { text: 'Retiens',  scale: 1.0, color: '#a78bfa', dur: 4000 },
+    ];
+
+    function runPhase(idx) {
+      if (!breathRunning) return;
+      const p = PHASES[idx];
+      breathText.textContent             = p.text;
+      breathCircle.style.transform       = `scale(${p.scale})`;
+      breathCircle.style.borderColor     = p.color;
+      breathText.style.color             = p.color;
+      timer = setTimeout(() => runPhase((idx + 1) % PHASES.length), p.dur);
+    }
+    function startBreath() {
+      breathRunning = true;
+      breathBtn.textContent = '⏹ Stop';
+      runPhase(0);
+    }
+    function stopBreath() {
+      breathRunning = false;
+      clearTimeout(timer);
+      breathBtn.textContent          = '▶ Box Breathing';
+      breathCircle.style.transform   = 'scale(1)';
+      breathCircle.style.borderColor = 'var(--accent)';
+      breathText.textContent         = 'Inspire';
+      breathText.style.color         = 'var(--txt)';
+    }
+    breathBtn.addEventListener('click', () => breathRunning ? stopBreath() : startBreath());
+  }
 }
 
 // ============ ADMIN: STUDENTS ============
