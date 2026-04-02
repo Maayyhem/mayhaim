@@ -873,11 +873,17 @@ async function coachingRenderStudents() {
         <div class="ch-card-meta" style="margin-top:8px">${s.email}</div>
         <div class="ch-card-desc">Inscrit le ${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
         ${coachingUserRole === 'admin' ? `
-          <select class="ch-role-select" data-user-id="${s.id}" style="margin-top:8px;padding:6px 10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:6px;font-size:0.8rem;width:100%">
-            <option value="student" ${s.role==='student'?'selected':''}>Eleve</option>
-            <option value="coach" ${s.role==='coach'?'selected':''}>Coach</option>
-            <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <select class="ch-role-select" data-user-id="${s.id}" style="flex:1;padding:6px 10px;background:var(--bg);color:var(--txt);border:1px solid rgba(255,255,255,0.1);border-radius:6px;font-size:0.8rem">
+              <option value="student" ${s.role==='student'?'selected':''}>Eleve</option>
+              <option value="coach" ${s.role==='coach'?'selected':''}>Coach</option>
+              <option value="admin" ${s.role==='admin'?'selected':''}>Admin</option>
+            </select>
+            <button class="ch-delete-user-btn" data-user-id="${s.id}" data-username="${s.username}"
+              style="padding:6px 12px;background:rgba(255,70,85,0.15);color:#ff4655;border:1px solid rgba(255,70,85,0.4);border-radius:6px;font-size:0.75rem;cursor:pointer;white-space:nowrap;font-family:var(--font)">
+              Supprimer
+            </button>
+          </div>
         ` : ''}
       `;
       if (coachingUserRole === 'admin') {
@@ -892,12 +898,28 @@ async function coachingRenderStudents() {
             coachingRenderStudents();
           } catch (e) { alert('Erreur: ' + e.message); }
         });
+        const delBtn = card.querySelector('.ch-delete-user-btn');
+        delBtn?.addEventListener('click', () => coachingDeleteUser(s.id, s.username));
       }
       list.appendChild(card);
     });
   } catch (e) {
     list.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>';
   }
+}
+
+async function coachingDeleteUser(userId, username) {
+  if (!confirm(`Supprimer le compte de "${username}" ? Cette action est irréversible.`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'delete', userId })
+    });
+    const data = await res.json();
+    if (data.error) { alert('Erreur : ' + data.error); return; }
+    coachingRenderStudents();
+  } catch (e) { alert('Erreur réseau'); }
 }
 
 // ============ ADMIN: MANAGE scenarios ============

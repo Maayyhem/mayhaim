@@ -445,3 +445,6 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 /* ── Level-up notification ── */
 .levelup-notif { position:fixed; top:24px; left:50%; transform:translateX(-50%); background:var(--card); border:2px solid var(--gold); color:var(--gold); padding:12px 28px; border-radius:12px; font-size:1rem; font-weight:700; letter-spacing:1px; z-index:9999; box-shadow:0 4px 30px rgba(0,0,0,0.5); animation:levelupPop .4s cubic-bezier(.175,.885,.32,1.275); pointer-events:none; }
 @keyframes levelupPop { from { opacity:0; transform:translateX(-50%) scale(0.7); } to { opacity:1; transform:translateX(-50%) scale(1); } }
+
+/* ── Tab separator ── */
+.ch-tab-sep { color:var(--border); font-size:1.1rem; padding:0 4px; align-self:center; user-select:none; pointer-events:none; }
