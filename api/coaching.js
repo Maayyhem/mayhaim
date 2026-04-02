@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
       const rows = await sql`
         SELECT
           r.id AS rel_id, r.status, r.created_at,
-          u.id, u.username, u.email, u.avatar_url
+          u.id, u.username, u.email
         FROM coaching_relationships r
         JOIN users u ON u.id = r.player_id
         WHERE r.coach_id = ${decoded.id} AND r.status = 'active'
@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
       const rows = await sql`
         SELECT
           r.id AS rel_id, r.status, r.created_at,
-          u.id, u.username, u.email, u.avatar_url, u.bio
+          u.id, u.username, u.email
         FROM coaching_relationships r
         JOIN users u ON u.id = r.coach_id
         WHERE r.player_id = ${decoded.id} AND r.status = 'active'
@@ -67,8 +67,8 @@ module.exports = async function handler(req, res) {
       const rows = await sql`
         SELECT
           r.id AS rel_id, r.status, r.message, r.created_at, r.requested_by,
-          c.id AS coach_id, c.username AS coach_username, c.avatar_url AS coach_avatar,
-          p.id AS player_id, p.username AS player_username, p.avatar_url AS player_avatar
+          c.id AS coach_id, c.username AS coach_username,
+          p.id AS player_id, p.username AS player_username
         FROM coaching_relationships r
         JOIN users c ON c.id = r.coach_id
         JOIN users p ON p.id = r.player_id
