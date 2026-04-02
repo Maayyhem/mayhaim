@@ -339,3 +339,80 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   .stats-bar { gap:20px; }
   .settings-row { gap:12px; }
 }
+
+/* ============ COACH ↔ PLAYER ============ */
+.cp-input { width:100%; padding:10px 14px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--txt); font-family:var(--font); font-size:0.85rem; box-sizing:border-box; }
+.cp-input:focus { outline:none; border-color:var(--accent); }
+.cp-textarea { width:100%; padding:10px 14px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--txt); font-family:var(--font); font-size:0.85rem; resize:vertical; box-sizing:border-box; }
+.cp-textarea:focus { outline:none; border-color:var(--accent); }
+.cp-msg { font-size:0.82rem; padding:4px 0; display:none; }
+.cp-sub-title { font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; color:var(--dim); font-weight:700; margin:20px 0 10px; }
+
+/* Invite row */
+.cp-invite-row { display:flex; gap:10px; margin-bottom:8px; }
+.cp-invite-row .cp-input { flex:1; margin:0; }
+
+/* Pending cards */
+.cp-pending-card { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; margin-bottom:8px; }
+.cp-pending-name { font-weight:600; color:var(--txt); font-size:0.9rem; flex:1; }
+.cp-pending-msg { font-size:0.78rem; color:var(--dim); font-style:italic; width:100%; }
+.cp-pending-actions { display:flex; gap:8px; margin-left:auto; }
+
+/* Players grid */
+.cp-players-grid { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.cp-player-card { display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--card); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:all 0.15s; }
+.cp-player-card:hover { border-color:var(--accent); transform:translateX(3px); }
+.cp-player-avatar { width:40px; height:40px; border-radius:50%; background:var(--red-g); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--accent); font-size:1.1rem; flex-shrink:0; }
+.cp-player-name { font-weight:700; color:var(--txt); font-size:0.95rem; }
+.cp-player-meta { font-size:0.75rem; color:var(--dim); }
+.cp-player-info { flex:1; }
+
+/* Coach card */
+.cp-coach-card-inner { display:flex; align-items:flex-start; gap:16px; padding:20px; background:var(--card); border:1px solid var(--border); border-radius:14px; }
+
+/* Modal player */
+.cp-modal-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:10px; }
+.cp-modal-tab { padding:8px 16px; background:transparent; border:none; color:var(--dim); font-family:var(--font); font-size:0.85rem; font-weight:600; cursor:pointer; border-radius:8px; transition:all 0.15s; }
+.cp-modal-tab:hover { color:var(--txt); background:var(--card); }
+.cp-modal-tab.active { background:var(--red-g); color:var(--accent); }
+.cp-modal-panel { display:none; }
+.cp-modal-panel.active { display:block; }
+.cp-player-header { border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:4px; }
+
+/* Stats table */
+.cp-stats-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.cp-stats-table th { text-align:left; color:var(--dim); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; }
+.cp-stats-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.cp-stats-table tr:last-child td { border-bottom:none; }
+
+/* Plan */
+.cp-plan-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
+.cp-plan-progress { text-align:center; flex-shrink:0; }
+.cp-progress-bar { height:6px; background:var(--card); border-radius:3px; margin-bottom:16px; overflow:hidden; }
+.cp-progress-fill { height:100%; background:var(--accent); border-radius:3px; transition:width 0.4s; }
+.cp-plan-target { font-size:0.82rem; color:var(--dim); padding:8px 14px; background:var(--card); border-radius:8px; margin-bottom:12px; }
+.cp-scenarios-checklist { display:flex; flex-direction:column; gap:6px; }
+.cp-check-item { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; transition:all 0.15s; }
+.cp-check-item.done { opacity:0.55; border-color:rgba(255,255,255,0.05); }
+.cp-check-item:hover { border-color:var(--accent); }
+
+/* Feedback cards */
+.cp-feedback-card { padding:18px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:12px; }
+.cp-fb-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.cp-fb-date { font-size:0.75rem; color:var(--dim); margin-left:4px; }
+.cp-fb-content { color:var(--txt); font-size:0.88rem; line-height:1.5; margin:0 0 4px; }
+.cp-fb-section { padding:10px 14px; border-radius:8px; margin-top:4px; font-size:0.82rem; }
+.cp-fb-section span { display:block; font-weight:700; margin-bottom:4px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; }
+.cp-fb-section p { margin:0; line-height:1.5; color:var(--txt); }
+.cp-fb-section.good { background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.2); }
+.cp-fb-section.good span { color:#4ade80; }
+.cp-fb-section.bad { background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); }
+.cp-fb-section.bad span { color:#f87171; }
+.cp-fb-section.objective { background:rgba(0,255,136,0.06); border:1px solid rgba(0,255,136,0.2); margin-top:8px; }
+.cp-fb-section.objective span { color:var(--accent); }
+.cp-fb-row { font-size:0.82rem; color:var(--dim); margin-top:4px; }
+
+@media (max-width:768px) {
+  .cp-invite-row { flex-direction:column; }
+  .cp-plan-header { flex-direction:column; }
+}

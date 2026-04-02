@@ -232,6 +232,9 @@
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
           <button class="ch-tab-btn" data-tab="ch-leaderboard">Classement</button>
+          <button class="ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">Mon Coach</button>
+          <button class="ch-tab-btn" data-tab="cp-mon-plan">Mon Plan</button>
+          <button class="ch-tab-btn" data-tab="cp-feedbacks">Feedbacks</button>
         </div>
 
         <!-- DASHBOARD -->
@@ -364,10 +367,46 @@
           </div>
         </div>
 
-        <!-- STUDENTS (admin/coach only) -->
+        <!-- STUDENTS — coach/admin only -->
         <div id="ch-students" class="ch-panel">
-          <h2 class="ch-section-title">Gestion des Eleves</h2>
-          <div class="ch-cards-grid" id="ch-students-list"></div>
+          <h2 class="ch-section-title">Mes Joueurs</h2>
+          <div class="cp-invite-row">
+            <input id="cp-invite-player-input" class="cp-input" placeholder="Pseudo du joueur à inviter...">
+            <button id="cp-invite-player-btn" class="btn-primary" style="white-space:nowrap">Inviter</button>
+          </div>
+          <div id="cp-invite-player-msg" class="cp-msg"></div>
+          <div id="cp-coach-pending"></div>
+          <div id="cp-players-list"></div>
+        </div>
+
+        <!-- MON COACH — student only -->
+        <div id="cp-mon-coach" class="ch-panel">
+          <h2 class="ch-section-title">Mon Coach</h2>
+          <div id="cp-active-coach-section" style="display:none">
+            <div id="cp-coach-card" class="cp-coach-card"></div>
+            <button id="cp-end-coaching-btn" class="btn-secondary" style="margin-top:14px;font-size:0.8rem;opacity:0.7">Terminer le coaching</button>
+          </div>
+          <div id="cp-no-coach-section">
+            <p class="ch-empty" style="margin-bottom:20px">Tu n'as pas encore de coach. Invite-en un par son pseudo.</p>
+            <div class="cp-invite-row">
+              <input id="cp-invite-coach-input" class="cp-input" placeholder="Pseudo du coach...">
+              <button id="cp-invite-coach-btn" class="btn-primary" style="white-space:nowrap">Envoyer une demande</button>
+            </div>
+            <div id="cp-invite-coach-msg" class="cp-msg"></div>
+          </div>
+          <div id="cp-student-pending"></div>
+        </div>
+
+        <!-- MON PLAN — tous -->
+        <div id="cp-mon-plan" class="ch-panel">
+          <h2 class="ch-section-title">Plan d'entraînement</h2>
+          <div id="cp-plan-content"><p class="ch-empty">Chargement...</p></div>
+        </div>
+
+        <!-- FEEDBACKS — tous -->
+        <div id="cp-feedbacks" class="ch-panel">
+          <h2 class="ch-section-title">Feedbacks</h2>
+          <div id="cp-feedbacks-list"><p class="ch-empty">Chargement...</p></div>
         </div>
 
         <!-- MANAGE SCENARIOS (coach/admin only) -->
@@ -386,6 +425,22 @@
           <h2 class="ch-section-title">Classement Global</h2>
           <div id="ch-leaderboard-content"><p class="ch-empty">Chargement...</p></div>
         </div>
+      </div>
+    </div>
+
+    <!-- PLAYER DETAIL MODAL — coach -->
+    <div id="cp-player-modal" class="ch-modal">
+      <div class="ch-modal-content ch-modal-wide">
+        <span class="ch-modal-close" id="cp-player-modal-close">&times;</span>
+        <div id="cp-player-modal-header" class="cp-player-header"></div>
+        <div class="cp-modal-tabs">
+          <button class="cp-modal-tab active" data-ptab="cp-pt-stats">&#128202; Stats</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-plan">&#128203; Plan</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-feedback">&#128172; Feedback</button>
+        </div>
+        <div id="cp-pt-stats"    class="cp-modal-panel active"></div>
+        <div id="cp-pt-plan"     class="cp-modal-panel"></div>
+        <div id="cp-pt-feedback" class="cp-modal-panel"></div>
       </div>
     </div>
 
@@ -472,6 +527,7 @@
   <script src="maps.js"></script>
   <script src="scenario-maps-data.js"></script>
   <script src="coaching.js"></script>
+  <script src="coachplayer.js"></script>
   <script src="game3d.js"></script>
 </body>
 </html>
