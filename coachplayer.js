@@ -190,6 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tab.classList.add('active');
       const panel = cpEl(tab.dataset.ptab);
       if (panel) panel.classList.add('active');
+      if (tab.dataset.ptab === 'cp-pt-messages') cpLoadMessages();
+      if (tab.dataset.ptab === 'cp-pt-progress') cpLoadProgression();
     }
 
     // Fermer modal player
@@ -670,6 +672,107 @@ async function cpLoadFeedbacks() {
           <p>${san(f.week_objective)}</p>
         </div>` : ''}
     </div>`).join('');
+}
+
+// ── Messages coach ↔ joueur (dans la modale joueur) ─────────
+
+async function cpLoadMessages() {
+  if (!cpCurrentPlayer) return;
+  const listEl = cpEl('cp-pt-messages-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<p style="padding:12px;color:var(--dim);font-size:0.8rem">Chargement…</p>';
+  const data = await cpFetch('GET', `/coaching?view=messages&rel_id=${cpCurrentPlayer.relId}`);
+  cpRenderMessages(data.messages || []);
+}
+
+function cpRenderMessages(msgs) {
+  const el = cpEl('cp-pt-messages-list');
+  if (!el) return;
+  if (!msgs.length) {
+    el.innerHTML = '<p style="padding:12px;text-align:center;color:var(--dim);font-size:0.8rem">Aucun message</p>';
+    return;
+  }
+  const myId = typeof coachingUser !== 'undefined' ? coachingUser?.id : null;
+  el.innerHTML = msgs.map(m => {
+    const mine = String(m.sender_id) === String(myId);
+    const ago = typeof timeAgo === 'function' ? timeAgo(m.created_at) : '';
+    return `<div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">
+      <div class="msg-text">${san(m.content)}</div>
+      ${ago ? `<div class="msg-time">${ago}</div>` : ''}
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function cpSendMessage() {
+  if (!cpCurrentPlayer) return;
+  const input = cpEl('cp-msg-input');
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  await cpFetch('POST', '/coaching', { action: 'send-message', rel_id: cpCurrentPlayer.relId, content });
+  cpLoadMessages();
+}
+
+// ── Progression joueur (chart + tableau) ────────────────────
+
+async function cpLoadProgression() {
+  if (!cpCurrentPlayer) return;
+  const data = await cpFetch('GET', `/coaching?view=player-history&player_id=${cpCurrentPlayer.id}`);
+  const history = data.history || [];
+  cpRenderProgressionChart(history);
+  cpRenderProgressionTable(history, cpEl('cp-pt-progress-table'));
+}
+
+function cpRenderProgressionChart(history) {
+  const canvas = cpEl('cp-player-chart');
+  if (!canvas || !window.Chart) return;
+  if (window._cpProgressChart) { window._cpProgressChart.destroy(); window._cpProgressChart = null; }
+  if (!history.length) return;
+  const palette = ['#ff4655','#4ade80','#60a5fa','#fbbf24','#c084fc','#f87171','#34d399','#818cf8'];
+  const modes = [...new Set(history.map(h => h.mode))];
+  const modeColor = {};
+  modes.forEach((m, i) => modeColor[m] = palette[i % palette.length]);
+  const sorted = [...history].reverse();
+  window._cpProgressChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(h => new Date(h.played_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
+      datasets: [{ data: sorted.map(h => h.score), backgroundColor: sorted.map(h => modeColor[h.mode] + 'bb'), borderColor: sorted.map(h => modeColor[h.mode]), borderWidth: 1, borderRadius: 3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: (items) => { const h = sorted[items[0].dataIndex]; return `${new Date(h.played_at).toLocaleDateString('fr-FR')} — ${h.mode.replace(/_/g,' ')}`; },
+        label: (item) => ` Score : ${item.raw.toLocaleString()}`
+      }}},
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#8b949e' }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function cpRenderProgressionTable(history, el) {
+  if (!el) return;
+  if (!history.length) { el.innerHTML = '<p class="ch-empty" style="padding:8px">Aucune partie enregistrée</p>'; return; }
+  const recent = history.slice(0, 15);
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+    <thead><tr style="color:var(--dim);border-bottom:1px solid var(--border)">
+      <th style="padding:6px 8px;text-align:left">Date</th>
+      <th style="padding:6px 8px;text-align:left">Mode</th>
+      <th style="padding:6px 8px;text-align:right">Score</th>
+      <th style="padding:6px 8px;text-align:right">Précision</th>
+    </tr></thead>
+    <tbody>${recent.map(h => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+      <td style="padding:5px 8px;color:var(--dim)">${new Date(h.played_at).toLocaleDateString('fr-FR')}</td>
+      <td style="padding:5px 8px">${san(h.mode.replace(/_/g,' '))}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--accent);font-weight:700">${Number(h.score).toLocaleString()}</td>
+      <td style="padding:5px 8px;text-align:right">${h.accuracy != null ? h.accuracy + '%' : '—'}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
 }
 
 // ── Hook dans l'init global du coaching ─────────────────────

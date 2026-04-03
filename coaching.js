@@ -601,6 +601,11 @@ function globalLogout() {
   coachingUser = null;
   coachingUserRole = null;
   localStorage.removeItem('ch_token');
+  clearInterval(_notifPollInterval);
+  _notifPollInterval = null;
+  clearInterval(_msgPollInterval);
+  _msgPollInterval = null;
+  _activeRelId = null;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('auth-screen').classList.add('active');
 }
@@ -712,6 +717,10 @@ function showApp() {
   if (typeof cpInit === 'function') setTimeout(cpInit, 0);
   // Load announcements banner
   loadAnnouncements();
+  // Start notification polling
+  loadNotifications();
+  clearInterval(_notifPollInterval);
+  _notifPollInterval = setInterval(loadNotifications, 30000);
 }
 
 // ============ COACHING INIT ============
@@ -737,6 +746,16 @@ function initCoaching() {
 
   document.querySelectorAll('.ch-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => coachingSwitchTab(btn.dataset.tab));
+  });
+
+  // Notification bell
+  const bellBtn = document.getElementById('btn-notif-bell');
+  if (bellBtn) bellBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleNotifPanel(); });
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('notif-panel');
+    if (panel && panel.style.display !== 'none' && !panel.contains(e.target) && e.target.id !== 'btn-notif-bell') {
+      panel.style.display = 'none';
+    }
   });
 
   // Filters
@@ -795,6 +814,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'ch-admin') adminLoad();
+  if (tabId === 'ch-messages') initMessagesTab();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
   if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
   if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
@@ -2683,6 +2703,198 @@ async function coachingRenderLeaderboard() {
       }).join('')}</tbody>
     </table></div>`;
   } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${e.message}</p>`; }
+}
+
+// ============ NOTIFICATIONS ============
+
+let _notifPollInterval = null;
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'À l\'instant';
+  if (m < 60) return `Il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Il y a ${h}h`;
+  return `Il y a ${Math.floor(h / 24)}j`;
+}
+
+async function loadNotifications() {
+  if (!coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/profile?action=notifications`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    renderNotifBell(d.unread_count || 0);
+    renderNotifList(d.notifications || []);
+  } catch {}
+}
+
+function renderNotifBell(count) {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  badge.textContent = count > 9 ? '9+' : String(count);
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function renderNotifList(notifs) {
+  const el = document.getElementById('notif-list');
+  if (!el) return;
+  if (!notifs.length) {
+    el.innerHTML = '<p class="ch-empty" style="padding:16px;font-size:0.8rem">Aucune notification</p>';
+    return;
+  }
+  el.innerHTML = notifs.map(n => `
+    <div class="notif-item${n.is_read ? '' : ' notif-unread'}" onclick="clickNotif('${san(String(n.id))}','${san(n.tab || '')}')">
+      <div class="notif-text">${san(n.message)}</div>
+      <div class="notif-time">${timeAgo(n.created_at)}</div>
+    </div>`).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  const visible = panel.style.display !== 'none';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) loadNotifications();
+}
+
+async function clickNotif(id, tab) {
+  try {
+    await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'mark-read', id })
+    });
+  } catch {}
+  loadNotifications();
+  if (tab) {
+    document.getElementById('notif-panel').style.display = 'none';
+    coachingSwitchTab(tab);
+  }
+}
+
+async function markAllNotifRead() {
+  try {
+    await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'mark-all-read' })
+    });
+  } catch {}
+  loadNotifications();
+}
+
+// ============ MESSAGES TAB ============
+
+let _activeRelId = null;
+let _msgPollInterval = null;
+
+function initMessagesTab() {
+  const input = document.getElementById('msg-input');
+  if (input && !input._keydownBound) {
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+    input._keydownBound = true;
+  }
+  loadConversations();
+}
+
+async function loadConversations() {
+  const el = document.getElementById('msg-conversations');
+  if (!el) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=conversations`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    renderConversations(d.conversations || []);
+  } catch {
+    el.innerHTML = '<p class="ch-empty" style="padding:16px">Erreur de chargement</p>';
+  }
+}
+
+function renderConversations(convs) {
+  const el = document.getElementById('msg-conversations');
+  if (!el) return;
+  if (!convs.length) {
+    el.innerHTML = '<p class="ch-empty" style="padding:16px;font-size:0.82rem">Aucune conversation</p>';
+    return;
+  }
+  el.innerHTML = convs.map(c => {
+    const name = coachingUserRole === 'student' ? san(c.coach_username) : san(c.player_username);
+    const unread = c.unread_count > 0;
+    const last = c.last_message ? san(c.last_message.substring(0, 40)) + (c.last_message.length > 40 ? '…' : '') : '<em style="color:var(--dim)">Aucun message</em>';
+    return `<div class="msg-conv-item${_activeRelId == c.rel_id ? ' active' : ''}" onclick="openConversation(${c.rel_id},'${name}')">
+      <div class="msg-conv-avatar">${name[0]?.toUpperCase() || '?'}</div>
+      <div class="msg-conv-info">
+        <div class="msg-conv-name">${name}${unread ? `<span class="msg-unread-badge">${c.unread_count}</span>` : ''}</div>
+        <div class="msg-conv-last">${last}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openConversation(relId, name) {
+  _activeRelId = relId;
+  const header = document.getElementById('msg-chat-header');
+  if (header) header.textContent = name;
+  const input = document.getElementById('msg-input');
+  if (input) input.disabled = false;
+  // Refresh conversation list to clear unread badge
+  loadConversations();
+  await loadMessages();
+  clearInterval(_msgPollInterval);
+  _msgPollInterval = setInterval(loadMessages, 5000);
+}
+
+async function loadMessages() {
+  if (!_activeRelId) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=messages&rel_id=${_activeRelId}`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    renderMessages(d.messages || []);
+  } catch {}
+}
+
+function renderMessages(msgs) {
+  const el = document.getElementById('msg-chat-messages');
+  if (!el) return;
+  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  if (!msgs.length) {
+    el.innerHTML = '<p class="ch-empty" style="padding:24px;text-align:center;font-size:0.82rem">Commencez la conversation !</p>';
+    return;
+  }
+  el.innerHTML = msgs.map(m => {
+    const mine = String(m.sender_id) === String(coachingUser?.id);
+    return `<div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">
+      <div class="msg-text">${san(m.content)}</div>
+      <div class="msg-time">${timeAgo(m.created_at)}</div>
+    </div>`;
+  }).join('');
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+async function sendMessage() {
+  if (!_activeRelId) return;
+  const input = document.getElementById('msg-input');
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  try {
+    const res = await fetch(`${API_BASE}/coaching`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'send-message', rel_id: _activeRelId, content })
+    });
+    if (res.ok) loadMessages();
+  } catch {}
 }
 
 // ============ BOOT ============

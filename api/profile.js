@@ -32,6 +32,18 @@ module.exports = async function handler(req, res) {
 
   const sql = neon(process.env.DATABASE_URL);
 
+  // Auto-create notifications table
+  await sql`CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    tab TEXT,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
   // ── GET ────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const { action } = req.query || {};
@@ -54,6 +66,18 @@ module.exports = async function handler(req, res) {
       const otpauth = authenticator.keyuri(user.email, 'MayhAim', secret);
       const qr = await QRCode.toDataURL(otpauth);
       return res.status(200).json({ qr, secret, otpauth });
+    }
+
+    // Notifications
+    if (action === 'notifications') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      const rows = await sql`
+        SELECT * FROM notifications WHERE user_id = ${decoded.id}
+        ORDER BY read ASC, created_at DESC LIMIT 50
+      `;
+      const unread = rows.filter(r => !r.read).length;
+      return res.status(200).json({ notifications: rows, unread });
     }
 
     // Profil normal — full token uniquement
@@ -118,6 +142,25 @@ module.exports = async function handler(req, res) {
       if (!valid) return res.status(401).json({ error: 'Code incorrect' });
 
       await sql`UPDATE users SET mfa_enabled = false, mfa_secret = null WHERE id = ${decoded.id}`;
+      return res.status(200).json({ success: true });
+    }
+
+    // Marquer une notification lue
+    if (action === 'mark-read') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      const { notif_id } = req.body || {};
+      if (notif_id) {
+        await sql`UPDATE notifications SET read = TRUE WHERE id = ${notif_id} AND user_id = ${decoded.id}`;
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    // Marquer toutes les notifications lues
+    if (action === 'mark-all-read') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      await sql`UPDATE notifications SET read = TRUE WHERE user_id = ${decoded.id}`;
       return res.status(200).json({ success: true });
     }
 

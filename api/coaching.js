@@ -51,6 +51,14 @@ module.exports = async function handler(req, res) {
       target_username TEXT,
       details TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      rel_id INTEGER NOT NULL REFERENCES coaching_relationships(id) ON DELETE CASCADE,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )`
   ]);
 
@@ -182,6 +190,53 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ logs: rows });
     }
 
+    // Conversations (coach ou joueur)
+    if (view === 'conversations') {
+      const rows = await sql`
+        SELECT
+          r.id AS rel_id,
+          CASE WHEN r.coach_id = ${decoded.id} THEN p.username ELSE c.username END AS other_username,
+          CASE WHEN r.coach_id = ${decoded.id} THEN p.id       ELSE c.id       END AS other_id,
+          m.content AS last_message,
+          m.created_at AS last_message_at,
+          (SELECT COUNT(*)::int FROM messages WHERE rel_id = r.id AND read = FALSE AND sender_id != ${decoded.id}) AS unread
+        FROM coaching_relationships r
+        JOIN users c ON c.id = r.coach_id
+        JOIN users p ON p.id = r.player_id
+        LEFT JOIN LATERAL (
+          SELECT content, created_at FROM messages WHERE rel_id = r.id ORDER BY created_at DESC LIMIT 1
+        ) m ON TRUE
+        WHERE (r.coach_id = ${decoded.id} OR r.player_id = ${decoded.id}) AND r.status = 'active'
+        ORDER BY COALESCE(m.created_at, r.created_at) DESC
+      `;
+      return res.status(200).json({ conversations: rows });
+    }
+
+    // Messages d'une relation
+    if (view === 'messages') {
+      const relId = req.query?.rel_id;
+      if (!relId) return res.status(400).json({ error: 'rel_id requis' });
+      const rel = await sql`SELECT * FROM coaching_relationships WHERE id = ${relId} AND (coach_id = ${decoded.id} OR player_id = ${decoded.id})`;
+      if (!rel.length) return res.status(403).json({ error: 'Non autorisé' });
+      await sql`UPDATE messages SET read = TRUE WHERE rel_id = ${relId} AND sender_id != ${decoded.id}`;
+      const msgs = await sql`
+        SELECT m.*, u.username AS sender_username
+        FROM messages m JOIN users u ON u.id = m.sender_id
+        WHERE m.rel_id = ${relId} ORDER BY m.created_at ASC
+      `;
+      return res.status(200).json({ messages: msgs });
+    }
+
+    // Historique de jeu d'un joueur (coach uniquement)
+    if (view === 'player-history') {
+      const playerId = req.query?.player_id;
+      if (!playerId) return res.status(400).json({ error: 'player_id requis' });
+      const rel = await sql`SELECT id FROM coaching_relationships WHERE coach_id = ${decoded.id} AND player_id = ${playerId} AND status = 'active'`;
+      if (!rel.length && decoded.role !== 'admin') return res.status(403).json({ error: 'Non autorisé' });
+      const rows = await sql`SELECT * FROM game_history WHERE user_id = ${playerId} ORDER BY played_at DESC LIMIT 50`;
+      return res.status(200).json({ history: rows });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 
@@ -246,6 +301,10 @@ module.exports = async function handler(req, res) {
       await sql`
         UPDATE coaching_relationships SET status = 'active', updated_at = NOW() WHERE id = ${rel_id}
       `;
+      // Notifier le demandeur
+      sql`INSERT INTO notifications (user_id, type, title, body, tab)
+        VALUES (${rel.requested_by}, 'coaching', 'Demande de coaching acceptée !',
+                'Votre demande a été acceptée', 'ch-messages')`.catch(() => {});
       return res.status(200).json({ success: true });
     }
 
@@ -315,6 +374,21 @@ module.exports = async function handler(req, res) {
       if (!ann_id) return res.status(400).json({ error: 'ann_id requis' });
       await sql`DELETE FROM announcements WHERE id = ${ann_id}`;
       return res.status(200).json({ success: true });
+    }
+
+    // ── Envoyer un message ────────────────────────────────────────────────
+    if (action === 'send-message') {
+      const { rel_id, content } = req.body;
+      if (!rel_id || !content) return res.status(400).json({ error: 'rel_id et content requis' });
+      const rel = await sql`SELECT * FROM coaching_relationships WHERE id = ${rel_id} AND (coach_id = ${decoded.id} OR player_id = ${decoded.id}) AND status = 'active'`;
+      if (!rel.length) return res.status(403).json({ error: 'Non autorisé' });
+      const msg = await sql`INSERT INTO messages (rel_id, sender_id, content) VALUES (${rel_id}, ${decoded.id}, ${content}) RETURNING *`;
+      const recipientId = rel[0].coach_id === decoded.id ? rel[0].player_id : rel[0].coach_id;
+      const senderRow = await sql`SELECT username FROM users WHERE id = ${decoded.id} LIMIT 1`;
+      sql`INSERT INTO notifications (user_id, type, title, body, tab)
+        VALUES (${recipientId}, 'message', 'Nouveau message',
+                ${`${senderRow[0]?.username || '...'}: ${content.substring(0,50)}`}, 'ch-messages')`.catch(() => {});
+      return res.status(201).json({ message: msg[0] });
     }
 
     return res.status(400).json({ error: 'action requis : request | accept | decline | end | admin-delete-rel | create-announcement | toggle-announcement | delete-announcement' });

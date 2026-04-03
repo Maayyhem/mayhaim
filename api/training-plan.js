@@ -63,6 +63,10 @@ module.exports = async function handler(req, res) {
          ${JSON.stringify(scenarios||[])}, ${target_energy||null}, ${target_scenario||null})
       RETURNING *
     `;
+    // Notifier le joueur (non-bloquant)
+    sql`INSERT INTO notifications (user_id, type, title, body, tab)
+      VALUES (${player_id}, 'plan', 'Nouveau plan d\'entraînement',
+              ${title}, 'cp-mon-plan')`.catch(() => {});
     return res.status(201).json({ plan: result[0] });
   }
 

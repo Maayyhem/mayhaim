@@ -107,6 +107,16 @@
             <span id="menu-user-name" class="user-name"></span>
             <span id="menu-user-rank"></span>
             <span id="menu-user-role" class="user-role-badge"></span>
+            <div class="notif-wrap">
+              <button id="btn-notif-bell" class="btn-notif-bell">&#128276;<span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
+              <div id="notif-panel" class="notif-panel" style="display:none">
+                <div class="notif-panel-header">
+                  <span style="font-weight:700;font-size:0.88rem">Notifications</span>
+                  <button onclick="markAllNotifRead()" style="font-size:0.75rem;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font)">Tout marquer lu</button>
+                </div>
+                <div id="notif-list"></div>
+              </div>
+            </div>
             <button id="btn-logout" class="btn-back" style="font-size:0.75rem;padding:5px 12px">Deconnexion</button>
           </div>
         </div>
@@ -345,6 +355,7 @@
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
           <button class="ch-tab-btn" data-tab="ch-leaderboard">Classement</button>
+          <button class="ch-tab-btn" data-tab="ch-messages">&#128172; Messages</button>
           <button class="ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">⚙ Admin</button>
           <span class="ch-tab-sep">—</span>
           <button class="ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">Mon Coach</button>
@@ -607,6 +618,24 @@
 
         </div>
 
+        <!-- MESSAGES -->
+        <div id="ch-messages" class="ch-panel">
+          <h2 class="ch-section-title">&#128172; Messages</h2>
+          <div class="msg-layout">
+            <div id="msg-conversations" class="msg-conversations">
+              <p class="ch-empty" style="padding:16px;font-size:0.82rem">Chargement…</p>
+            </div>
+            <div class="msg-chat-wrap">
+              <div id="msg-chat-header" class="msg-chat-header">Sélectionner une conversation</div>
+              <div id="msg-chat-messages" class="msg-chat-messages"></div>
+              <div class="msg-chat-input">
+                <input id="msg-input" class="cp-input" placeholder="Votre message…" disabled style="font-size:0.85rem">
+                <button class="wu-btn" style="padding:8px 16px" onclick="sendMessage()">Envoyer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ADMIN PANEL — admin only -->
         <div id="ch-admin" class="ch-panel">
           <h2 class="ch-section-title">&#9881; Administration</h2>
@@ -736,10 +765,23 @@
           <button class="cp-modal-tab active" data-ptab="cp-pt-stats">&#128202; Stats</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-plan">&#128203; Plan</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-feedback">&#128172; Feedback</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-messages">&#9993; Messages</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-progress">&#128200; Progression</button>
         </div>
         <div id="cp-pt-stats"    class="cp-modal-panel active"></div>
         <div id="cp-pt-plan"     class="cp-modal-panel"></div>
         <div id="cp-pt-feedback" class="cp-modal-panel"></div>
+        <div id="cp-pt-messages" class="cp-modal-panel">
+          <div id="cp-pt-messages-list" class="msg-chat-messages" style="max-height:220px;min-height:100px"></div>
+          <div class="msg-chat-input" style="margin-top:8px">
+            <input id="cp-msg-input" class="cp-input" placeholder="Envoyer un message…" style="font-size:0.82rem" onkeydown="if(event.key==='Enter')cpSendMessage()">
+            <button class="wu-btn" style="padding:7px 14px;font-size:0.8rem" onclick="cpSendMessage()">Envoyer</button>
+          </div>
+        </div>
+        <div id="cp-pt-progress" class="cp-modal-panel">
+          <div class="history-chart-wrap" style="height:180px;margin-bottom:12px"><canvas id="cp-player-chart"></canvas></div>
+          <div id="cp-pt-progress-table"></div>
+        </div>
       </div>
     </div>
 

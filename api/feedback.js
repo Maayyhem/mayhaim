@@ -55,6 +55,11 @@ module.exports = async function handler(req, res) {
               ${strengths||null}, ${weaknesses||null}, ${week_objective||null})
       RETURNING *
     `;
+    // Notifier le joueur (non-bloquant)
+    const coachRow = await sql`SELECT username FROM users WHERE id = ${decoded.id} LIMIT 1`;
+    sql`INSERT INTO notifications (user_id, type, title, body, tab)
+      VALUES (${player_id}, 'feedback', 'Nouveau feedback reçu',
+              ${`${coachRow[0]?.username || 'Ton coach'} : ${content.substring(0,60)}`}, 'cp-feedbacks')`.catch(() => {});
     return res.status(201).json({ feedback: result[0] });
   }
 
