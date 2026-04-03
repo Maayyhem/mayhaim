@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       if (!decoded.partial) return res.status(401).json({ error: 'Token invalide' });
 
       const rows = await sql`
-        SELECT id, email, username, role, mfa_secret, mfa_enabled
+        SELECT id, email, username, role, mfa_secret, mfa_enabled, current_rank, peak_elo, objective
         FROM users WHERE id = ${decoded.id}
       `;
       if (rows.length === 0) return res.status(401).json({ error: 'Utilisateur introuvable' });
@@ -58,7 +58,7 @@ module.exports = async function handler(req, res) {
       );
       return res.status(200).json({
         token,
-        user: { id: user.id, email: user.email, username: user.username, role: user.role }
+        user: { id: user.id, email: user.email, username: user.username, role: user.role, current_rank: user.current_rank, peak_elo: user.peak_elo, objective: user.objective }
       });
     }
 
@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
 
     const result = await sql`
       SELECT id, email, username, password_hash, role, mfa_secret, mfa_enabled,
-             failed_attempts, locked_until
+             failed_attempts, locked_until, current_rank, peak_elo, objective
       FROM users WHERE email = ${email}
     `;
     if (result.length === 0) {
@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
       );
       return res.status(200).json({
         token,
-        user: { id: user.id, email: user.email, username: user.username, role: user.role }
+        user: { id: user.id, email: user.email, username: user.username, role: user.role, current_rank: user.current_rank, peak_elo: user.peak_elo, objective: user.objective }
       });
     }
 

@@ -10,6 +10,19 @@ function san(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
+// Rank badge
+const RANK_COLORS_CP = {
+  Iron:'#8B9093', Bronze:'#A0694A', Silver:'#B0B5BB', Gold:'#E4B549',
+  Platinum:'#3DBAB0', Diamond:'#4D9BE6', Ascendant:'#40B270',
+  Immortal:'#E0495A', Radiant:'#F4D35E'
+};
+function cpRankBadge(rank) {
+  if (!rank) return '';
+  const tier = rank.split(' ')[0];
+  const c = RANK_COLORS_CP[tier] || '#888';
+  return `<span class="rank-badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${san(rank)}</span>`;
+}
+
 // ── Helpers API ──────────────────────────────────────────────
 async function cpFetch(method, path, body) {
   const opts = {
@@ -233,11 +246,11 @@ function renderPlayersList(players) {
   el.innerHTML = `<h3 class="cp-sub-title">Mes joueurs actifs (${players.length})</h3>
     <div class="cp-players-grid">
       ${players.map(p => `
-        <div class="cp-player-card" onclick="cpOpenPlayer(${p.id}, '${p.username}', ${p.rel_id})">
+        <div class="cp-player-card" onclick="cpOpenPlayer(${p.id}, '${san(p.username)}', ${p.rel_id}, ${JSON.stringify(p.current_rank || '')})">
           <div class="cp-player-avatar">${p.username[0].toUpperCase()}</div>
           <div class="cp-player-info">
-            <span class="cp-player-name">${p.username}</span>
-            <span class="cp-player-meta">Cliquer pour voir les stats</span>
+            <span class="cp-player-name">${san(p.username)} ${cpRankBadge(p.current_rank)}</span>
+            <span class="cp-player-meta">${p.objective ? san(p.objective) : 'Cliquer pour voir les stats'}</span>
           </div>
           <span style="color:var(--accent);font-size:1.2rem">&#8250;</span>
         </div>`).join('')}
@@ -272,8 +285,8 @@ async function cpDecline(relId) {
 // ── Ouvrir le modal d'un joueur ─────────────────────────────
 let cpCurrentPlayer = null;
 
-async function cpOpenPlayer(playerId, username, relId) {
-  cpCurrentPlayer = { id: playerId, username, relId };
+async function cpOpenPlayer(playerId, username, relId, rank) {
+  cpCurrentPlayer = { id: playerId, username, relId, rank };
   const modal = cpEl('cp-player-modal');
   if (!modal) return;
 
@@ -289,7 +302,7 @@ async function cpOpenPlayer(playerId, username, relId) {
       <div class="cp-player-avatar" style="width:48px;height:48px;font-size:1.4rem">
         ${username[0].toUpperCase()}</div>
       <div>
-        <div style="font-size:1.2rem;font-weight:700;color:var(--txt)">${san(username)}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--txt)">${san(username)} ${cpRankBadge(rank)}</div>
         <div style="font-size:0.8rem;color:var(--dim)" id="cp-modal-energy-summary">Chargement...</div>
       </div>
       <button onclick="cpEndRelationship(${relId})"

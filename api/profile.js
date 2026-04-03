@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
     if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
     const result = await sql`
-      SELECT id, email, username, role, mfa_enabled FROM users WHERE id = ${decoded.id}
+      SELECT id, email, username, role, mfa_enabled, current_rank, peak_elo, objective FROM users WHERE id = ${decoded.id}
     `;
     if (result.length === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
     return res.status(200).json({ user: result[0] });

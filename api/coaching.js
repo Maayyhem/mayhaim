@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
       const rows = await sql`
         SELECT
           r.id AS rel_id, r.status, r.created_at,
-          u.id, u.username, u.email
+          u.id, u.username, u.email, u.current_rank, u.peak_elo, u.objective
         FROM coaching_relationships r
         JOIN users u ON u.id = r.player_id
         WHERE r.coach_id = ${decoded.id} AND r.status = 'active'

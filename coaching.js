@@ -9,6 +9,19 @@ function san(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
+// Rank badge HTML
+const RANK_COLORS = {
+  Iron:'#8B9093', Bronze:'#A0694A', Silver:'#B0B5BB', Gold:'#E4B549',
+  Platinum:'#3DBAB0', Diamond:'#4D9BE6', Ascendant:'#40B270',
+  Immortal:'#E0495A', Radiant:'#F4D35E'
+};
+function rankBadge(rank) {
+  if (!rank) return '';
+  const tier = rank.split(' ')[0];
+  const c = RANK_COLORS[tier] || '#888';
+  return `<span class="rank-badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${san(rank)}</span>`;
+}
+
 let coachingUser = null;
 let coachingUserRole = null;
 let coachingToken = null;
@@ -511,11 +524,15 @@ async function globalRegister() {
   const pw2      = document.getElementById('auth-reg-password2').value;
   const err      = document.getElementById('auth-reg-error');
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const rank      = document.getElementById('auth-reg-rank')?.value;
+  const peak_elo  = document.getElementById('auth-reg-peak')?.value || null;
+  const objective = document.getElementById('auth-reg-objective')?.value?.trim() || null;
   if (!email || !pw || !username) { err.textContent = 'Remplis tous les champs'; err.style.display = 'block'; return; }
   if (!EMAIL_RE.test(email)) { err.textContent = 'Adresse email invalide'; err.style.display = 'block'; return; }
+  if (!rank) { err.textContent = 'Sélectionne ton rang actuel'; err.style.display = 'block'; return; }
   if (pw !== pw2) { err.textContent = 'Mots de passe différents'; err.style.display = 'block'; return; }
   try {
-    const res  = await fetch(`${API_BASE}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw, username }) });
+    const res  = await fetch(`${API_BASE}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw, username, current_rank: rank, peak_elo: peak_elo ? parseInt(peak_elo) : null, objective }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     err.style.display = 'none';
@@ -594,6 +611,8 @@ function showApp() {
   // Update user display
   const roleLabels = { admin: 'Admin', coach: 'Coach', student: 'Eleve' };
   document.getElementById('menu-user-name').textContent = coachingUser.username;
+  const rankEl = document.getElementById('menu-user-rank');
+  if (rankEl) rankEl.innerHTML = rankBadge(coachingUser.current_rank);
   const roleBadge = document.getElementById('menu-user-role');
   roleBadge.textContent = roleLabels[coachingUserRole] || 'Eleve';
   roleBadge.className = 'user-role-badge role-' + coachingUserRole;
@@ -1120,9 +1139,10 @@ async function coachingRenderStudents() {
       const card = document.createElement('div');
       card.className = 'ch-card';
       card.innerHTML = `
-        <div class="ch-card-title">${san(s.username)}</div>
+        <div class="ch-card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${san(s.username)}${rankBadge(s.current_rank)}</div>
         <span class="ch-badge role-${s.role}">${roleLabels[s.role] || san(s.role)}</span>
         <div class="ch-card-meta" style="margin-top:8px">${san(s.email)}</div>
+        ${s.objective ? `<div class="ch-card-desc" style="margin-top:4px">🎯 ${san(s.objective)}</div>` : ''}
         <div class="ch-card-desc">Inscrit le ${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
         ${coachingUserRole === 'admin' ? `
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">

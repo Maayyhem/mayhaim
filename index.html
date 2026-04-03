@@ -30,8 +30,31 @@
             <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Crée ton compte pour commencer</p>
             <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="auth-reg-username" placeholder="Ton pseudo (min. 3 car.)"></div>
             <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-reg-email" placeholder="ton@email.com"></div>
-            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 6 caractères"></div>
+            <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 8 caractères + 1 chiffre"></div>
             <div class="ch-auth-field"><label>Confirmer</label><input type="password" id="auth-reg-password2" placeholder="Confirmer"></div>
+            <div class="ch-auth-field">
+              <label>Rang actuel <span style="color:var(--accent)">*</span></label>
+              <select id="auth-reg-rank">
+                <option value="">-- Sélectionne ton rang --</option>
+                <option value="Iron 1">Iron 1</option><option value="Iron 2">Iron 2</option><option value="Iron 3">Iron 3</option>
+                <option value="Bronze 1">Bronze 1</option><option value="Bronze 2">Bronze 2</option><option value="Bronze 3">Bronze 3</option>
+                <option value="Silver 1">Silver 1</option><option value="Silver 2">Silver 2</option><option value="Silver 3">Silver 3</option>
+                <option value="Gold 1">Gold 1</option><option value="Gold 2">Gold 2</option><option value="Gold 3">Gold 3</option>
+                <option value="Platinum 1">Platinum 1</option><option value="Platinum 2">Platinum 2</option><option value="Platinum 3">Platinum 3</option>
+                <option value="Diamond 1">Diamond 1</option><option value="Diamond 2">Diamond 2</option><option value="Diamond 3">Diamond 3</option>
+                <option value="Ascendant 1">Ascendant 1</option><option value="Ascendant 2">Ascendant 2</option><option value="Ascendant 3">Ascendant 3</option>
+                <option value="Immortal 1">Immortal 1</option><option value="Immortal 2">Immortal 2</option><option value="Immortal 3">Immortal 3</option>
+                <option value="Radiant">Radiant</option>
+              </select>
+            </div>
+            <div class="ch-auth-field">
+              <label>Peak RR <span style="color:var(--dim);font-weight:400;font-size:0.78rem">(optionnel)</span></label>
+              <input type="number" id="auth-reg-peak" placeholder="ex: 450" min="0" max="2000">
+            </div>
+            <div class="ch-auth-field">
+              <label>Objectif <span style="color:var(--dim);font-weight:400;font-size:0.78rem">(optionnel)</span></label>
+              <input type="text" id="auth-reg-objective" placeholder="ex: Atteindre Diamond, améliorer mon tracking...">
+            </div>
             <button id="auth-register-btn" class="btn-primary" style="width:100%;margin-top:12px">S'inscrire</button>
             <div id="auth-reg-error" class="ch-auth-error"></div>
             <div class="ch-auth-toggle">Déjà un compte ? <a id="auth-toggle-login">Se connecter</a></div>
@@ -81,6 +104,7 @@
           <h1 class="logo">Mayh<span>Aim</span></h1>
           <div class="user-bar">
             <span id="menu-user-name" class="user-name"></span>
+            <span id="menu-user-rank"></span>
             <span id="menu-user-role" class="user-role-badge"></span>
             <button id="btn-logout" class="btn-back" style="font-size:0.75rem;padding:5px 12px">Deconnexion</button>
           </div>

@@ -19,10 +19,10 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { email, password, username } = req.body;
+    const { email, password, username, current_rank, peak_elo, objective } = req.body;
 
-    if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, mot de passe et pseudo requis' });
+    if (!email || !password || !username || !current_rank) {
+      return res.status(400).json({ error: 'Email, pseudo, mot de passe et rang requis' });
     }
     if (!EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Adresse email invalide' });
@@ -51,9 +51,9 @@ module.exports = async function handler(req, res) {
 
     const hash = await bcrypt.hash(password, 10);
     const result = await sql`
-      INSERT INTO users (email, username, password_hash, role)
-      VALUES (${email}, ${username}, ${hash}, 'student')
-      RETURNING id, email, username, role
+      INSERT INTO users (email, username, password_hash, role, current_rank, peak_elo, objective)
+      VALUES (${email}, ${username}, ${hash}, 'student', ${current_rank}, ${peak_elo||null}, ${objective||null})
+      RETURNING id, email, username, role, current_rank, peak_elo, objective
     `;
 
     const user = result[0];
@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(201).json({
       token,
-      user: { id: user.id, email: user.email, username: user.username, role: user.role }
+      user: { id: user.id, email: user.email, username: user.username, role: user.role, current_rank: user.current_rank, peak_elo: user.peak_elo, objective: user.objective }
     });
   } catch (err) {
     console.error('Register error:', err);
