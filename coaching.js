@@ -10,7 +10,7 @@ function san(str) {
 }
 
 // Rank badge HTML
-const RANK_COLORS = {
+const VALORANT_RANK_COLORS = {
   Iron:'#8B9093', Bronze:'#A0694A', Silver:'#B0B5BB', Gold:'#E4B549',
   Platinum:'#3DBAB0', Diamond:'#4D9BE6', Ascendant:'#40B270',
   Immortal:'#E0495A', Radiant:'#F4D35E'
@@ -18,7 +18,7 @@ const RANK_COLORS = {
 function rankBadge(rank) {
   if (!rank) return '';
   const tier = rank.split(' ')[0];
-  const c = RANK_COLORS[tier] || '#888';
+  const c = VALORANT_RANK_COLORS[tier] || '#888';
   return `<span class="rank-badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${san(rank)}</span>`;
 }
 

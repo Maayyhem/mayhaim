@@ -11,15 +11,10 @@ function san(str) {
 }
 
 // Rank badge
-const RANK_COLORS_CP = {
-  Iron:'#8B9093', Bronze:'#A0694A', Silver:'#B0B5BB', Gold:'#E4B549',
-  Platinum:'#3DBAB0', Diamond:'#4D9BE6', Ascendant:'#40B270',
-  Immortal:'#E0495A', Radiant:'#F4D35E'
-};
 function cpRankBadge(rank) {
   if (!rank) return '';
   const tier = rank.split(' ')[0];
-  const c = RANK_COLORS_CP[tier] || '#888';
+  const c = (typeof VALORANT_RANK_COLORS !== 'undefined' ? VALORANT_RANK_COLORS[tier] : null) || '#888';
   return `<span class="rank-badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${san(rank)}</span>`;
 }
 
