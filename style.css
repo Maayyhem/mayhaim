@@ -524,3 +524,13 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .admin-filter-btn { background:var(--card); color:var(--dim); border:1px solid var(--border); border-radius:6px; padding:4px 12px; font-size:0.78rem; cursor:pointer; font-family:var(--font); transition:all 0.15s; }
 .admin-filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 .admin-filter-btn:hover:not(.active) { color:var(--txt); }
+.admin-ann-form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:4px; }
+.admin-ann-row { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; flex-wrap:wrap; }
+
+/* ── Announcement banner ── */
+#announcements-bar { margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
+.ann-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:8px; flex-wrap:wrap; }
+.ann-content { font-size:0.83rem; color:var(--txt); opacity:0.9; }
+
+/* ── History chart ── */
+.history-chart-wrap { height:180px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px; }

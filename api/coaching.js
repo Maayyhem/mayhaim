@@ -30,6 +30,30 @@ module.exports = async function handler(req, res) {
 
   const sql = neon(process.env.DATABASE_URL);
 
+  // Auto-create tables
+  await Promise.all([
+    sql`CREATE TABLE IF NOT EXISTS announcements (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      type TEXT DEFAULT 'info',
+      active BOOLEAN DEFAULT TRUE,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      expires_at TIMESTAMPTZ
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS audit_logs (
+      id SERIAL PRIMARY KEY,
+      actor_id INTEGER,
+      actor_email TEXT,
+      action TEXT NOT NULL,
+      target_id INTEGER,
+      target_username TEXT,
+      details TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`
+  ]);
+
   // ── GET ──────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const view = req.query?.view;
@@ -133,7 +157,32 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ relationships: rows });
     }
 
-    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships' });
+    // Annonces actives (tous les utilisateurs connectés)
+    if (view === 'announcements') {
+      const rows = await sql`
+        SELECT id, title, content, type, created_at
+        FROM announcements
+        WHERE active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
+        ORDER BY created_at DESC
+      `;
+      return res.status(200).json({ announcements: rows });
+    }
+
+    // Admin : toutes les annonces
+    if (view === 'all-announcements') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const rows = await sql`SELECT * FROM announcements ORDER BY created_at DESC`;
+      return res.status(200).json({ announcements: rows });
+    }
+
+    // Admin : logs d'activité
+    if (view === 'audit-logs') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const rows = await sql`SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 200`;
+      return res.status(200).json({ logs: rows });
+    }
+
+    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 
   // ── POST ─────────────────────────────────────────────────────────────────
@@ -236,7 +285,39 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: 'action requis : request | accept | decline | end | admin-delete-rel' });
+    // ── Admin : créer une annonce ─────────────────────────────────────────
+    if (action === 'create-announcement') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const { title, content, type, expires_at } = req.body;
+      if (!title || !content) return res.status(400).json({ error: 'title et content requis' });
+      const validTypes = ['info', 'warning', 'success', 'danger'];
+      const annType = validTypes.includes(type) ? type : 'info';
+      await sql`INSERT INTO announcements (title, content, type, created_by, expires_at)
+        VALUES (${title}, ${content}, ${annType}, ${decoded.id}, ${expires_at || null})`;
+      await sql`INSERT INTO audit_logs (actor_id, actor_email, action, details)
+        VALUES (${decoded.id}, ${decoded.email}, ${'create-announcement'}, ${title})`;
+      return res.status(201).json({ success: true });
+    }
+
+    // ── Admin : toggle annonce ────────────────────────────────────────────
+    if (action === 'toggle-announcement') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const { ann_id } = req.body;
+      if (!ann_id) return res.status(400).json({ error: 'ann_id requis' });
+      await sql`UPDATE announcements SET active = NOT active WHERE id = ${ann_id}`;
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Admin : supprimer une annonce ─────────────────────────────────────
+    if (action === 'delete-announcement') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const { ann_id } = req.body;
+      if (!ann_id) return res.status(400).json({ error: 'ann_id requis' });
+      await sql`DELETE FROM announcements WHERE id = ${ann_id}`;
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'action requis : request | accept | decline | end | admin-delete-rel | create-announcement | toggle-announcement | delete-announcement' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

@@ -605,6 +605,85 @@ function globalLogout() {
   document.getElementById('auth-screen').classList.add('active');
 }
 
+// ============ ANNONCES ============
+
+async function loadAnnouncements() {
+  if (!coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=announcements`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    if (!res.ok) return;
+    const d = await res.json();
+    renderAnnouncements(d.announcements || []);
+  } catch {}
+}
+
+function renderAnnouncements(list) {
+  const bar = document.getElementById('announcements-bar');
+  if (!bar) return;
+  if (!list.length) { bar.innerHTML = ''; return; }
+  const typeStyle = {
+    info:    { bg:'rgba(96,165,250,0.1)',  border:'#60a5fa', icon:'ℹ️' },
+    warning: { bg:'rgba(251,191,36,0.1)', border:'#fbbf24', icon:'⚠️' },
+    success: { bg:'rgba(74,222,128,0.1)', border:'#4ade80', icon:'✅' },
+    danger:  { bg:'rgba(255,70,85,0.1)',  border:'#ff4655', icon:'🚨' }
+  };
+  bar.innerHTML = list.map(a => {
+    const s = typeStyle[a.type] || typeStyle.info;
+    return `<div class="ann-banner" style="background:${s.bg};border-left:3px solid ${s.border}">
+      <strong style="color:${s.border}">${s.icon} ${san(a.title)}</strong>
+      <span class="ann-content">${san(a.content)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ============ CSV EXPORT ============
+
+function exportToCSV(rows, filename, cols) {
+  const header = cols.map(c => `"${c.label}"`).join(',');
+  const body = rows.map(r => cols.map(c => {
+    const v = r[c.key] ?? '';
+    return `"${String(v).replace(/"/g, '""')}"`;
+  }).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + header + '\n' + body], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportUsersCSV() {
+  if (!_adminUsers.length) { alert('Charge le panel admin d\'abord.'); return; }
+  exportToCSV(_adminUsers, 'utilisateurs.csv', [
+    { key: 'id',           label: 'ID' },
+    { key: 'username',     label: 'Pseudo' },
+    { key: 'email',        label: 'Email' },
+    { key: 'role',         label: 'Rôle' },
+    { key: 'current_rank', label: 'Rang' },
+    { key: 'peak_elo',     label: 'Peak ELO' },
+    { key: 'objective',    label: 'Objectif' },
+    { key: 'mfa_enabled',  label: 'MFA' },
+    { key: 'created_at',   label: 'Inscription' }
+  ]);
+}
+
+let _historyData = [];
+
+function exportHistoryCSV() {
+  if (!_historyData.length) { alert('Charge l\'historique d\'abord.'); return; }
+  exportToCSV(_historyData, 'historique.csv', [
+    { key: 'played_at',    label: 'Date' },
+    { key: 'mode',         label: 'Mode' },
+    { key: 'score',        label: 'Score' },
+    { key: 'accuracy',     label: 'Précision %' },
+    { key: 'hits',         label: 'Hits' },
+    { key: 'misses',       label: 'Misses' },
+    { key: 'avg_reaction', label: 'Réaction moy (ms)' },
+    { key: 'best_combo',   label: 'Meilleur combo' },
+    { key: 'duration',     label: 'Durée (s)' }
+  ]);
+}
+
 function showApp() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('menu-screen').classList.add('active');
@@ -631,6 +710,8 @@ function showApp() {
   });
   // Init coaching platform (roles, student tabs, pending badge)
   if (typeof cpInit === 'function') setTimeout(cpInit, 0);
+  // Load announcements banner
+  loadAnnouncements();
 }
 
 // ============ COACHING INIT ============
@@ -1146,6 +1227,8 @@ async function adminLoad() {
   adminLoadStats();
   adminLoadUsers();
   adminLoadRelations();
+  adminLoadAllAnnouncements();
+  adminLoadAuditLogs();
 }
 
 async function adminLoadStats() {
@@ -1317,6 +1400,121 @@ function adminRenderRelations() {
       <td style="color:var(--dim);font-size:0.75rem">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
       <td><button class="admin-btn admin-btn-del" onclick="adminDeleteRelation(${r.rel_id})">&#128465; Supprimer</button></td>
     </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ── Annonces admin ──────────────────────────────────────────────────────────
+
+async function adminLoadAllAnnouncements() {
+  const el = document.getElementById('admin-announcements-list');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=all-announcements`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const d = await res.json();
+    adminRenderAllAnnouncements(d.announcements || []);
+  } catch {}
+}
+
+function adminRenderAllAnnouncements(list) {
+  const el = document.getElementById('admin-announcements-list');
+  if (!el) return;
+  if (!list.length) { el.innerHTML = '<p class="ch-empty">Aucune annonce.</p>'; return; }
+  const typeColors = { info:'#60a5fa', warning:'#fbbf24', success:'#4ade80', danger:'#ff4655' };
+  el.innerHTML = list.map(a => {
+    const c = typeColors[a.type] || '#888';
+    return `<div class="admin-ann-row">
+      <div style="flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="admin-badge" style="background:${c}22;color:${c}">${a.type}</span>
+        <strong>${san(a.title)}</strong>
+        <span style="color:var(--dim);font-size:0.78rem">${san(a.content)}</span>
+        ${a.expires_at ? `<span style="font-size:0.72rem;color:var(--dim)">exp. ${new Date(a.expires_at).toLocaleDateString('fr-FR')}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <span style="font-size:0.75rem;color:${a.active?'#4ade80':'var(--dim)'}">${a.active?'● Actif':'○ Inactif'}</span>
+        <button class="admin-btn admin-btn-role" onclick="adminToggleAnnouncement(${a.id})">${a.active?'Désactiver':'Activer'}</button>
+        <button class="admin-btn admin-btn-del" onclick="adminDeleteAnnouncement(${a.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adminCreateAnnouncement() {
+  const title   = document.getElementById('ann-title')?.value.trim();
+  const content = document.getElementById('ann-content')?.value.trim();
+  const type    = document.getElementById('ann-type')?.value || 'info';
+  const expires = document.getElementById('ann-expires')?.value || null;
+  if (!title || !content) { alert('Titre et contenu requis'); return; }
+  try {
+    const res = await fetch(`${API_BASE}/coaching`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'create-announcement', title, content, type, expires_at: expires || null })
+    });
+    if (!res.ok) { const d = await res.json(); alert('Erreur: ' + d.error); return; }
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-content').value = '';
+    adminLoadAllAnnouncements();
+    loadAnnouncements();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminToggleAnnouncement(id) {
+  try {
+    await fetch(`${API_BASE}/coaching`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'toggle-announcement', ann_id: id })
+    });
+    adminLoadAllAnnouncements(); loadAnnouncements();
+  } catch {}
+}
+
+async function adminDeleteAnnouncement(id) {
+  if (!confirm('Supprimer cette annonce ?')) return;
+  try {
+    await fetch(`${API_BASE}/coaching`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'delete-announcement', ann_id: id })
+    });
+    adminLoadAllAnnouncements(); loadAnnouncements();
+  } catch {}
+}
+
+// ── Audit logs ──────────────────────────────────────────────────────────────
+
+async function adminLoadAuditLogs() {
+  const el = document.getElementById('admin-audit-table');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=audit-logs`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const d = await res.json();
+    adminRenderAuditLogs(d.logs || []);
+  } catch { el.innerHTML = '<p class="ch-empty">Erreur.</p>'; }
+}
+
+function adminRenderAuditLogs(logs) {
+  const el = document.getElementById('admin-audit-table');
+  if (!el) return;
+  if (!logs.length) { el.innerHTML = '<p class="ch-empty">Aucun log.</p>'; return; }
+  const actionColors = {
+    'lock':'#fbbf24','unlock':'#4ade80','delete-user':'#ff4655','change-role':'#60a5fa',
+    'reset-mfa':'#c084fc','create-announcement':'#34d399','delete-announcement':'#f87171'
+  };
+  el.innerHTML = `<table class="admin-table">
+    <thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Cible</th><th>Détails</th></tr></thead>
+    <tbody>${logs.map(l => {
+      const c = actionColors[l.action] || '#8b949e';
+      return `<tr>
+        <td style="color:var(--dim);font-size:0.75rem;white-space:nowrap">${new Date(l.created_at).toLocaleString('fr-FR')}</td>
+        <td><strong>${san(l.actor_email || '—')}</strong></td>
+        <td><span class="admin-badge" style="background:${c}22;color:${c}">${san(l.action)}</span></td>
+        <td>${san(l.target_username || '—')}</td>
+        <td style="color:var(--dim);font-size:0.78rem">${san(l.details || '')}</td>
+      </tr>`;
+    }).join('')}</tbody>
   </table>`;
 }
 
@@ -2392,31 +2590,60 @@ async function coachingRenderHistory() {
   if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connecte-toi pour voir ton historique.</p>'; return; }
   el.innerHTML = '<p class="ch-empty">Chargement...</p>';
   try {
-    const res = await fetch(`${API_BASE}/history?limit=30`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const res = await fetch(`${API_BASE}/history?limit=50`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
     if (!res.ok) throw new Error('Erreur serveur');
     const { history } = await res.json();
-    if (!history || !history.length) { el.innerHTML = '<p class="ch-empty">Aucune partie jouee pour le moment.</p>'; return; }
+    if (!history || !history.length) {
+      el.innerHTML = '<p class="ch-empty">Aucune partie jouée pour le moment.</p>';
+      renderHistoryChart([]);
+      return;
+    }
+    _historyData = history;
+    renderHistoryChart(history);
     const modeLabel = m => m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
     const fmt = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    el.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-      <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);color:var(--text-muted)">
-        <th style="padding:8px;text-align:left">Mode</th>
-        <th style="padding:8px;text-align:right">Score</th>
-        <th style="padding:8px;text-align:right">Précision</th>
-        <th style="padding:8px;text-align:right">Hits</th>
-        <th style="padding:8px;text-align:right">Réaction</th>
-        <th style="padding:8px;text-align:right">Date</th>
-      </tr></thead>
-      <tbody>${history.map((h,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);${i%2===0?'background:rgba(255,255,255,0.02)':''}">
-        <td style="padding:8px">${modeLabel(h.mode)}</td>
-        <td style="padding:8px;text-align:right;color:var(--accent)">${Number(h.score).toLocaleString()}</td>
-        <td style="padding:8px;text-align:right">${h.accuracy}%</td>
-        <td style="padding:8px;text-align:right">${h.hits}</td>
-        <td style="padding:8px;text-align:right">${h.avg_reaction ? h.avg_reaction+'ms' : 'N/A'}</td>
-        <td style="padding:8px;text-align:right;color:var(--text-muted)">${fmt(h.played_at)}</td>
+    el.innerHTML = `<div style="overflow-x:auto"><table class="admin-table">
+      <thead><tr><th>Mode</th><th style="text-align:right">Score</th><th style="text-align:right">Précision</th><th style="text-align:right">Hits</th><th style="text-align:right">Réaction</th><th style="text-align:right">Date</th></tr></thead>
+      <tbody>${history.map(h => `<tr>
+        <td>${modeLabel(san(h.mode))}</td>
+        <td style="text-align:right;color:var(--accent);font-weight:700">${Number(h.score).toLocaleString()}</td>
+        <td style="text-align:right">${h.accuracy}%</td>
+        <td style="text-align:right">${h.hits}</td>
+        <td style="text-align:right">${h.avg_reaction ? h.avg_reaction+'ms' : '—'}</td>
+        <td style="text-align:right;color:var(--dim)">${fmt(h.played_at)}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
-  } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${e.message}</p>`; }
+  } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${san(e.message)}</p>`; }
+}
+
+function renderHistoryChart(history) {
+  const canvas = document.getElementById('ch-history-chart');
+  if (!canvas || !window.Chart) return;
+  if (window._historyChart) { window._historyChart.destroy(); window._historyChart = null; }
+  if (!history.length) return;
+  const palette = ['#ff4655','#4ade80','#60a5fa','#fbbf24','#c084fc','#f87171','#34d399','#818cf8','#fb923c','#a3e635'];
+  const modes = [...new Set(history.map(h => h.mode))];
+  const modeColor = {};
+  modes.forEach((m, i) => modeColor[m] = palette[i % palette.length]);
+  const sorted = [...history].reverse();
+  window._historyChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(h => new Date(h.played_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})),
+      datasets: [{ data: sorted.map(h => h.score), backgroundColor: sorted.map(h => modeColor[h.mode]+'bb'), borderColor: sorted.map(h => modeColor[h.mode]), borderWidth:1, borderRadius:3 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{ display:false }, tooltip:{ callbacks:{
+        title: (items) => { const h=sorted[items[0].dataIndex]; return `${new Date(h.played_at).toLocaleDateString('fr-FR')} — ${h.mode.replace(/_/g,' ')}`; },
+        label: (item) => ` Score : ${item.raw.toLocaleString()}`
+      }}},
+      scales: {
+        x: { ticks:{ color:'#8b949e', font:{ size:10 }, maxRotation:45 }, grid:{ color:'rgba(255,255,255,0.04)' } },
+        y: { ticks:{ color:'#8b949e' }, grid:{ color:'rgba(255,255,255,0.04)' }, beginAtZero:true }
+      }
+    }
+  });
 }
 
 // ============ LEADERBOARD ============

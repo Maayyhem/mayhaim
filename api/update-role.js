@@ -34,6 +34,21 @@ module.exports = async function handler(req, res) {
 
     const sql = neon(process.env.DATABASE_URL);
 
+    // Helper audit log (non-bloquant)
+    const auditLog = async (action, targetId, targetUsername, details) => {
+      try {
+        await sql`INSERT INTO audit_logs (actor_id, actor_email, action, target_id, target_username, details)
+          VALUES (${decoded.id}, ${decoded.email}, ${action}, ${targetId || null}, ${targetUsername || null}, ${details || null})`;
+      } catch {}
+    };
+
+    // Fetch target username helper
+    const getTarget = async (userId) => {
+      if (!userId) return null;
+      const r = await sql`SELECT username FROM users WHERE id = ${userId} LIMIT 1`;
+      return r[0]?.username || null;
+    };
+
     // ── POST: verrouiller un compte (durée en minutes, défaut permanent = 100 ans) ─
     if (req.body?.action === 'lock') {
       const userId = req.body?.userId;
@@ -45,7 +60,9 @@ module.exports = async function handler(req, res) {
       const until = minutes
         ? new Date(Date.now() + minutes * 60 * 1000).toISOString()
         : new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(); // permanent
+      const targetUsername = await getTarget(userId);
       await sql`UPDATE users SET failed_attempts = 5, locked_until = ${until} WHERE id = ${userId}`;
+      await auditLog('lock', userId, targetUsername, minutes ? `${minutes} min` : 'permanent');
       return res.status(200).json({ success: true, locked_until: until });
     }
 
@@ -53,7 +70,9 @@ module.exports = async function handler(req, res) {
     if (req.body?.action === 'unlock') {
       const userId = req.body?.userId;
       if (!userId) return res.status(400).json({ error: 'userId requis' });
+      const targetUsername = await getTarget(userId);
       await sql`UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ${userId}`;
+      await auditLog('unlock', userId, targetUsername, null);
       return res.status(200).json({ success: true });
     }
 
@@ -61,7 +80,9 @@ module.exports = async function handler(req, res) {
     if (req.body?.action === 'reset-mfa') {
       const userId = req.body?.userId;
       if (!userId) return res.status(400).json({ error: 'userId requis' });
+      const targetUsername = await getTarget(userId);
       await sql`UPDATE users SET mfa_secret = NULL, mfa_enabled = FALSE WHERE id = ${userId}`;
+      await auditLog('reset-mfa', userId, targetUsername, null);
       return res.status(200).json({ success: true });
     }
 
@@ -72,9 +93,10 @@ module.exports = async function handler(req, res) {
       if (String(userId) === String(decoded.id)) {
         return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
       }
-      // Cascade: supprimer les relations coaching puis le compte
+      const targetUsername = await getTarget(userId);
       await sql`DELETE FROM coaching_relationships WHERE coach_id = ${userId} OR player_id = ${userId}`;
       await sql`DELETE FROM users WHERE id = ${userId}`;
+      await auditLog('delete-user', userId, targetUsername, null);
       return res.status(200).json({ success: true });
     }
 
@@ -83,7 +105,10 @@ module.exports = async function handler(req, res) {
     if (!userId || !['student', 'coach', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'userId et role valide requis (student/coach/admin)' });
     }
+    const targetUsername = await getTarget(userId);
+    const oldRole = await sql`SELECT role FROM users WHERE id = ${userId} LIMIT 1`;
     await sql`UPDATE users SET role = ${role} WHERE id = ${userId}`;
+    await auditLog('change-role', userId, targetUsername, `${oldRole[0]?.role} → ${role}`);
     return res.status(200).json({ success: true });
 
   } catch (err) {
