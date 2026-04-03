@@ -34,6 +34,22 @@ module.exports = async function handler(req, res) {
 
     const sql = neon(process.env.DATABASE_URL);
 
+    // ── POST: déverrouiller un compte ────────────────────────────────────────
+    if (req.body?.action === 'unlock') {
+      const userId = req.body?.userId;
+      if (!userId) return res.status(400).json({ error: 'userId requis' });
+      await sql`UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ${userId}`;
+      return res.status(200).json({ success: true });
+    }
+
+    // ── POST: reset MFA ────────────────────────────────────────────────────
+    if (req.body?.action === 'reset-mfa') {
+      const userId = req.body?.userId;
+      if (!userId) return res.status(400).json({ error: 'userId requis' });
+      await sql`UPDATE users SET mfa_secret = NULL, mfa_enabled = FALSE WHERE id = ${userId}`;
+      return res.status(200).json({ success: true });
+    }
+
     // ── DELETE: supprimer un compte utilisateur ──────────────────────────────
     if (req.method === 'DELETE' || req.body?.action === 'delete') {
       const userId = req.body?.userId || req.query?.userId;

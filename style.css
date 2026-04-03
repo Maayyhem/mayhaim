@@ -496,3 +496,30 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .wu-wrist-icon { font-size:1.5rem; margin-bottom:6px; }
 .wu-wrist-title { font-size:0.82rem; font-weight:700; color:var(--txt); margin-bottom:6px; }
 .wu-wrist-desc { font-size:0.76rem; color:var(--dim); line-height:1.5; }
+
+/* ── Admin Panel ── */
+.admin-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:24px; }
+.admin-stat-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 10px; text-align:center; }
+.admin-stat-val { font-size:1.5rem; font-weight:800; color:var(--accent); }
+.admin-stat-lbl { font-size:0.7rem; color:var(--dim); margin-top:4px; text-transform:uppercase; letter-spacing:0.04em; }
+.admin-section-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.admin-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.admin-table th { color:var(--dim); font-weight:600; padding:6px 10px; text-align:left; border-bottom:1px solid var(--border); font-size:0.75rem; text-transform:uppercase; }
+.admin-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+.admin-table tr:hover td { background:var(--card-h); }
+.admin-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.72rem; font-weight:600; }
+.admin-badge.role-admin { background:rgba(255,70,85,0.18); color:#ff4655; }
+.admin-badge.role-coach { background:rgba(74,222,128,0.15); color:#4ade80; }
+.admin-badge.role-student { background:rgba(96,165,250,0.15); color:#60a5fa; }
+.admin-locked-badge { background:rgba(251,191,36,0.18); color:#fbbf24; }
+.admin-mfa-badge { background:rgba(74,222,128,0.15); color:#4ade80; }
+.admin-actions { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.admin-btn { font-size:0.75rem; padding:4px 10px; border-radius:5px; border:none; cursor:pointer; font-family:var(--font); transition:opacity 0.15s; }
+.admin-btn:hover { opacity:0.8; }
+.admin-btn-role { background:var(--card); color:var(--txt); border:1px solid var(--border); }
+.admin-btn-unlock { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.admin-btn-mfa { background:rgba(96,165,250,0.15); color:#60a5fa; }
+.admin-btn-del { background:rgba(255,70,85,0.15); color:#ff4655; }
+.admin-filter-btn { background:var(--card); color:var(--dim); border:1px solid var(--border); border-radius:6px; padding:4px 12px; font-size:0.78rem; cursor:pointer; font-family:var(--font); transition:all 0.15s; }
+.admin-filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.admin-filter-btn:hover:not(.active) { color:var(--txt); }

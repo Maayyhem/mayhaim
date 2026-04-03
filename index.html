@@ -342,6 +342,7 @@
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
           <button class="ch-tab-btn" data-tab="ch-leaderboard">Classement</button>
+          <button class="ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">⚙ Admin</button>
           <span class="ch-tab-sep">—</span>
           <button class="ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">Mon Coach</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">Eleves</button>
@@ -601,15 +602,41 @@
           <div id="cp-coach-pending"></div>
           <div id="cp-players-list"></div>
 
-          <!-- ADMIN ONLY — vue globale -->
-          <div id="cp-admin-section" style="display:none">
-            <div style="margin:28px 0 0;padding-top:24px;border-top:1px solid var(--border)">
-              <h3 class="cp-sub-title" style="margin-top:0">&#128101; Tous les utilisateurs</h3>
-              <div class="ch-cards-grid" id="ch-students-list"></div>
-              <h3 class="cp-sub-title" style="margin-top:24px">&#128279; Toutes les relations de coaching</h3>
-              <div id="cp-all-relationships"></div>
+        </div>
+
+        <!-- ADMIN PANEL — admin only -->
+        <div id="ch-admin" class="ch-panel">
+          <h2 class="ch-section-title">&#9881; Administration</h2>
+
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-total">—</div><div class="admin-stat-lbl">Utilisateurs</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-students">—</div><div class="admin-stat-lbl">Étudiants</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-coaches">—</div><div class="admin-stat-lbl">Coachs</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-sessions">—</div><div class="admin-stat-lbl">Sessions</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-relations">—</div><div class="admin-stat-lbl">Relations actives</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-locked">—</div><div class="admin-stat-lbl">Verrouillés</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-mfa">—</div><div class="admin-stat-lbl">MFA actifs</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-val" id="astat-top-score">—</div><div class="admin-stat-lbl">Meilleur score</div></div>
+          </div>
+
+          <div class="admin-section-header">
+            <h3 class="cp-sub-title" style="margin:0">Utilisateurs</h3>
+            <input id="admin-user-search" class="cp-input" placeholder="Filtrer pseudo / email…" style="max-width:200px;font-size:0.8rem;padding:6px 10px">
+            <button class="wu-btn" style="font-size:0.78rem;padding:5px 12px" onclick="adminLoadUsers()">&#8635;</button>
+          </div>
+          <div id="admin-users-table" style="overflow-x:auto"></div>
+
+          <div class="admin-section-header" style="margin-top:28px">
+            <h3 class="cp-sub-title" style="margin:0">Relations coaching</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="admin-filter-btn active" data-rfilter="active">Actives</button>
+              <button class="admin-filter-btn" data-rfilter="pending">En attente</button>
+              <button class="admin-filter-btn" data-rfilter="ended">Terminées</button>
+              <button class="admin-filter-btn" data-rfilter="all">Toutes</button>
+              <button class="wu-btn" style="font-size:0.78rem;padding:5px 12px" onclick="adminLoadRelations()">&#8635;</button>
             </div>
           </div>
+          <div id="admin-relations-table" style="overflow-x:auto"></div>
         </div>
 
         <!-- MON COACH — student only -->

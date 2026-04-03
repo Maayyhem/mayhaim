@@ -618,7 +618,10 @@ function showApp() {
   roleBadge.className = 'user-role-badge role-' + coachingUserRole;
   // Update coaching header
   document.getElementById('ch-user-info').textContent = coachingUser.username + ' (' + (roleLabels[coachingUserRole] || 'Eleve') + ')';
-  // Show admin/coach tabs
+  // Show admin-only tab
+  document.querySelectorAll('.ch-admin-tab').forEach(el => {
+    el.style.display = coachingUserRole === 'admin' ? '' : 'none';
+  });
   document.querySelectorAll('.ch-admin-only').forEach(el => {
     el.style.display = (coachingUserRole === 'admin' || coachingUserRole === 'coach') ? '' : 'none';
   });
@@ -710,6 +713,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-historique') coachingRenderHistory();
   if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
   if (tabId === 'ch-warmup') initWarmupPanel();
+  if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
   if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
   if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
@@ -1120,6 +1124,198 @@ function initWarmupPanel() {
 }
 
 // ============ ADMIN: STUDENTS ============
+
+// ============ ADMIN PANEL ============
+
+let _adminUsers = [];
+let _adminRelations = [];
+let _adminRelFilter = 'active';
+
+async function adminLoad() {
+  const searchEl = document.getElementById('admin-user-search');
+  if (searchEl && !searchEl.dataset.bound) {
+    searchEl.dataset.bound = '1';
+    searchEl.addEventListener('input', adminRenderUsers);
+  }
+  document.querySelectorAll('.admin-filter-btn').forEach(b => {
+    if (!b.dataset.bound) {
+      b.dataset.bound = '1';
+      b.addEventListener('click', () => adminSetRelFilter(b.dataset.rfilter));
+    }
+  });
+  adminLoadStats();
+  adminLoadUsers();
+  adminLoadRelations();
+}
+
+async function adminLoadStats() {
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=admin-stats`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    if (!res.ok) return;
+    const d = await res.json();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; };
+    set('astat-total', d.total_users);
+    set('astat-students', d.students);
+    set('astat-coaches', d.coaches);
+    set('astat-sessions', d.sessions);
+    set('astat-relations', d.active_relations);
+    set('astat-locked', d.locked);
+    set('astat-mfa', d.mfa_enabled);
+    set('astat-top-score', d.top_score ? d.top_score.toLocaleString() : '—');
+  } catch {}
+}
+
+async function adminLoadUsers() {
+  const el = document.getElementById('admin-users-table');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=all-users`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const d = await res.json();
+    _adminUsers = d.users || [];
+    adminRenderUsers();
+  } catch { el.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>'; }
+}
+
+function adminRenderUsers() {
+  const el = document.getElementById('admin-users-table');
+  if (!el) return;
+  const q = (document.getElementById('admin-user-search')?.value || '').toLowerCase();
+  const users = q ? _adminUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : _adminUsers;
+  if (!users.length) { el.innerHTML = '<p class="ch-empty">Aucun utilisateur.</p>'; return; }
+  const roleLabel = { admin: 'Admin', coach: 'Coach', student: 'Élève' };
+  el.innerHTML = `<table class="admin-table">
+    <thead><tr><th>Pseudo</th><th>Email</th><th>Rôle</th><th>Rang</th><th>MFA</th><th>Verrou</th><th>Inscrit</th><th>Actions</th></tr></thead>
+    <tbody>${users.map(u => {
+      const locked = u.locked_until && new Date(u.locked_until) > new Date();
+      return `<tr>
+        <td><strong>${san(u.username)}</strong></td>
+        <td style="color:var(--dim);font-size:0.78rem">${san(u.email)}</td>
+        <td><span class="admin-badge role-${u.role}">${roleLabel[u.role] || san(u.role)}</span></td>
+        <td>${u.current_rank ? rankBadge(u.current_rank) : '<span style="color:var(--dim)">—</span>'}</td>
+        <td>${u.mfa_enabled ? '<span class="admin-badge admin-mfa-badge">MFA</span>' : '<span style="color:var(--dim)">—</span>'}</td>
+        <td>${locked ? '<span class="admin-badge admin-locked-badge">&#128274;</span>' : '<span style="color:#4ade80">✓</span>'}</td>
+        <td style="color:var(--dim);font-size:0.75rem">${new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><div class="admin-actions">
+          <select class="admin-btn admin-btn-role" onchange="adminChangeRole(${u.id}, this.value)">
+            <option value="student"${u.role==='student'?' selected':''}>Élève</option>
+            <option value="coach"${u.role==='coach'?' selected':''}>Coach</option>
+            <option value="admin"${u.role==='admin'?' selected':''}>Admin</option>
+          </select>
+          ${locked ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">&#128275;</button>` : ''}
+          ${u.mfa_enabled ? `<button class="admin-btn admin-btn-mfa" onclick="adminResetMfa(${u.id})" title="Reset MFA">&#128273;</button>` : ''}
+          <button class="admin-btn admin-btn-del" onclick="adminDeleteUser(${u.id},'${san(u.username)}')" title="Supprimer">&#128465;</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+async function adminChangeRole(userId, role) {
+  try {
+    const res = await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ userId, role })
+    });
+    if (!res.ok) { const d = await res.json(); alert('Erreur: ' + d.error); return; }
+    const u = _adminUsers.find(x => x.id === userId);
+    if (u) u.role = role;
+    adminRenderUsers();
+    adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminUnlockUser(userId) {
+  try {
+    await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'unlock', userId })
+    });
+    adminLoadUsers(); adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminResetMfa(userId) {
+  if (!confirm('Réinitialiser le MFA de cet utilisateur ?')) return;
+  try {
+    await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'reset-mfa', userId })
+    });
+    adminLoadUsers(); adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminDeleteUser(userId, username) {
+  if (!confirm(`Supprimer le compte de "${username}" ? Irréversible.`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'delete', userId })
+    });
+    const d = await res.json();
+    if (d.error) { alert('Erreur: ' + d.error); return; }
+    adminLoadUsers(); adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminLoadRelations() {
+  const el = document.getElementById('admin-relations-table');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=all-relationships`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const d = await res.json();
+    _adminRelations = d.relationships || [];
+    adminRenderRelations();
+  } catch { el.innerHTML = '<p class="ch-empty">Erreur.</p>'; }
+}
+
+function adminSetRelFilter(f) {
+  _adminRelFilter = f;
+  document.querySelectorAll('.admin-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.rfilter === f));
+  adminRenderRelations();
+}
+
+function adminRenderRelations() {
+  const el = document.getElementById('admin-relations-table');
+  if (!el) return;
+  const rels = _adminRelFilter === 'all' ? _adminRelations : _adminRelations.filter(r => r.status === _adminRelFilter);
+  if (!rels.length) { el.innerHTML = '<p class="ch-empty">Aucune relation.</p>'; return; }
+  const statusBadge = {
+    active:  '<span style="color:#4ade80">Actif</span>',
+    pending: '<span style="color:#fbbf24">En attente</span>',
+    ended:   '<span style="color:var(--dim)">Terminé</span>',
+    declined:'<span style="color:#f87171">Refusé</span>'
+  };
+  el.innerHTML = `<table class="admin-table">
+    <thead><tr><th>Coach</th><th>Joueur</th><th>Statut</th><th>Créée le</th><th>Action</th></tr></thead>
+    <tbody>${rels.map(r => `<tr>
+      <td><strong>${san(r.coach_username)}</strong> <span style="font-size:0.72rem;color:var(--dim)">(${san(r.coach_role)})</span></td>
+      <td>${san(r.player_username)}</td>
+      <td>${statusBadge[r.status] || san(r.status)}</td>
+      <td style="color:var(--dim);font-size:0.75rem">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
+      <td><button class="admin-btn admin-btn-del" onclick="adminDeleteRelation(${r.rel_id})">&#128465; Supprimer</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function adminDeleteRelation(relId) {
+  if (!confirm('Supprimer cette relation de coaching ?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'admin-delete-rel', rel_id: relId })
+    });
+    if (!res.ok) { alert('Erreur serveur'); return; }
+    adminLoadRelations(); adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
 
 async function coachingRenderStudents() {
   const list = document.getElementById('ch-students-list');

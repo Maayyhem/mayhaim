@@ -82,13 +82,39 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ pending: rows });
     }
 
-    // Admin : tous les utilisateurs avec leur rôle
+    // Admin : tous les utilisateurs
     if (view === 'all-users') {
       if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
       const rows = await sql`
-        SELECT id, email, username, role, created_at FROM users ORDER BY created_at DESC
+        SELECT id, email, username, role, mfa_enabled, failed_attempts, locked_until,
+               current_rank, peak_elo, objective, created_at
+        FROM users ORDER BY created_at DESC
       `;
-      return res.status(200).json({ students: rows });
+      return res.status(200).json({ users: rows, students: rows });
+    }
+
+    // Admin : stats globales
+    if (view === 'admin-stats') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      const [userStats, sessions, rels, topScore] = await Promise.all([
+        sql`SELECT
+          COUNT(*)::int AS total_users,
+          COUNT(*) FILTER (WHERE role = 'student')::int AS students,
+          COUNT(*) FILTER (WHERE role = 'coach')::int AS coaches,
+          COUNT(*) FILTER (WHERE role = 'admin')::int AS admins,
+          COUNT(*) FILTER (WHERE mfa_enabled = true)::int AS mfa_enabled,
+          COUNT(*) FILTER (WHERE locked_until > NOW())::int AS locked
+        FROM users`,
+        sql`SELECT COUNT(*)::int AS sessions FROM game_history`,
+        sql`SELECT COUNT(*) FILTER (WHERE status = 'active')::int AS active_relations FROM coaching_relationships`,
+        sql`SELECT MAX(score)::int AS top_score FROM game_history`
+      ]);
+      return res.status(200).json({
+        ...userStats[0],
+        sessions: sessions[0].sessions,
+        active_relations: rels[0].active_relations,
+        top_score: topScore[0].top_score
+      });
     }
 
     // Admin : toutes les relations coaching
@@ -202,7 +228,15 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: 'action requis : request | accept | decline | end' });
+    // ── Admin : supprimer une relation ────────────────────────────────────
+    if (action === 'admin-delete-rel') {
+      if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin requis' });
+      if (!rel_id) return res.status(400).json({ error: 'rel_id requis' });
+      await sql`DELETE FROM coaching_relationships WHERE id = ${rel_id}`;
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'action requis : request | accept | decline | end | admin-delete-rel' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
