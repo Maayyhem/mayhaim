@@ -1202,7 +1202,9 @@ function adminRenderUsers() {
             <option value="coach"${u.role==='coach'?' selected':''}>Coach</option>
             <option value="admin"${u.role==='admin'?' selected':''}>Admin</option>
           </select>
-          ${locked ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">&#128275;</button>` : ''}
+          ${locked
+            ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">&#128275;</button>`
+            : `<button class="admin-btn admin-btn-lock" onclick="adminLockUser(${u.id},'${san(u.username)}')" title="Verrouiller">&#128274;</button>`}
           ${u.mfa_enabled ? `<button class="admin-btn admin-btn-mfa" onclick="adminResetMfa(${u.id})" title="Reset MFA">&#128273;</button>` : ''}
           <button class="admin-btn admin-btn-del" onclick="adminDeleteUser(${u.id},'${san(u.username)}')" title="Supprimer">&#128465;</button>
         </div></td>
@@ -1223,6 +1225,20 @@ async function adminChangeRole(userId, role) {
     if (u) u.role = role;
     adminRenderUsers();
     adminLoadStats();
+  } catch { alert('Erreur réseau'); }
+}
+
+async function adminLockUser(userId, username) {
+  const input = prompt(`Verrouiller "${username}" pour combien de minutes ?\n(laisser vide = permanent)`);
+  if (input === null) return; // annulé
+  const minutes = parseInt(input) || null;
+  try {
+    await fetch(`${API_BASE}/update-role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'lock', userId, minutes })
+    });
+    adminLoadUsers(); adminLoadStats();
   } catch { alert('Erreur réseau'); }
 }
 

@@ -34,6 +34,21 @@ module.exports = async function handler(req, res) {
 
     const sql = neon(process.env.DATABASE_URL);
 
+    // ── POST: verrouiller un compte (durée en minutes, défaut permanent = 100 ans) ─
+    if (req.body?.action === 'lock') {
+      const userId = req.body?.userId;
+      if (!userId) return res.status(400).json({ error: 'userId requis' });
+      if (String(userId) === String(decoded.id)) {
+        return res.status(400).json({ error: 'Impossible de vous verrouiller vous-même' });
+      }
+      const minutes = parseInt(req.body?.minutes) || null;
+      const until = minutes
+        ? new Date(Date.now() + minutes * 60 * 1000).toISOString()
+        : new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(); // permanent
+      await sql`UPDATE users SET failed_attempts = 5, locked_until = ${until} WHERE id = ${userId}`;
+      return res.status(200).json({ success: true, locked_until: until });
+    }
+
     // ── POST: déverrouiller un compte ────────────────────────────────────────
     if (req.body?.action === 'unlock') {
       const userId = req.body?.userId;
