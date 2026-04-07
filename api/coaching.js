@@ -237,6 +237,62 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ history: rows });
     }
 
+    // Dashboard stats (utilisateur connecté)
+    if (view === 'dashboard-stats') {
+      const uid = decoded.id;
+      const [statsRow, activity, lastGame, rankRow, planRow, feedbackRow] = await Promise.all([
+        sql`SELECT
+              COUNT(*)::int AS total_games,
+              COALESCE(MAX(score),0)::int AS best_score,
+              COALESCE(ROUND(AVG(score)),0)::int AS avg_score,
+              COALESCE(ROUND(AVG(accuracy)::numeric,1),0) AS avg_accuracy
+            FROM game_history WHERE user_id = ${uid}`,
+        sql`SELECT DATE(played_at) AS day, COUNT(*)::int AS games, MAX(score)::int AS best
+            FROM game_history
+            WHERE user_id = ${uid} AND played_at >= NOW() - INTERVAL '7 days'
+            GROUP BY DATE(played_at) ORDER BY day`,
+        sql`SELECT mode, score, accuracy, played_at FROM game_history
+            WHERE user_id = ${uid} ORDER BY played_at DESC LIMIT 1`,
+        sql`SELECT rank FROM (
+              SELECT user_id, RANK() OVER (ORDER BY SUM(score) DESC)::int AS rank
+              FROM game_history GROUP BY user_id
+            ) t WHERE user_id = ${uid}`,
+        sql`SELECT title, description, scenarios, target_scenario FROM training_plans
+            WHERE player_id = ${uid} AND status = 'active'
+            ORDER BY created_at DESC LIMIT 1`,
+        sql`SELECT f.content, f.week_objective, f.created_at, u.username AS coach_username
+            FROM feedback f JOIN users u ON u.id = f.coach_id
+            WHERE f.player_id = ${uid} ORDER BY f.created_at DESC LIMIT 1`
+      ]);
+
+      const streakRows = await sql`
+        WITH days AS (
+          SELECT DISTINCT DATE(played_at) AS d
+          FROM game_history WHERE user_id = ${uid}
+          ORDER BY d DESC
+        ),
+        numbered AS (
+          SELECT d, ROW_NUMBER() OVER (ORDER BY d DESC) - 1 AS rn FROM days
+        )
+        SELECT COUNT(*)::int AS streak FROM numbered
+        WHERE d = (CURRENT_DATE - (rn || ' days')::interval)::date`;
+
+      const stats = statsRow[0] || {};
+      const scenarios = planRow[0]?.scenarios
+        ? (typeof planRow[0].scenarios === 'string' ? JSON.parse(planRow[0].scenarios) : planRow[0].scenarios)
+        : [];
+      const done = scenarios.filter(s => s.done).length;
+
+      return res.status(200).json({
+        stats: { ...stats, streak: streakRows[0]?.streak || 0 },
+        activity,
+        last_game: lastGame[0] || null,
+        rank: rankRow[0]?.rank || null,
+        plan: planRow[0] ? { ...planRow[0], scenarios_done: done, scenarios_total: scenarios.length } : null,
+        last_feedback: feedbackRow[0] || null
+      });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 

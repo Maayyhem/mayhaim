@@ -823,11 +823,122 @@ function coachingSwitchTab(tabId) {
 
 // ============ DASHBOARD ============
 
-function coachingRenderDashboard() {
-  document.getElementById('ch-dash-sessions').textContent = getSessionCount();
-  document.getElementById('ch-dash-scenarios').textContent = getCompletedscenarios().length;
-  document.getElementById('ch-dash-accuracy').textContent = '-';
-  document.getElementById('ch-dash-vods').textContent = getWatchedVods().length;
+let _dashSparkline = null;
+
+async function coachingRenderDashboard() {
+  // Immediate local values
+  const el = (id) => document.getElementById(id);
+
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=dashboard-stats`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const s = d.stats || {};
+
+    // Stat cards
+    el('ch-dash-games').textContent    = s.total_games ?? '—';
+    el('ch-dash-best').textContent     = s.best_score   ? Number(s.best_score).toLocaleString() : '—';
+    el('ch-dash-avg').textContent      = s.avg_score    ? Number(s.avg_score).toLocaleString()  : '—';
+    el('ch-dash-accuracy').textContent = s.avg_accuracy != null ? s.avg_accuracy + '%' : '—';
+    el('ch-dash-rank').textContent     = d.rank         ? '#' + d.rank : '—';
+    el('ch-dash-streak').textContent   = s.streak != null ? s.streak + (s.streak === 1 ? ' jour' : ' jours') : '—';
+
+    // Sparkline 7j
+    _renderDashSparkline(d.activity || []);
+
+    // Dernière partie
+    const lgEl = el('dash-last-game');
+    if (lgEl) {
+      if (d.last_game) {
+        const lg = d.last_game;
+        const date = new Date(lg.played_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+        lgEl.innerHTML = `<span class="dash-last-label">Dernière partie :</span>
+          <span class="dash-last-mode">${san(lg.mode.replace(/_/g,' '))}</span>
+          <span class="dash-last-score">${Number(lg.score).toLocaleString()}</span>
+          ${lg.accuracy != null ? `<span class="dash-last-acc">${lg.accuracy}% précision</span>` : ''}
+          <span class="dash-last-date">${date}</span>`;
+      } else {
+        lgEl.innerHTML = '';
+      }
+    }
+
+    // Plan actif
+    const planEl = el('dash-plan-content');
+    if (planEl) {
+      if (d.plan) {
+        const p = d.plan;
+        const pct = p.scenarios_total > 0 ? Math.round((p.scenarios_done / p.scenarios_total) * 100) : 0;
+        planEl.innerHTML = `
+          <div class="dash-plan-title">${san(p.title)}</div>
+          ${p.description ? `<div class="dash-plan-desc">${san(p.description)}</div>` : ''}
+          <div class="dash-plan-progress-bar"><div class="dash-plan-progress-fill" style="width:${pct}%"></div></div>
+          <div class="dash-plan-pct">${p.scenarios_done} / ${p.scenarios_total} scénarios &mdash; ${pct}%</div>
+          ${p.target_scenario ? `<div class="dash-plan-target">🎯 Objectif : ${san(p.target_scenario)}</div>` : ''}`;
+      } else {
+        planEl.innerHTML = '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucun plan actif</p>';
+      }
+    }
+
+    // Dernier feedback
+    const fbEl = el('dash-feedback-content');
+    if (fbEl) {
+      if (d.last_feedback) {
+        const f = d.last_feedback;
+        const date = new Date(f.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+        fbEl.innerHTML = `
+          <div class="dash-fb-coach">Par ${san(f.coach_username)} &middot; <span style="color:var(--dim)">${date}</span></div>
+          <p class="dash-fb-content">${san(f.content)}</p>
+          ${f.week_objective ? `<div class="dash-fb-obj">🎯 ${san(f.week_objective)}</div>` : ''}`;
+      } else {
+        fbEl.innerHTML = '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucun feedback reçu</p>';
+      }
+    }
+
+  } catch {
+    // silently fail — dashboard still shows local data
+  }
+}
+
+function _renderDashSparkline(activity) {
+  const canvas = document.getElementById('dash-sparkline');
+  if (!canvas || !window.Chart) return;
+  if (_dashSparkline) { _dashSparkline.destroy(); _dashSparkline = null; }
+
+  // Build 7-day labels
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const byDay = {};
+  activity.forEach(a => { byDay[a.day.slice(0, 10)] = a; });
+
+  const labels = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' }));
+  const games  = days.map(d => byDay[d]?.games || 0);
+  const bests  = days.map(d => byDay[d]?.best  || 0);
+
+  _dashSparkline = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Parties', data: games, backgroundColor: 'rgba(255,70,85,0.5)', borderColor: '#ff4655', borderWidth: 1, borderRadius: 3, yAxisID: 'y1' },
+        { label: 'Meilleur score', data: bests, type: 'line', borderColor: '#60a5fa', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa', yAxisID: 'y2', tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: '#8b949e', font: { size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y1: { position: 'left', ticks: { color: '#8b949e', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+        y2: { position: 'right', ticks: { color: '#60a5fa', font: { size: 9 } }, grid: { display: false }, beginAtZero: true }
+      }
+    }
+  });
 }
 
 // ============ scenarios ============

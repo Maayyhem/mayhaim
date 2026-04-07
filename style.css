@@ -532,6 +532,29 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ann-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:8px; flex-wrap:wrap; }
 .ann-content { font-size:0.83rem; color:var(--txt); opacity:0.9; }
 
+/* ── Dashboard ── */
+.dash-stats-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); margin-bottom: 16px; }
+.dash-widgets-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .dash-widgets-grid { grid-template-columns: 1fr; } }
+.dash-widget { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.dash-widget-title { font-size: 0.75rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.dash-sparkline-wrap { height: 140px; }
+.dash-last-game { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 0.78rem; }
+.dash-last-label { color: var(--dim); }
+.dash-last-mode { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+.dash-last-score { color: var(--accent); font-weight: 800; }
+.dash-last-acc { color: #4ade80; }
+.dash-last-date { color: var(--dim); margin-left: auto; }
+.dash-plan-title { font-weight: 700; font-size: 0.88rem; color: var(--txt); margin-bottom: 4px; }
+.dash-plan-desc { font-size: 0.78rem; color: var(--dim); margin-bottom: 10px; line-height: 1.4; }
+.dash-plan-progress-bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; margin-bottom: 5px; }
+.dash-plan-progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.4s ease; }
+.dash-plan-pct { font-size: 0.75rem; color: var(--dim); margin-bottom: 8px; }
+.dash-plan-target { font-size: 0.8rem; color: #fbbf24; background: rgba(251,191,36,0.1); border-radius: 6px; padding: 6px 10px; }
+.dash-fb-coach { font-size: 0.75rem; font-weight: 600; color: var(--txt); margin-bottom: 6px; }
+.dash-fb-content { font-size: 0.82rem; color: var(--txt); opacity: 0.85; line-height: 1.5; margin: 0 0 8px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.dash-fb-obj { font-size: 0.8rem; color: #4ade80; background: rgba(74,222,128,0.1); border-radius: 6px; padding: 6px 10px; }
+
 /* ── Notification bell ── */
 .notif-wrap { position:relative; }
 .btn-notif-bell { background:transparent; border:none; cursor:pointer; font-size:1.1rem; padding:4px 6px; color:var(--txt); opacity:0.7; transition:opacity 0.15s; position:relative; }

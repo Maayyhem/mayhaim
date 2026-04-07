@@ -367,11 +367,57 @@
         <!-- DASHBOARD -->
         <div id="ch-dashboard" class="ch-panel active">
           <h2 class="ch-section-title">Dashboard</h2>
-          <div class="ch-stats-grid">
-            <div class="ch-stat-card"><h3>Sessions</h3><div class="ch-stat-val" id="ch-dash-sessions">0</div></div>
-            <div class="ch-stat-card"><h3>Scenarios Completes</h3><div class="ch-stat-val" id="ch-dash-scenarios">0</div></div>
-            <div class="ch-stat-card"><h3>Meilleure Precision</h3><div class="ch-stat-val" id="ch-dash-accuracy">0%</div></div>
-            <div class="ch-stat-card"><h3>VODs Regardees</h3><div class="ch-stat-val" id="ch-dash-vods">0</div></div>
+
+          <!-- Stat cards -->
+          <div class="ch-stats-grid dash-stats-grid">
+            <div class="ch-stat-card">
+              <h3>Parties jouées</h3>
+              <div class="ch-stat-val" id="ch-dash-games">—</div>
+            </div>
+            <div class="ch-stat-card">
+              <h3>Meilleur score</h3>
+              <div class="ch-stat-val" id="ch-dash-best">—</div>
+            </div>
+            <div class="ch-stat-card">
+              <h3>Score moyen</h3>
+              <div class="ch-stat-val" id="ch-dash-avg">—</div>
+            </div>
+            <div class="ch-stat-card">
+              <h3>Précision moy.</h3>
+              <div class="ch-stat-val" id="ch-dash-accuracy">—</div>
+            </div>
+            <div class="ch-stat-card">
+              <h3>Classement</h3>
+              <div class="ch-stat-val" id="ch-dash-rank">—</div>
+            </div>
+            <div class="ch-stat-card">
+              <h3>Streak &#128293;</h3>
+              <div class="ch-stat-val" id="ch-dash-streak">—</div>
+            </div>
+          </div>
+
+          <!-- Bottom widgets grid -->
+          <div class="dash-widgets-grid">
+
+            <!-- Activité 7j sparkline -->
+            <div class="dash-widget">
+              <div class="dash-widget-title">&#128202; Activité — 7 derniers jours</div>
+              <div class="dash-sparkline-wrap"><canvas id="dash-sparkline"></canvas></div>
+              <div id="dash-last-game" class="dash-last-game"></div>
+            </div>
+
+            <!-- Plan actif -->
+            <div class="dash-widget">
+              <div class="dash-widget-title">&#128203; Plan d'entraînement</div>
+              <div id="dash-plan-content"><p class="ch-empty" style="font-size:0.82rem;padding:12px 0">Chargement…</p></div>
+            </div>
+
+            <!-- Dernier feedback -->
+            <div class="dash-widget">
+              <div class="dash-widget-title">&#128172; Dernier feedback coach</div>
+              <div id="dash-feedback-content"><p class="ch-empty" style="font-size:0.82rem;padding:12px 0">Chargement…</p></div>
+            </div>
+
           </div>
         </div>
 
