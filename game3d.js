@@ -1391,7 +1391,48 @@ function endGame() {
   showScreen('results-screen');
 }
 
-function showScreen(id) { $$('.screen').forEach(s=>s.classList.remove('active')); $(`#${id}`).classList.add('active'); }
+function showScreen(id) {
+  const OVERLAYS = ['game-screen', 'results-screen'];
+  const HUB_REMAP = {
+    'menu-screen':     'hub-home',
+    'free-play-screen':'hub-freeplay',
+    'settings-screen': 'hub-settings',
+    'benchmark-screen':'hub-viscose',
+  };
+
+  if (OVERLAYS.includes(id)) {
+    // Overlay — on ajoute juste active sans cacher les autres
+    document.getElementById(id)?.classList.add('active');
+    return;
+  }
+
+  // Cacher les overlays si on revient au hub
+  OVERLAYS.forEach(oid => document.getElementById(oid)?.classList.remove('active'));
+
+  // Remapper vers un panel du hub
+  if (HUB_REMAP[id]) {
+    // S'assurer que coaching-screen est visible
+    $$('.screen').forEach(s => {
+      if (!OVERLAYS.includes(s.id)) s.classList.remove('active');
+    });
+    document.getElementById('coaching-screen')?.classList.add('active');
+    // Switcher vers le bon panel
+    if (typeof coachingSwitchTab === 'function') {
+      coachingSwitchTab(HUB_REMAP[id]);
+    }
+    // Si c'est le viscose benchmark, le rendre
+    if (id === 'benchmark-screen' && typeof renderBenchmark === 'function') {
+      setTimeout(() => renderBenchmark(), 50);
+    }
+    return;
+  }
+
+  // Écrans normaux (auth-screen, coaching-screen...)
+  $$('.screen').forEach(s => {
+    if (!OVERLAYS.includes(s.id)) s.classList.remove('active');
+  });
+  document.getElementById(id)?.classList.add('active');
+}
 
 // ---- CAREER ----
 function loadCareer() { try{return JSON.parse(localStorage.getItem('visc_career'))||{best:0,acc:0,games:0};}catch{return{best:0,acc:0,games:0};} }

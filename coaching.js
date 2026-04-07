@@ -694,10 +694,12 @@ function exportHistoryCSV() {
 
 function showApp() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('menu-screen').classList.add('active');
+  document.getElementById('coaching-screen').classList.add('active');
+  if (typeof coachingSwitchTab === 'function') coachingSwitchTab('hub-home');
   // Update user display
   const roleLabels = { admin: 'Admin', coach: 'Coach', student: 'Eleve' };
-  document.getElementById('menu-user-name').textContent = coachingUser.username;
+  const menuUserName = document.getElementById('menu-user-name');
+  if (menuUserName) menuUserName.textContent = coachingUser.username;
   const rankEl = document.getElementById('menu-user-rank');
   if (rankEl) rankEl.innerHTML = rankBadge(coachingUser.current_rank);
   // Hero greeting name
@@ -707,8 +709,7 @@ function showApp() {
   const avatarEl = document.getElementById('menu-avatar');
   if (avatarEl && coachingUser) avatarEl.textContent = (coachingUser.username || coachingUser.email || 'J')[0].toUpperCase();
   const roleBadge = document.getElementById('menu-user-role');
-  roleBadge.textContent = roleLabels[coachingUserRole] || 'Eleve';
-  roleBadge.className = 'user-role-badge role-' + coachingUserRole;
+  if (roleBadge) { roleBadge.textContent = roleLabels[coachingUserRole] || 'Eleve'; roleBadge.className = 'user-role-badge role-' + coachingUserRole; }
   // Update coaching header (legacy, kept for safety)
   const chUserInfo = document.getElementById('ch-user-info');
   if (chUserInfo) chUserInfo.textContent = coachingUser.username + ' (' + (roleLabels[coachingUserRole] || 'Eleve') + ')';
@@ -750,7 +751,7 @@ function showApp() {
 
 function initCoaching() {
   document.getElementById('btn-coaching').addEventListener('click', () => {
-    document.getElementById('menu-screen').classList.remove('active');
+    
     document.getElementById('coaching-screen').classList.add('active');
     // Sync DB data on open
     fetchScenariosFromDB().then(() => { if (document.getElementById('ch-scenarios')?.classList.contains('active')) coachingRenderScenarios(); });
@@ -763,8 +764,8 @@ function initCoaching() {
     coachingCloseVodModal();
     coachingCloseScenarioModal();
     coachingCloseEditModal();
-    document.getElementById('coaching-screen').classList.remove('active');
-    document.getElementById('menu-screen').classList.add('active');
+    
+    coachingSwitchTab('hub-home');
   });
 
   document.querySelectorAll('.ch-tab-btn').forEach(btn => {
@@ -831,6 +832,10 @@ function coachingSwitchTab(tabId) {
 
   // Update topbar title
   const TAB_TITLES = {
+    'hub-home':'🏠 Accueil',
+    'hub-freeplay':'⚡ Free Play',
+    'hub-settings':'⚙️ Paramètres',
+    'hub-viscose':'📊 Viscose Benchmark',
     'ch-dashboard':'Dashboard','ch-benchmark':'⚡ Benchmark','ch-daily':'📅 Daily Challenge',
     'ch-historique':'📈 Historique','ch-leaderboard':'🏆 Classement','ch-achievements':'🏅 Succès',
     'ch-scenarios':'🎯 Scénarios','ch-agents':'🧠 Agents','ch-vods':'📹 VODs',
@@ -842,6 +847,9 @@ function coachingSwitchTab(tabId) {
   const titleEl = document.getElementById('ch-topbar-title');
   if (titleEl) titleEl.textContent = TAB_TITLES[tabId] || tabId;
 
+  if (tabId === 'hub-viscose' && typeof renderBenchmark === 'function') {
+    setTimeout(() => renderBenchmark(), 50);
+  }
   if (tabId === 'ch-dashboard') coachingRenderDashboard();
   if (tabId === 'ch-scenarios') coachingRenderScenarios();
   if (tabId === 'ch-agents') coachingRenderAgents();
@@ -1055,8 +1063,8 @@ function coachingOpenScenarioModal(s) {
     markScenarioCompleted(s.id);
     incrementSessions();
     _setCoachLaunchSource('ch-scenarios');
-    document.getElementById('coaching-screen').classList.remove('active');
-    document.getElementById('menu-screen').classList.add('active');
+    
+    coachingSwitchTab('hub-home');
     if (aimDiff) document.getElementById('opt-diff').value = aimDiff;
     setTimeout(() => { const btn = document.querySelector(`.mode-card[data-mode="${aimMode}"]`); if (btn) btn.click(); }, 100);
   };
@@ -1300,8 +1308,8 @@ function _bmLaunchScenario(idx) {
   const diffEl = document.getElementById('opt-diff');
   if (durEl) durEl.value = sc.dur;
   if (diffEl) diffEl.value = sc.diff;
-  document.getElementById('coaching-screen')?.classList.remove('active');
-  document.getElementById('menu-screen')?.classList.add('active');
+  
+  coachingSwitchTab('hub-home');
   setTimeout(() => {
     const modeBtn = document.querySelector(`.mode-card[data-mode="${sc.mode}"]`);
     if (modeBtn) modeBtn.click();
@@ -1543,8 +1551,8 @@ function _launchRoutineExercise(routine, idx) {
   if (idx >= routine.exercises.length) return;
   const ex = routine.exercises[idx];
   window._coachLaunchSource = { tab: 'ch-warmup', routine, routineIdx: idx };
-  document.getElementById('coaching-screen').classList.remove('active');
-  document.getElementById('menu-screen').classList.add('active');
+  
+  coachingSwitchTab('hub-home');
   if (ex.dur) {
     const durEl = document.getElementById('opt-duration');
     if (durEl) durEl.value = ex.dur;
@@ -1590,7 +1598,7 @@ function initWarmupPanel() {
       const mode = btn.dataset.mode;
       const diff = btn.dataset.diff;
       _setCoachLaunchSource('ch-warmup');
-      document.getElementById('coaching-screen').classList.remove('active');
+      
       document.getElementById('opt-diff').value = diff;
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
@@ -2705,8 +2713,8 @@ function openCoursDetail(cours) {
       const diff = btn.dataset.diff;
       // Go to menu, set diff, start game
       _setCoachLaunchSource('ch-cours');
-      document.getElementById('coaching-screen').classList.remove('active');
-      document.getElementById('menu-screen').classList.add('active');
+      
+      coachingSwitchTab('hub-home');
       document.getElementById('opt-diff').value = diff;
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
@@ -3635,8 +3643,8 @@ function renderDailyChallenge(d) {
     playBtn.disabled = false;
     playBtn.onclick = () => {
       _setCoachLaunchSource('ch-daily');
-      document.getElementById('coaching-screen').classList.remove('active');
-      document.getElementById('menu-screen').classList.add('active');
+      
+      coachingSwitchTab('hub-home');
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
         if (modeBtn) modeBtn.click();

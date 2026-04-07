@@ -98,233 +98,28 @@
       </div>
     </div>
 
-    <!-- MENU -->
+    <!-- MENU (supprimé — migré dans hub-home) -->
+    <!--
     <div id="menu-screen" class="screen scrollable">
-      <div class="menu-wrap">
-
-        <!-- ── Header ── -->
-        <header class="menu-header">
-          <div class="menu-logo">
-            <span class="menu-logo-text">Mayh<span class="menu-logo-accent">Aim</span></span>
-            <span class="menu-logo-dot"></span>
-          </div>
-          <div class="menu-header-right">
-            <div class="menu-user-chip">
-              <div class="menu-user-avatar" id="menu-avatar">M</div>
-              <div class="menu-user-info">
-                <span id="menu-user-name" class="menu-user-name">—</span>
-                <span id="menu-user-rank" class="menu-user-rank-badge"></span>
-              </div>
-              <span id="menu-user-role" class="user-role-badge"></span>
-            </div>
-            <div class="notif-wrap" style="position:relative">
-              <button id="btn-notif-bell" class="btn-notif-bell">🔔<span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
-              <div id="notif-panel" class="notif-panel" style="display:none">
-                <div class="notif-panel-header">
-                  <span style="font-weight:700;font-size:0.88rem">Notifications</span>
-                  <button onclick="markAllNotifRead()" style="font-size:0.75rem;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font)">Tout marquer lu</button>
-                </div>
-                <div id="notif-list"></div>
-              </div>
-            </div>
-            <button id="btn-logout" class="menu-logout-btn">↩ Déco</button>
-          </div>
-        </header>
-
-        <!-- ── Hero ── -->
-        <div class="menu-hero">
-          <div class="menu-hero-left">
-            <div class="menu-hero-greeting">Bienvenue, <span id="menu-hero-name">Joueur</span> 👋</div>
-            <div class="menu-hero-sub" id="announcements-bar"></div>
-          </div>
-          <div class="menu-hero-right">
-            <div class="menu-stat-cards">
-              <div class="menu-stat-card">
-                <div class="menu-stat-icon">🏆</div>
-                <div class="menu-stat-val" id="menu-best">—</div>
-                <div class="menu-stat-lbl">Meilleur Score</div>
-              </div>
-              <div class="menu-stat-card">
-                <div class="menu-stat-icon">🎯</div>
-                <div class="menu-stat-val" id="menu-acc">—</div>
-                <div class="menu-stat-lbl">Précision</div>
-              </div>
-              <div class="menu-stat-card">
-                <div class="menu-stat-icon">🎮</div>
-                <div class="menu-stat-val" id="menu-games">—</div>
-                <div class="menu-stat-lbl">Parties</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── XP Bar ── -->
-        <div class="menu-xp-section">
-          <div class="menu-xp-row">
-            <span class="xp-level-badge" id="menu-level">Niv. 1 — Rookie</span>
-            <span class="xp-bar-text" id="menu-xp-text">0 / 100 XP</span>
-          </div>
-          <div class="xp-bar-track"><div class="xp-bar-fill" id="menu-xp-fill" style="width:0%"></div></div>
-        </div>
-
-        <!-- ── Hub Cards ── -->
-        <div class="menu-hub-grid">
-          <button class="hub-card hub-card-benchmark" id="btn-benchmark">
-            <div class="hub-card-glow"></div>
-            <div class="hub-card-inner">
-              <div class="hub-card-icon">📊</div>
-              <div class="hub-card-body">
-                <div class="hub-card-title">Viscose Benchmark</div>
-                <div class="hub-card-desc">Évalue ton niveau sur 32 scénarios</div>
-              </div>
-              <div class="hub-card-arrow">›</div>
-            </div>
-          </button>
-          <button class="hub-card hub-card-freeplay" id="btn-freeplay">
-            <div class="hub-card-glow"></div>
-            <div class="hub-card-inner">
-              <div class="hub-card-icon">⚡</div>
-              <div class="hub-card-body">
-                <div class="hub-card-title">Free Play</div>
-                <div class="hub-card-desc">Entraînement libre, tous les modes</div>
-              </div>
-              <div class="hub-card-arrow">›</div>
-            </div>
-          </button>
-          <button class="hub-card hub-card-coaching" id="btn-coaching">
-            <div class="hub-card-glow"></div>
-            <div class="hub-card-inner">
-              <div class="hub-card-icon">🏆</div>
-              <div class="hub-card-body">
-                <div class="hub-card-title">Coaching Hub</div>
-                <div class="hub-card-desc">Scénarios, VODs, Benchmark Voltaic</div>
-              </div>
-              <div class="hub-card-arrow">›</div>
-            </div>
-          </button>
-          <button class="hub-card hub-card-settings" id="btn-settings-menu">
-            <div class="hub-card-glow"></div>
-            <div class="hub-card-inner">
-              <div class="hub-card-icon">⚙️</div>
-              <div class="hub-card-body">
-                <div class="hub-card-title">Paramètres</div>
-                <div class="hub-card-desc">Crosshair, sensibilité, thème</div>
-              </div>
-              <div class="hub-card-arrow">›</div>
-            </div>
-          </button>
-        </div>
-
-        <!-- ── Missions ── -->
-        <div class="menu-missions-section">
-          <div class="menu-missions-title">Missions du jour</div>
-          <div id="missions-container" class="missions-grid"></div>
-        </div>
-
-      </div>
+      [contenu migré vers hub-home dans coaching-screen]
     </div>
+    -->
 
-    <!-- FREE PLAY -->
+    <!-- FREE PLAY (supprimé — migré dans hub-freeplay) -->
+    <!--
     <div id="free-play-screen" class="screen scrollable">
-      <div class="menu-wrap">
-        <div class="fp-header">
-          <button id="btn-freeplay-back" class="btn-back">&larr; Menu</button>
-          <h1 class="logo" style="font-size:1.4rem">Free <span>Play</span></h1>
-        </div>
-        <div class="mode-grid">
-          <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">&#127919;</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
-          <button class="mode-card" data-mode="gridshot"><div class="mode-icon">&#9889;</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
-          <button class="mode-card" data-mode="whisphere"><div class="mode-icon">&#128260;</div><h3>Whisphere</h3><p>Control tracking smooth.</p><span class="mode-tag">Tracking</span></button>
-          <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">&#128165;</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
-          <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">&#127744;</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
-          <button class="mode-card" data-mode="speedflick"><div class="mode-icon">&#127919;</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
-          <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">&#8679;</div><h3>Leaptrack</h3><p>Tracking avec sauts brusques. Wrist control.</p><span class="mode-tag">Tracking</span></button>
-          <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon">&#9889;</div><h3>VoxTS Switch</h3><p>Switch targets dynamique. Benchmark standard.</p><span class="mode-tag">Flick</span></button>
-          <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">&#10010;</div><h3>Crosshair Drill</h3><p>Cibles a hauteur de tete. Placement pur.</p><span class="mode-tag">Cours</span></button>
-          <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">&#9678;</div><h3>Deadzone Drill</h3><p>Tracking smooth avec deadzone.</p><span class="mode-tag">Cours</span></button>
-          <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">&#9632;</div><h3>Burst Drill</h3><p>Clusters de cibles. Burst transfers.</p><span class="mode-tag">Cours</span></button>
-          <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">&#8596;</div><h3>Strafe Drill</h3><p>Tracking horizontal pur. Simule un joueur qui strafe.</p><span class="mode-tag">Cours</span></button>
-          <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">&#128498;</div><h3>Reaction Drill</h3><p>Cibles ephemeres. Clique avant qu'elles disparaissent.</p><span class="mode-tag">Cours</span></button>
-          <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">&#9673;</div><h3>Micro Precision</h3><p>Cibles minuscules aux angles cles. Precision absolue.</p><span class="mode-tag">Cours</span></button>
-        </div>
-        <h2 class="section-title" style="margin-top:20px">Options</h2>
-        <div class="settings-row">
-          <label>Duree: <select id="opt-duration"><option value="30">30s</option><option value="45">45s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
-          <label>Difficulte: <select id="opt-diff"><option value="easy">Easier</option><option value="medium" selected>Medium</option><option value="hard">Harder</option></select></label>
-        </div>
-      </div>
+      [contenu migré vers hub-freeplay dans coaching-screen]
     </div>
+    -->
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS (supprimé — migré dans hub-settings) -->
+    <!--
     <div id="settings-screen" class="screen scrollable">
-      <div class="menu-wrap">
-        <div class="fp-header">
-          <button id="btn-settings-back" class="btn-back">&larr; Menu</button>
-          <h1 class="logo" style="font-size:1.4rem">Para<span>mètres</span></h1>
-        </div>
-        <div class="settings-row" style="margin-top:16px">
-          <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
-          <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
-          <label>Son: <input type="checkbox" id="opt-sound" checked></label>
-        </div>
-        <h2 class="section-title" style="margin-top:20px">Sensibilité</h2>
-        <div class="settings-row">
-          <label>DPI: <input type="number" id="opt-dpi" min="100" max="32000" value="800" step="50" style="width:65px"></label>
-          <label>Sens:
-            <select id="opt-sens-mode" style="width:90px">
-              <option value="cm360">cm/360</option>
-              <option value="valorant">Valorant</option>
-              <option value="cs2">CS2</option>
-              <option value="overwatch">Overwatch</option>
-              <option value="apex">Apex</option>
-              <option value="fortnite">Fortnite</option>
-            </select>
-            <input type="number" id="opt-sens-val" min="0.01" max="500" value="34" step="0.01" style="width:70px">
-          </label>
-        </div>
-        <h2 class="section-title" style="margin-top:20px">Crosshair</h2>
-        <div class="xh-preview-wrap"><div class="xh-preview-box" id="xh-preview"></div></div>
-        <div class="settings-row">
-          <label>Couleur: <input type="color" id="xh-color" value="#00ff88"></label>
-          <label>Opacite: <input type="range" id="xh-opacity" min="0" max="1" value="1" step="0.1"><span id="xh-opacity-val">1</span></label>
-          <label>Outline: <input type="range" id="xh-outline" min="0" max="3" value="1" step="0.5"><span id="xh-outline-val">1</span></label>
-          <label>Dot: <input type="checkbox" id="xh-dot"></label>
-          <label>Dot Size: <input type="range" id="xh-dot-size" min="1" max="6" value="2" step="0.5"><span id="xh-dot-size-val">2</span></label>
-        </div>
-        <div class="settings-row" style="margin-top:6px">
-          <label>Inner: <input type="checkbox" id="xh-inner-show" checked></label>
-          <label>Longueur: <input type="range" id="xh-inner-len" min="1" max="20" value="6" step="1"><span id="xh-inner-len-val">6</span></label>
-          <label>Epaisseur: <input type="range" id="xh-inner-thick" min="1" max="6" value="2" step="0.5"><span id="xh-inner-thick-val">2</span></label>
-          <label>Gap: <input type="range" id="xh-inner-gap" min="0" max="15" value="3" step="1"><span id="xh-inner-gap-val">3</span></label>
-        </div>
-        <div class="settings-row" style="margin-top:6px">
-          <label>Outer: <input type="checkbox" id="xh-outer-show"></label>
-          <label>Longueur: <input type="range" id="xh-outer-len" min="1" max="10" value="2" step="1"><span id="xh-outer-len-val">2</span></label>
-          <label>Epaisseur: <input type="range" id="xh-outer-thick" min="1" max="6" value="2" step="0.5"><span id="xh-outer-thick-val">2</span></label>
-          <label>Gap: <input type="range" id="xh-outer-gap" min="3" max="25" value="10" step="1"><span id="xh-outer-gap-val">10</span></label>
-        </div>
-      </div>
+      [contenu migré vers hub-settings dans coaching-screen]
     </div>
+    -->
 
-    <!-- BENCHMARK -->
-    <div id="benchmark-screen" class="screen scrollable">
-      <div class="bench-wrap">
-        <div class="bench-header">
-          <button id="btn-bench-back" class="btn-back">&larr; Menu</button>
-          <h1 class="bench-title">Viscose Benchmark <small>Medium</small></h1>
-          <select id="opt-tier" class="tier-select">
-            <option value="easier">Easier</option>
-            <option value="medium" selected>Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-        <div class="bench-overall">
-          <div class="bench-rank-big" id="bench-overall-rank">Unranked</div>
-          <div class="bench-energy-big" id="bench-overall-threads">0 / 256 Threads</div>
-        </div>
-        <div class="bench-categories" id="bench-categories"></div>
-      </div>
-    </div>
+    <!-- BENCHMARK (migré dans hub-viscose) -->
 
     <!-- GAME -->
     <div id="game-screen" class="screen">
@@ -401,16 +196,23 @@
         </div>
 
         <nav class="ch-sidebar-nav">
-          <!-- Entraînement -->
-          <div class="ch-nav-section">Entraînement</div>
-          <button class="ch-nav-item ch-tab-btn active" data-tab="ch-dashboard">
-            <span class="ch-nav-icon">📊</span> Dashboard
+          <div class="ch-nav-section">Jouer</div>
+          <button class="ch-nav-item ch-tab-btn active" data-tab="hub-home">
+            <span class="ch-nav-icon">🏠</span> Accueil
           </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
-            <span class="ch-nav-icon">⚡</span> Benchmark
+          <button class="ch-nav-item ch-tab-btn" data-tab="hub-freeplay">
+            <span class="ch-nav-icon">⚡</span> Free Play
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="hub-viscose">
+            <span class="ch-nav-icon">📊</span> Viscose Benchmark
           </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily">
             <span class="ch-nav-icon">📅</span> Daily Challenge
+          </button>
+
+          <div class="ch-nav-section">Progression</div>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
+            <span class="ch-nav-icon">⚡</span> Voltaic Benchmark
           </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
             <span class="ch-nav-icon">📈</span> Historique
@@ -422,7 +224,6 @@
             <span class="ch-nav-icon">🏅</span> Succès
           </button>
 
-          <!-- Coaching -->
           <div class="ch-nav-section">Coaching</div>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-scenarios">
             <span class="ch-nav-icon">🎯</span> Scénarios
@@ -440,7 +241,6 @@
             <span class="ch-nav-icon">🔥</span> Échauffement
           </button>
 
-          <!-- Coach tools (hidden by default, shown for coach/admin) -->
           <div class="ch-nav-section ch-coach-only" style="display:none">Outils Coach</div>
           <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">
             <span class="ch-nav-icon">👥</span> Élèves
@@ -452,7 +252,6 @@
             <span class="ch-nav-icon">🔧</span> Gestion Scénarios
           </button>
 
-          <!-- Mon espace -->
           <div class="ch-nav-section">Mon Espace</div>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-messages">
             <span class="ch-nav-icon">💬</span> Messages
@@ -468,9 +267,13 @@
             <span class="ch-nav-icon">📝</span> Feedbacks
           </button>
 
-          <!-- Admin -->
           <button class="ch-nav-item ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">
             <span class="ch-nav-icon">⚙️</span> Admin
+          </button>
+
+          <div class="ch-nav-section">Général</div>
+          <button class="ch-nav-item ch-tab-btn" data-tab="hub-settings">
+            <span class="ch-nav-icon">⚙️</span> Paramètres
           </button>
         </nav>
 
@@ -503,15 +306,157 @@
                 <div id="ch-notif-list"></div>
               </div>
             </div>
-            <button class="btn-back" onclick="showScreen('menu-screen')" style="padding:6px 12px;font-size:0.8rem">🎮 Jouer</button>
+            <button class="btn-back" onclick="coachingSwitchTab('hub-freeplay')" style="padding:6px 12px;font-size:0.8rem">🎮 Jouer</button>
           </div>
         </div>
 
         <div class="ch-scroll">
           <div class="ch-wrap">
 
+        <!-- ══ HUB HOME (remplace menu-screen) ══ -->
+        <div id="hub-home" class="ch-panel active">
+          <div class="hub-home-hero">
+            <div class="hub-home-greeting">Bienvenue, <span id="menu-hero-name">Joueur</span> 👋</div>
+            <div id="announcements-bar" style="margin-top:6px;font-size:0.82rem;color:var(--dim)"></div>
+          </div>
+
+          <div class="menu-stat-cards" style="margin:20px 0">
+            <div class="menu-stat-card">
+              <div class="menu-stat-icon">🏆</div>
+              <div class="menu-stat-val" id="menu-best">—</div>
+              <div class="menu-stat-lbl">Meilleur Score</div>
+            </div>
+            <div class="menu-stat-card">
+              <div class="menu-stat-icon">🎯</div>
+              <div class="menu-stat-val" id="menu-acc">—</div>
+              <div class="menu-stat-lbl">Précision</div>
+            </div>
+            <div class="menu-stat-card">
+              <div class="menu-stat-icon">🎮</div>
+              <div class="menu-stat-val" id="menu-games">—</div>
+              <div class="menu-stat-lbl">Parties</div>
+            </div>
+          </div>
+
+          <div class="menu-xp-section" style="margin-bottom:28px">
+            <div class="menu-xp-row">
+              <span class="xp-level-badge" id="menu-level">Niv. 1 — Rookie</span>
+              <span class="xp-bar-text" id="menu-xp-text">0 / 100 XP</span>
+            </div>
+            <div class="xp-bar-track"><div class="xp-bar-fill" id="menu-xp-fill" style="width:0%"></div></div>
+          </div>
+
+          <div class="ch-section-title">Accès rapide</div>
+          <div class="hub-quick-grid" style="margin-bottom:28px">
+            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-freeplay')"><span>⚡</span> Free Play</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-benchmark')"><span>🏅</span> Voltaic Benchmark</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-viscose')"><span>📊</span> Viscose Benchmark</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-daily')"><span>📅</span> Daily Challenge</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-warmup')"><span>🔥</span> Échauffement</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-settings')"><span>⚙️</span> Paramètres</button>
+          </div>
+
+          <div class="menu-missions-title">Missions du jour</div>
+          <div id="missions-container" class="missions-grid"></div>
+        </div>
+
+        <!-- ══ HUB FREE PLAY (remplace free-play-screen) ══ -->
+        <div id="hub-freeplay" class="ch-panel">
+          <div class="hub-fp-bar">
+            <label>Durée: <select id="opt-duration"><option value="30">30s</option><option value="45">45s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
+            <label>Difficulté: <select id="opt-diff"><option value="easy">Easier</option><option value="medium" selected>Medium</option><option value="hard">Harder</option></select></label>
+          </div>
+          <div class="mode-grid">
+            <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">🎯</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
+            <button class="mode-card" data-mode="gridshot"><div class="mode-icon">⚡</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
+            <button class="mode-card" data-mode="whisphere"><div class="mode-icon">🔄</div><h3>Whisphere</h3><p>Control tracking smooth.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">💥</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">🌤️</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
+            <button class="mode-card" data-mode="speedflick"><div class="mode-icon">🚀</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">↑</div><h3>Leaptrack</h3><p>Tracking avec sauts brusques. Wrist control.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon">⚡</div><h3>VoxTS Switch</h3><p>Switch targets dynamique. Benchmark standard.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">✚</div><h3>Crosshair Drill</h3><p>Cibles a hauteur de tete. Placement pur.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">◎</div><h3>Deadzone Drill</h3><p>Tracking smooth avec deadzone.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Burst Drill</h3><p>Clusters de cibles. Burst transfers.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">↔</div><h3>Strafe Drill</h3><p>Tracking horizontal pur. Simule un joueur qui strafe.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">🖱️</div><h3>Reaction Drill</h3><p>Cibles ephemeres. Clique avant qu'elles disparaissent.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro Precision</h3><p>Cibles minuscules aux angles cles. Precision absolue.</p><span class="mode-tag">Cours</span></button>
+          </div>
+        </div>
+
+        <!-- ══ HUB SETTINGS (remplace settings-screen) ══ -->
+        <div id="hub-settings" class="ch-panel">
+          <div class="hub-settings-section">
+            <div class="ch-section-title">Apparence &amp; Son</div>
+            <div class="hub-settings-row">
+              <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
+              <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
+              <label>Son: <input type="checkbox" id="opt-sound" checked></label>
+            </div>
+          </div>
+
+          <div class="hub-settings-section">
+            <div class="ch-section-title">Sensibilité</div>
+            <div class="hub-settings-row">
+              <label>DPI: <input type="number" id="opt-dpi" min="100" max="32000" value="800" step="50" style="width:65px"></label>
+              <label>Mode:
+                <select id="opt-sens-mode" style="width:90px">
+                  <option value="cm360">cm/360</option>
+                  <option value="valorant">Valorant</option>
+                  <option value="cs2">CS2</option>
+                  <option value="overwatch">Overwatch</option>
+                  <option value="apex">Apex</option>
+                  <option value="fortnite">Fortnite</option>
+                </select>
+              </label>
+              <label>Valeur: <input type="number" id="opt-sens-val" min="0.01" max="500" value="34" step="0.01" style="width:70px"></label>
+            </div>
+          </div>
+
+          <div class="hub-settings-section">
+            <div class="ch-section-title">Crosshair</div>
+            <div class="xh-preview-wrap"><div class="xh-preview-box" id="xh-preview"></div></div>
+            <div class="hub-settings-row" style="margin-top:12px">
+              <label>Couleur: <input type="color" id="xh-color" value="#00ff88"></label>
+              <label>Opacite: <input type="range" id="xh-opacity" min="0" max="1" value="1" step="0.1"><span id="xh-opacity-val">1</span></label>
+              <label>Outline: <input type="range" id="xh-outline" min="0" max="3" value="1" step="0.5"><span id="xh-outline-val">1</span></label>
+              <label>Dot: <input type="checkbox" id="xh-dot"></label>
+              <label>Dot Size: <input type="range" id="xh-dot-size" min="1" max="6" value="2" step="0.5"><span id="xh-dot-size-val">2</span></label>
+            </div>
+            <div class="hub-settings-row">
+              <label>Inner: <input type="checkbox" id="xh-inner-show" checked></label>
+              <label>Longueur: <input type="range" id="xh-inner-len" min="1" max="20" value="6" step="1"><span id="xh-inner-len-val">6</span></label>
+              <label>Epaisseur: <input type="range" id="xh-inner-thick" min="1" max="6" value="2" step="0.5"><span id="xh-inner-thick-val">2</span></label>
+              <label>Gap: <input type="range" id="xh-inner-gap" min="0" max="15" value="3" step="1"><span id="xh-inner-gap-val">3</span></label>
+            </div>
+            <div class="hub-settings-row">
+              <label>Outer: <input type="checkbox" id="xh-outer-show"></label>
+              <label>Longueur: <input type="range" id="xh-outer-len" min="1" max="10" value="2" step="1"><span id="xh-outer-len-val">2</span></label>
+              <label>Epaisseur: <input type="range" id="xh-outer-thick" min="1" max="6" value="2" step="0.5"><span id="xh-outer-thick-val">2</span></label>
+              <label>Gap: <input type="range" id="xh-outer-gap" min="3" max="25" value="10" step="1"><span id="xh-outer-gap-val">10</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ HUB VISCOSE BENCHMARK (remplace benchmark-screen) ══ -->
+        <div id="hub-viscose" class="ch-panel">
+          <div class="hub-viscose-header">
+            <h2 class="ch-section-title" style="margin:0;flex:1">📊 Viscose Benchmark</h2>
+            <select id="opt-tier" class="hub-viscose-tier" onchange="renderBenchmark()">
+              <option value="easier">Easier</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="bench-overall" style="margin-bottom:20px">
+            <div class="bench-rank-big" id="bench-overall-rank">Unranked</div>
+            <div class="bench-energy-big" id="bench-overall-threads">0 / 256 Threads</div>
+          </div>
+          <div class="bench-categories" id="bench-categories"></div>
+        </div>
+
         <!-- DASHBOARD -->
-        <div id="ch-dashboard" class="ch-panel active">
+        <div id="ch-dashboard" class="ch-panel">
           <h2 class="ch-section-title">Dashboard</h2>
 
           <!-- Stat cards -->
