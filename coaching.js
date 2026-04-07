@@ -811,11 +811,20 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
   if (tabId === 'ch-historique') { coachingRenderHistory(); loadPbHistory(); }
-  if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
+  if (tabId === 'ch-leaderboard') {
+    // Populate mode select
+    const sel = document.getElementById('lb-mode-select');
+    if (sel && !sel.dataset.populated) {
+      sel.dataset.populated = '1';
+      sel.innerHTML = LB_MODES.map(([v,l]) => `<option value="${v}"${v===_lbMode?' selected':''}>${l}</option>`).join('');
+    }
+    loadLeaderboard();
+  }
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
   if (tabId === 'ch-messages') initMessagesTab();
+  if (tabId === 'ch-achievements') renderAchievements();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
   if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
   if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
@@ -3312,6 +3321,129 @@ function renderDailyLeaderboard(board) {
       </tr>`;
     }).join('')}</tbody>
   </table>`;
+}
+
+// ============ LEADERBOARD ============
+
+let _lbMode = 'gridshot';
+const LB_MODES = [
+  ['gridshot','Gridshot'],['pasu_reload','Pasu Reload'],['whisphere','Whisphere'],
+  ['pokeball_frenzy','Pokeball Frenzy'],['flicker_plaza','Flicker Plaza'],
+  ['ground_plaza','Ground Plaza'],['air_angelic','Air Angelic'],['speedflick','Speed Flick'],
+  ['vox_ts2','VoxTS2'],['pasu_angelic','Pasu Angelic']
+];
+
+async function loadLeaderboard() {
+  const el = document.getElementById('ch-lb-table');
+  if (!el) return;
+  el.innerHTML = '<tr><td colspan="5" style="color:var(--dim);padding:20px;text-align:center">Chargement…</td></tr>';
+  try {
+    const r = await fetch(`${API_BASE}/coaching?view=leaderboard&mode=${_lbMode}`);
+    const { rows } = await r.json();
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<tr><td colspan="5" style="color:var(--dim);padding:20px;text-align:center">Aucun score encore.</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map((row, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+      const accColor = row.accuracy >= 80 ? '#4ade80' : row.accuracy >= 60 ? '#facc15' : '#f87171';
+      return `<tr class="lb-row ${i < 3 ? 'lb-top3' : ''}">
+        <td class="lb-rank">${medal}</td>
+        <td class="lb-name">${san(row.username)}</td>
+        <td class="lb-score">${Number(row.score).toLocaleString()}</td>
+        <td class="lb-acc" style="color:${accColor}">${row.accuracy}%</td>
+        <td class="lb-date" style="color:var(--dim)">${row.day}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<tr><td colspan="5" style="color:var(--dim)">Erreur de chargement.</td></tr>';
+  }
+}
+
+// ============ ACHIEVEMENTS ============
+
+const ACHIEVEMENTS = [
+  { id:'first_game',   icon:'🎯', name:'Premier Sang',      desc:'Joue ta première partie',          check: s => s.totalGames >= 1 },
+  { id:'ten_games',    icon:'🔥', name:'Sur la lancée',      desc:'Joue 10 parties',                  check: s => s.totalGames >= 10 },
+  { id:'hundred',      icon:'💯', name:'Centurion',          desc:'Joue 100 parties',                 check: s => s.totalGames >= 100 },
+  { id:'acc90',        icon:'🎖️', name:'Tireur d\'Élite',   desc:'90%+ de précision en une partie',  check: s => s.bestAccuracy >= 90 },
+  { id:'acc95',        icon:'⚡', name:'Sniper Mode',        desc:'95%+ de précision en une partie',  check: s => s.bestAccuracy >= 95 },
+  { id:'combo20',      icon:'🌊', name:'Combo King',         desc:'Enchaîner x20 en une partie',      check: s => s.bestCombo >= 20 },
+  { id:'combo50',      icon:'🌪️', name:'Flow State',         desc:'Enchaîner x50 en une partie',      check: s => s.bestCombo >= 50 },
+  { id:'score5k',      icon:'⭐', name:'Pointeur',           desc:'5000+ points en une partie',       check: s => s.bestScore >= 5000 },
+  { id:'score10k',     icon:'🌟', name:'Légende',            desc:'10000+ points en une partie',      check: s => s.bestScore >= 10000 },
+  { id:'react200',     icon:'⚡', name:'Réflexes Vifs',      desc:'Réaction moyenne < 250ms',         check: s => s.bestReaction > 0 && s.bestReaction <= 250 },
+  { id:'react150',     icon:'🚀', name:'Flash',              desc:'Réaction moyenne < 150ms',         check: s => s.bestReaction > 0 && s.bestReaction <= 150 },
+  { id:'daily',        icon:'📅', name:'Daily Warrior',      desc:'Jouer le Daily Challenge',         check: s => s.playedDaily },
+  { id:'routine',      icon:'🏋️', name:'Routine Master',    desc:'Compléter une routine complète',   check: s => s.routineCompleted },
+  { id:'streak3',      icon:'🗓️', name:'Assidu',             desc:'3 jours consécutifs de jeu',       check: s => s.streak >= 3 },
+  { id:'streak7',      icon:'🔑', name:'Hebdomadaire',       desc:'7 jours consécutifs de jeu',       check: s => s.streak >= 7 },
+];
+
+function loadAchievementStats() {
+  try { return JSON.parse(localStorage.getItem('ach_stats') || '{}'); } catch { return {}; }
+}
+function saveAchievementStats(data) {
+  const existing = loadAchievementStats();
+  localStorage.setItem('ach_stats', JSON.stringify({ ...existing, ...data }));
+}
+function getUnlocked() {
+  try { return JSON.parse(localStorage.getItem('ach_unlocked') || '[]'); } catch { return []; }
+}
+function checkAndUnlockAchievements(gameData) {
+  // Update stats
+  const stats = loadAchievementStats();
+  if (gameData) {
+    stats.totalGames = (stats.totalGames || 0) + 1;
+    stats.bestAccuracy = Math.max(stats.bestAccuracy || 0, gameData.accuracy || 0);
+    stats.bestCombo = Math.max(stats.bestCombo || 0, gameData.bestCombo || 0);
+    stats.bestScore = Math.max(stats.bestScore || 0, gameData.score || 0);
+    if (gameData.avgReaction > 0) stats.bestReaction = stats.bestReaction > 0 ? Math.min(stats.bestReaction, gameData.avgReaction) : gameData.avgReaction;
+    if (gameData.isDaily) stats.playedDaily = true;
+    if (gameData.routineCompleted) stats.routineCompleted = true;
+  }
+  saveAchievementStats(stats);
+
+  const unlocked = getUnlocked();
+  const newUnlocks = [];
+  ACHIEVEMENTS.forEach(a => {
+    if (!unlocked.includes(a.id) && a.check(stats)) {
+      unlocked.push(a.id);
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    localStorage.setItem('ach_unlocked', JSON.stringify(unlocked));
+    newUnlocks.forEach(a => _showAchievementToast(a));
+  }
+  return newUnlocks;
+}
+function _showAchievementToast(a) {
+  const toast = document.createElement('div');
+  toast.className = 'ach-toast';
+  toast.innerHTML = `<span class="ach-toast-icon">${a.icon}</span><div><div class="ach-toast-name">🔓 ${san(a.name)}</div><div class="ach-toast-desc">${san(a.desc)}</div></div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('ach-toast-show'), 50);
+  setTimeout(() => { toast.classList.remove('ach-toast-show'); setTimeout(() => toast.remove(), 400); }, 3500);
+}
+function renderAchievements() {
+  const el = document.getElementById('ch-achievements-grid');
+  if (!el) return;
+  const unlocked = getUnlocked();
+  const stats = loadAchievementStats();
+  el.innerHTML = ACHIEVEMENTS.map(a => {
+    const done = unlocked.includes(a.id);
+    return `<div class="ach-card ${done ? 'ach-done' : 'ach-locked'}">
+      <div class="ach-icon">${done ? a.icon : '🔒'}</div>
+      <div class="ach-name">${san(a.name)}</div>
+      <div class="ach-desc">${san(a.desc)}</div>
+    </div>`;
+  }).join('');
+  const count = unlocked.length;
+  const total = ACHIEVEMENTS.length;
+  const pct = Math.round(count/total*100);
+  const prog = document.getElementById('ch-ach-progress');
+  if (prog) prog.innerHTML = `<span>${count}/${total} débloqués</span><div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${pct}%"></div></div>`;
 }
 
 // ============ HEATMAP ============

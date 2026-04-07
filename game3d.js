@@ -1379,6 +1379,15 @@ function endGame() {
         energy, rank_name:rankName, difficulty:currentTier||G.diff, duration:G.duration, is_benchmark:isBench })
     }).catch(()=>{});
   }
+  // Check achievements
+  if (typeof checkAndUnlockAchievements === 'function') {
+    const acc = G.hits+G.misses > 0 ? Math.round(G.hits/(G.hits+G.misses)*100) : 100;
+    const avgR = G.reactionTimes.length > 0 ? Math.round(G.reactionTimes.reduce((a,b)=>a+b,0)/G.reactionTimes.length) : 0;
+    checkAndUnlockAchievements({
+      score: G.score, accuracy: acc, bestCombo: G.bestCombo,
+      avgReaction: avgR, isDaily: G.benchmarkMode && G.mode === window._dailyMode
+    });
+  }
   showScreen('results-screen');
 }
 

@@ -321,6 +321,20 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ pb_history: rows });
     }
 
+    if (view === 'leaderboard') {
+      const mode = url.searchParams.get('mode') || 'gridshot';
+      const { rows } = await sql`
+        SELECT u.username, h.score, h.accuracy, h.hits, h.misses,
+               TO_CHAR(h.played_at, 'DD/MM/YY') AS day
+        FROM game_history h
+        JOIN users u ON u.id = h.user_id
+        WHERE h.mode = ${mode}
+        ORDER BY h.score DESC
+        LIMIT 15
+      `;
+      return res.json({ rows });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 

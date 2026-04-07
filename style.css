@@ -635,3 +635,39 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 
 /* ── History chart ── */
 .history-chart-wrap { height:180px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px; }
+
+/* ═══════════ LEADERBOARD ═══════════ */
+.lb-controls { margin-bottom: 16px; }
+.lb-select { background: var(--card); color: var(--txt); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-family: var(--font); font-size: 0.85rem; cursor: pointer; }
+.lb-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.lb-table thead th { padding: 10px 14px; text-align: left; background: rgba(255,70,85,0.08); color: var(--dim); font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.lb-table tbody td { padding: 10px 14px; border-top: 1px solid var(--border); }
+.lb-row:hover { background: rgba(255,255,255,0.03); }
+.lb-top3 { background: rgba(255,70,85,0.05); }
+.lb-top3:first-child { background: rgba(255,215,0,0.06); }
+.lb-rank { font-size: 1.1rem; width: 40px; }
+.lb-name { font-weight: 600; color: var(--txt); }
+.lb-score { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.lb-acc { font-weight: 600; }
+.lb-date { font-size: 0.78rem; }
+
+/* ═══════════ ACHIEVEMENTS ═══════════ */
+.ach-progress-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; font-size: 0.82rem; color: var(--dim); }
+.ach-progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.ach-progress-fill { height: 100%; background: linear-gradient(90deg, #ff4655, #ff8c94); border-radius: 3px; transition: width 0.6s ease; }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.ach-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; text-align: center; transition: transform 0.2s, border-color 0.2s; }
+.ach-card:hover { transform: translateY(-2px); }
+.ach-done { border-color: rgba(255,70,85,0.4); background: rgba(255,70,85,0.06); }
+.ach-locked { opacity: 0.45; filter: grayscale(1); }
+.ach-icon { font-size: 2rem; margin-bottom: 8px; }
+.ach-name { font-weight: 700; font-size: 0.82rem; margin-bottom: 4px; }
+.ach-desc { font-size: 0.72rem; color: var(--dim); line-height: 1.4; }
+
+/* ═══════════ ACHIEVEMENT TOAST ═══════════ */
+.ach-toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--card); border: 1px solid rgba(255,70,85,0.5); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); max-width: 280px; }
+.ach-toast-show { transform: translateX(0); }
+.ach-toast-icon { font-size: 2rem; flex-shrink: 0; }
+.ach-toast-name { font-weight: 700; font-size: 0.85rem; color: var(--accent); margin-bottom: 2px; }
+.ach-toast-desc { font-size: 0.75rem; color: var(--dim); }
