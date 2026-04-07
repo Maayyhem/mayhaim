@@ -243,7 +243,7 @@ function renderPlayersList(players) {
   el.innerHTML = `<h3 class="cp-sub-title">Mes joueurs actifs (${players.length})</h3>
     <div class="cp-players-grid">
       ${players.map(p => `
-        <div class="cp-player-card" onclick="cpOpenPlayer(${p.id}, '${san(p.username)}', ${p.rel_id}, ${JSON.stringify(p.current_rank || '')})">
+        <div class="cp-player-card" onclick="cpOpenPlayer(${p.id}, '${san(p.username)}', ${p.rel_id}, '${san(p.current_rank || '')}')">
           <div class="cp-player-avatar">${p.username[0].toUpperCase()}</div>
           <div class="cp-player-info">
             <span class="cp-player-name">${san(p.username)} ${cpRankBadge(p.current_rank)}</span>
@@ -697,6 +697,7 @@ function cpRenderMessages(msgs) {
     const mine = String(m.sender_id) === String(myId);
     const ago = typeof timeAgo === 'function' ? timeAgo(m.created_at) : '';
     return `<div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">
+      ${!mine ? `<div class="msg-sender">${san(m.sender_username || '?')}</div>` : ''}
       <div class="msg-text">${san(m.content)}</div>
       ${ago ? `<div class="msg-time">${ago}</div>` : ''}
     </div>`;

@@ -2935,8 +2935,8 @@ function renderConversations(convs) {
     return;
   }
   el.innerHTML = convs.map(c => {
-    const name = coachingUserRole === 'student' ? san(c.coach_username) : san(c.player_username);
-    const unread = c.unread_count > 0;
+    const name = san(c.other_username || '?');
+    const unread = (c.unread || 0) > 0;
     const last = c.last_message ? san(c.last_message.substring(0, 40)) + (c.last_message.length > 40 ? '…' : '') : '<em style="color:var(--dim)">Aucun message</em>';
     return `<div class="msg-conv-item${_activeRelId == c.rel_id ? ' active' : ''}" onclick="openConversation(${c.rel_id},'${name}')">
       <div class="msg-conv-avatar">${name[0]?.toUpperCase() || '?'}</div>
@@ -2984,6 +2984,7 @@ function renderMessages(msgs) {
   el.innerHTML = msgs.map(m => {
     const mine = String(m.sender_id) === String(coachingUser?.id);
     return `<div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">
+      ${!mine ? `<div class="msg-sender">${san(m.sender_username || '?')}</div>` : ''}
       <div class="msg-text">${san(m.content)}</div>
       <div class="msg-time">${timeAgo(m.created_at)}</div>
     </div>`;
