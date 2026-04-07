@@ -1131,7 +1131,7 @@ function shoot() {
         updateHUD(); return;
       }
     }
-    G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
+    G.clickLog.push({x:0.5,y:0.5,hit:false}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
   }
 
   // Click modes
@@ -1162,12 +1162,13 @@ function shoot() {
       hitTarget(tgt); return;
     }
   }
-  G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
+  G.clickLog.push({x:0.5,y:0.5,hit:false}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
 }
 
 function hitTarget(t) {
   const rt=Date.now()-t.spawnTime; G.reactionTimes.push(rt);
   G.hits++; G.combo++; G.bestCombo=Math.max(G.bestCombo,G.combo);
+  try { const sp=t.mesh.position.clone().project(camera); G.clickLog.push({x:(sp.x+1)/2,y:(1-sp.y)/2,hit:true}); } catch(e){}
   let pts=100*Math.min(1+G.combo*0.1,3);
   if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
   pts=Math.round(pts); G.score+=pts;
@@ -1270,7 +1271,7 @@ function startGame(mode) {
   audioEngine.enabled=G.soundOn; audioEngine.init();
   saveSettings({sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,difficulty:G.diff,duration:G.duration,soundOn:G.soundOn});
 
-  G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];
+  G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];G.clickLog=[];
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
   G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}

@@ -810,10 +810,11 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-cours') coachingRenderCours();
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
-  if (tabId === 'ch-historique') coachingRenderHistory();
+  if (tabId === 'ch-historique') { coachingRenderHistory(); loadPbHistory(); }
   if (tabId === 'ch-leaderboard') coachingRenderLeaderboard();
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'ch-admin') adminLoad();
+  if (tabId === 'ch-daily') loadDailyChallenge();
   if (tabId === 'ch-messages') initMessagesTab();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
   if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
@@ -1167,11 +1168,80 @@ function coachingCloseVodModal() {
   if (modal) { modal.classList.remove('active'); document.getElementById('ch-vm-iframe').src = ''; }
 }
 
+const WARMUP_ROUTINES = [
+  {
+    id: 'debutant', name: '🌱 Débutant', desc: '3 exercices · 45s chacun · Tracking + Précision',
+    exercises: [
+      { mode: 'ground_plaza', diff: 'easy',   dur: 45, label: 'Ground Plaza — Tracking sol' },
+      { mode: 'pasu_reload',  diff: 'easy',   dur: 45, label: 'Pasu Reload — Clics précis' },
+      { mode: 'air_pure',     diff: 'easy',   dur: 45, label: 'Air Pure — Tracking aérien' }
+    ]
+  },
+  {
+    id: 'intermediaire', name: '⚡ Intermédiaire', desc: '4 exercices · 60s chacun · Mix complet',
+    exercises: [
+      { mode: 'ground_plaza',    diff: 'medium', dur: 60, label: 'Ground Plaza — Tracking sol' },
+      { mode: 'pasu_reload',     diff: 'medium', dur: 60, label: 'Pasu Reload — Clics précis' },
+      { mode: 'flicker_plaza',   diff: 'medium', dur: 60, label: 'Flicker Plaza — Réactivité' },
+      { mode: 'pokeball_frenzy', diff: 'medium', dur: 60, label: 'Pokeball Frenzy — Vitesse' }
+    ]
+  },
+  {
+    id: 'avance', name: '🔥 Avancé', desc: '5 exercices · 60s chacun · Intensif',
+    exercises: [
+      { mode: 'ground_plaza',    diff: 'hard', dur: 60, label: 'Ground Plaza — Tracking sol' },
+      { mode: 'pasu_angelic',    diff: 'hard', dur: 60, label: 'Pasu Angelic — Micro précision' },
+      { mode: 'flicker_plaza',   diff: 'hard', dur: 60, label: 'Flicker Plaza — Réactivité' },
+      { mode: 'vox_ts2',         diff: 'hard', dur: 60, label: 'voxTS2 — Target Switch' },
+      { mode: 'air_voltaic',     diff: 'hard', dur: 60, label: 'Air Voltaic — Tracking aérien' }
+    ]
+  }
+];
+
+function _launchRoutineExercise(routine, idx) {
+  if (idx >= routine.exercises.length) return;
+  const ex = routine.exercises[idx];
+  window._coachLaunchSource = { tab: 'ch-warmup', routine, routineIdx: idx };
+  document.getElementById('coaching-screen').classList.remove('active');
+  document.getElementById('menu-screen').classList.add('active');
+  if (ex.dur) {
+    const durEl = document.getElementById('opt-duration');
+    if (durEl) durEl.value = ex.dur;
+  }
+  if (ex.diff) {
+    const diffEl = document.getElementById('opt-diff');
+    if (diffEl) diffEl.value = ex.diff;
+  }
+  setTimeout(() => {
+    const modeBtn = document.querySelector(`.mode-card[data-mode="${ex.mode}"]`);
+    if (modeBtn) modeBtn.click();
+    else if (typeof startGame === 'function') startGame(ex.mode);
+  }, 100);
+}
+
+function _renderRoutineCards() {
+  const el = document.getElementById('wu-routines');
+  if (!el) return;
+  el.innerHTML = WARMUP_ROUTINES.map(r => `
+    <div class="wu-routine-card">
+      <div class="wu-routine-name">${r.name}</div>
+      <div class="wu-routine-desc">${r.desc}</div>
+      <ol class="wu-routine-steps">
+        ${r.exercises.map(e => `<li>${san(e.label)}</li>`).join('')}
+      </ol>
+      <button class="btn-primary wu-routine-btn" style="width:100%;margin-top:12px" onclick="_launchRoutineExercise(WARMUP_ROUTINES.find(x=>x.id==='${r.id}'),0)">
+        ▶ Démarrer la routine
+      </button>
+    </div>`).join('');
+}
+
 function initWarmupPanel() {
   const panel = document.getElementById('ch-warmup');
   if (!panel) return;
 
-  // ── Exercise buttons ─────────────────────────────────────────────────
+  _renderRoutineCards();
+
+  // ── Exercise buttons individuels ──────────────────────────────────────
   panel.querySelectorAll('.warmup-exercise-btn').forEach(btn => {
     if (btn.dataset.bound) return;
     btn.dataset.bound = '1';
@@ -3020,6 +3090,7 @@ const _COACH_LAUNCH_LABELS = {
   'ch-warmup':   '🔥 Continuer le Warmup',
   'ch-scenarios':'🎯 Retour aux Scénarios',
   'ch-cours':    '📚 Retour au Cours',
+  'ch-daily':    '⚡ Retour au Daily',
   'ch-dashboard':'🏠 Retour au Dashboard'
 };
 
@@ -3032,6 +3103,31 @@ function _updateCoachingReturnBtn() {
   if (!btn) return;
   const src = window._coachLaunchSource;
   if (!src) { btn.style.display = 'none'; return; }
+
+  // Routine guidée : afficher le prochain exercice
+  if (src.routine) {
+    const nextIdx = src.routineIdx + 1;
+    const hasNext = nextIdx < src.routine.exercises.length;
+    if (hasNext) {
+      const nextEx = src.routine.exercises[nextIdx];
+      btn.textContent = `▶ Exercice ${nextIdx + 1}/${src.routine.exercises.length} — ${nextEx.label}`;
+      btn.style.display = '';
+      btn.onclick = () => _launchRoutineExercise(src.routine, nextIdx);
+    } else {
+      // Routine terminée
+      btn.textContent = '✅ Routine terminée — Retour au Warmup';
+      btn.style.display = '';
+      btn.onclick = () => {
+        window._coachLaunchSource = null;
+        btn.style.display = 'none';
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('coaching-screen').classList.add('active');
+        coachingSwitchTab('ch-warmup');
+      };
+    }
+    return;
+  }
+
   btn.textContent = _COACH_LAUNCH_LABELS[src.tab] || '← Retour au Coaching';
   btn.style.display = '';
   btn.onclick = () => {
@@ -3043,18 +3139,245 @@ function _updateCoachingReturnBtn() {
   };
 }
 
+// ============ PERSONAL BESTS ============
+
+let _pbHistory = null;
+let _pbChart = null;
+
+async function loadPbHistory() {
+  if (!coachingToken || _pbHistory) { if (_pbHistory) _populatePbModeSelect(); return; }
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=pb-history`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    _pbHistory = d.pb_history || [];
+    _populatePbModeSelect();
+    renderPbAllBests();
+  } catch {}
+}
+
+function _populatePbModeSelect() {
+  const sel = document.getElementById('pb-mode-select');
+  if (!sel || !_pbHistory) return;
+  const modes = [...new Set(_pbHistory.map(r => r.mode))].sort();
+  sel.innerHTML = '<option value="">— Choisir un mode —</option>' +
+    modes.map(m => `<option value="${san(m)}">${san(m.replace(/_/g,' '))}</option>`).join('');
+}
+
+function renderPbChart() {
+  const sel = document.getElementById('pb-mode-select');
+  const wrap = document.getElementById('pb-chart-wrap');
+  const canvas = document.getElementById('pb-chart');
+  if (!sel || !wrap || !canvas || !_pbHistory) return;
+  const mode = sel.value;
+  if (!mode) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const rows = _pbHistory.filter(r => r.mode === mode).sort((a, b) => a.day.localeCompare(b.day));
+  if (_pbChart) { _pbChart.destroy(); _pbChart = null; }
+  if (!window.Chart || !rows.length) return;
+  _pbChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: rows.map(r => new Date(r.day + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
+      datasets: [{
+        label: 'Meilleur score', data: rows.map(r => r.best),
+        borderColor: '#ff4655', backgroundColor: 'rgba(255,70,85,0.08)',
+        borderWidth: 2, pointBackgroundColor: '#ff4655', pointRadius: 4, fill: true, tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: item => ` Meilleur : ${item.raw.toLocaleString()}`
+      }}},
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#8b949e' }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+function renderPbAllBests() {
+  const el = document.getElementById('pb-all-bests');
+  if (!el || !_pbHistory) return;
+  const bests = {};
+  _pbHistory.forEach(r => {
+    if (!bests[r.mode] || r.best > bests[r.mode].best) bests[r.mode] = r;
+  });
+  const sorted = Object.entries(bests).sort((a, b) => a[0].localeCompare(b[0]));
+  if (!sorted.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<h4 style="font-size:0.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Records personnels</h4>
+    <div class="pb-bests-grid">${sorted.map(([mode, r]) => `
+      <div class="pb-best-card">
+        <div class="pb-best-mode">${san(mode.replace(/_/g,' '))}</div>
+        <div class="pb-best-score">${Number(r.best).toLocaleString()}</div>
+        <div class="pb-best-date">${new Date(r.day + 'T00:00:00').toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'})}</div>
+      </div>`).join('')}
+    </div>`;
+}
+
+// ============ DAILY CHALLENGE ============
+
+const DAILY_MODE_LABELS = {
+  ground_plaza:'Ground Plaza Sparky', flicker_plaza:'Flicker Plaza rAim',
+  air_pure:'Air Pure', pokeball_frenzy:'Pokeball Frenzy', pasu_reload:'Pasu Reload',
+  vox_ts2:'voxTargetSwitch 2', ctrlsphere_aim:'Controlsphere rAim', air_voltaic:'Air Voltaic',
+  beants:'BeanTS', floatts:'FloatTS Angelic', pasu_angelic:'Pasu Angelic',
+  ctrlsphere_clk:'Controlsphere Click', whisphere:'Whisphere', smoothbot:'SmoothBot',
+  vt_bounceshot:'VT Bounceshot', popcorn_mv:'Popcorn MV', vox_click:'voxTargetClick',
+  waldots:'WaldoTS', polarized_hell:'Polarized Hell', pasu_perfected:'Pasu Perfected'
+};
+
+async function loadDailyChallenge() {
+  if (!coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=daily-challenge`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    renderDailyChallenge(d);
+  } catch {}
+}
+
+function renderDailyChallenge(d) {
+  const mode = d.daily_mode;
+  const label = DAILY_MODE_LABELS[mode] || mode;
+
+  const badge = document.getElementById('daily-mode-badge');
+  if (badge) badge.textContent = label;
+
+  const desc = document.getElementById('daily-mode-desc');
+  if (desc) desc.innerHTML = `Mode du jour · <span style="color:var(--dim);font-size:0.82rem">${new Date().toLocaleDateString('fr-FR', {weekday:'long',day:'2-digit',month:'long'})}</span>`;
+
+  // User stats
+  const userEl = document.getElementById('daily-user-stats');
+  if (userEl) {
+    if (d.user?.best_today) {
+      userEl.innerHTML = `<span class="daily-stat">🏅 Ton meilleur aujourd'hui : <strong>${Number(d.user.best_today).toLocaleString()}</strong></span>
+        <span class="daily-stat">Tentatives : <strong>${d.user.attempts}</strong></span>`;
+    } else {
+      userEl.innerHTML = `<span class="daily-stat" style="color:var(--dim)">Tu n'as pas encore joué le Daily aujourd'hui</span>`;
+    }
+  }
+
+  // Play button
+  const playBtn = document.getElementById('daily-play-btn');
+  if (playBtn) {
+    playBtn.disabled = false;
+    playBtn.onclick = () => {
+      _setCoachLaunchSource('ch-daily');
+      document.getElementById('coaching-screen').classList.remove('active');
+      document.getElementById('menu-screen').classList.add('active');
+      setTimeout(() => {
+        const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
+        if (modeBtn) modeBtn.click();
+        else if (typeof startGame === 'function') startGame(mode);
+      }, 100);
+    };
+  }
+
+  // Countdown to midnight
+  const countdownEl = document.getElementById('daily-countdown');
+  if (countdownEl) {
+    const now = new Date();
+    const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+    const diff = midnight - now;
+    const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
+    countdownEl.textContent = `${h}h ${m}min`;
+  }
+
+  // Leaderboard
+  renderDailyLeaderboard(d.leaderboard || []);
+}
+
+function renderDailyLeaderboard(board) {
+  const el = document.getElementById('daily-leaderboard');
+  if (!el) return;
+  if (!board.length) { el.innerHTML = '<p class="ch-empty">Aucun score encore aujourd\'hui — sois le premier !</p>'; return; }
+  const medals = ['🥇', '🥈', '🥉'];
+  el.innerHTML = `<table class="admin-table">
+    <thead><tr><th>#</th><th>Joueur</th><th>Score</th><th>Précision</th><th>Essais</th></tr></thead>
+    <tbody>${board.map((r, i) => {
+      const isMe = coachingUser && r.username === coachingUser.username;
+      return `<tr${isMe ? ' style="background:rgba(255,70,85,0.07)"' : ''}>
+        <td style="text-align:center">${medals[i] || `<span style="color:var(--dim)">${i+1}</span>`}</td>
+        <td style="font-weight:600;color:${isMe?'var(--accent)':'var(--txt)'}">${san(r.username)}${isMe?' (moi)':''}</td>
+        <td style="color:var(--accent);font-weight:700">${Number(r.score).toLocaleString()}</td>
+        <td>${r.accuracy ?? '—'}%</td>
+        <td style="color:var(--dim)">${r.attempts}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ============ HEATMAP ============
+
+function _renderHeatmap() {
+  const wrap = document.getElementById('heatmap-wrap');
+  const canvas = document.getElementById('heatmap-canvas');
+  if (!canvas || !wrap) return;
+  const log = (typeof G !== 'undefined' && G.clickLog) ? G.clickLog : [];
+  const isClick = typeof G !== 'undefined' && !['track','track_pct'].includes((typeof SCENARIOS !== 'undefined' && SCENARIOS[G.mode]?.type) || '');
+  if (!isClick || log.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  // Background
+  ctx.fillStyle = 'rgba(10,12,18,0.95)';
+  ctx.fillRect(0, 0, W, H);
+  // Crosshair center
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+  // Draw dots
+  log.forEach(p => {
+    const px = p.x * W, py = p.y * H;
+    const r = p.hit ? 5 : 4;
+    const grd = ctx.createRadialGradient(px, py, 0, px, py, r * 2.5);
+    if (p.hit) {
+      grd.addColorStop(0, 'rgba(74,222,128,0.9)');
+      grd.addColorStop(1, 'rgba(74,222,128,0)');
+    } else {
+      grd.addColorStop(0, 'rgba(255,70,85,0.85)');
+      grd.addColorStop(1, 'rgba(255,70,85,0)');
+    }
+    ctx.beginPath();
+    ctx.arc(px, py, r * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(px, py, r * 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = p.hit ? '#4ade80' : '#ff4655';
+    ctx.fill();
+  });
+  // Stats overlay
+  const hits = log.filter(p => p.hit).length;
+  const misses = log.filter(p => !p.hit).length;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '11px monospace';
+  ctx.fillText(`${hits} hits · ${misses} misses`, 8, H - 8);
+}
+
 // ============ BOOT ============
 document.addEventListener('DOMContentLoaded', () => {
   initGlobalAuth();
   initCoaching();
   meInit();
 
-  // Patch endGame (défini dans game3d.js chargé après) pour injecter le bouton retour
+  // Patch endGame (défini dans game3d.js chargé après) pour injecter le bouton retour + heatmap
   if (typeof window.endGame === 'function') {
     const _origEndGame = window.endGame;
     window.endGame = function() {
       _origEndGame.apply(this, arguments);
       _updateCoachingReturnBtn();
+      _renderHeatmap();
     };
   }
 });

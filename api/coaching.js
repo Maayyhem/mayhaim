@@ -293,6 +293,34 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Daily Challenge — mode du jour + classement + best perso
+    if (view === 'daily-challenge') {
+      const DAILY_POOL = ['ground_plaza','flicker_plaza','air_pure','pokeball_frenzy','pasu_reload','vox_ts2','ctrlsphere_aim','air_voltaic','beants','floatts','pasu_angelic','ctrlsphere_clk','whisphere','smoothbot','vt_bounceshot','popcorn_mv','vox_click','waldots','polarized_hell','pasu_perfected'];
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 0);
+      const dayOfYear = Math.floor((now - start) / 86400000);
+      const dailyMode = DAILY_POOL[dayOfYear % DAILY_POOL.length];
+      const [board, userBest] = await Promise.all([
+        sql`SELECT u.username, MAX(gh.score)::int AS score, MAX(gh.accuracy)::int AS accuracy, COUNT(*)::int AS attempts
+            FROM game_history gh JOIN users u ON u.id = gh.user_id
+            WHERE gh.mode = ${dailyMode} AND DATE(gh.played_at AT TIME ZONE 'UTC') = CURRENT_DATE
+            GROUP BY u.id, u.username ORDER BY score DESC LIMIT 10`,
+        sql`SELECT MAX(score)::int AS best_today, COUNT(*)::int AS attempts
+            FROM game_history
+            WHERE user_id = ${decoded.id} AND mode = ${dailyMode} AND DATE(played_at AT TIME ZONE 'UTC') = CURRENT_DATE`
+      ]);
+      return res.status(200).json({ daily_mode: dailyMode, leaderboard: board, user: userBest[0] || { best_today: null, attempts: 0 } });
+    }
+
+    // PB history — meilleur score par mode par jour
+    if (view === 'pb-history') {
+      const rows = await sql`
+        SELECT mode, DATE(played_at)::text AS day, MAX(score)::int AS best, MAX(accuracy)::int AS accuracy
+        FROM game_history WHERE user_id = ${decoded.id}
+        GROUP BY mode, DATE(played_at) ORDER BY mode, day ASC`;
+      return res.status(200).json({ pb_history: rows });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 

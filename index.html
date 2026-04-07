@@ -326,6 +326,14 @@
         <div id="res-threads-wrap" class="hidden">
           <div class="r-card r-threads"><span class="r-val" id="r-threads">0/8</span><span class="r-lbl">Threads</span></div>
         </div>
+        <div id="heatmap-wrap" class="heatmap-wrap" style="display:none">
+          <div class="heatmap-title">🎯 Carte des clics</div>
+          <canvas id="heatmap-canvas" width="320" height="180"></canvas>
+          <div class="heatmap-legend">
+            <span class="heatmap-hit">● Hit</span>
+            <span class="heatmap-miss">● Miss</span>
+          </div>
+        </div>
         <div class="results-actions">
           <button id="btn-retry" class="btn-primary">Rejouer</button>
           <button id="btn-back-coaching" class="btn-primary" style="display:none"></button>
@@ -354,6 +362,7 @@
           <button class="ch-tab-btn" data-tab="ch-warmup">&#128293; Échauffement</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
+          <button class="ch-tab-btn" data-tab="ch-daily">⚡ Daily</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
           <button class="ch-tab-btn" data-tab="ch-leaderboard">Classement</button>
           <button class="ch-tab-btn" data-tab="ch-messages">&#128172; Messages</button>
@@ -477,7 +486,10 @@
         <!-- ÉCHAUFFEMENT -->
         <div id="ch-warmup" class="ch-panel">
           <h2 class="ch-section-title">&#128293; Routine d'Échauffement</h2>
-          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Routine complète ~15 min. À faire avant toute session ranked.</p>
+          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:16px">Lance une routine guidée ou un exercice individuel. Le bouton "Exercice suivant" apparaît dans l'écran résultats.</p>
+          <div id="wu-routines" class="wu-routines-grid"></div>
+          <hr style="border-color:var(--border);margin:20px 0">
+          <h3 class="ch-section-title" style="font-size:0.9rem;margin-bottom:14px">Exercices individuels</h3>
 
           <div class="warmup-phases">
 
@@ -780,6 +792,24 @@
           <div id="cp-feedbacks-list"><p class="ch-empty">Chargement...</p></div>
         </div>
 
+        <!-- DAILY CHALLENGE -->
+        <div id="ch-daily" class="ch-panel">
+          <h2 class="ch-section-title">⚡ Daily Challenge</h2>
+          <div class="daily-hero">
+            <div class="daily-mode-badge" id="daily-mode-badge">—</div>
+            <div class="daily-mode-desc" id="daily-mode-desc">Chargement…</div>
+            <div class="daily-user-stats" id="daily-user-stats"></div>
+            <div class="daily-actions">
+              <button id="daily-play-btn" class="btn-primary daily-play-btn" disabled>⚡ Jouer le Daily</button>
+              <span class="daily-reset-label">Reset dans <span id="daily-countdown">—</span></span>
+            </div>
+          </div>
+          <div class="daily-board-wrap">
+            <h3 class="ch-section-title" style="font-size:1rem;margin-bottom:10px">🏆 Classement du jour</h3>
+            <div id="daily-leaderboard"><p class="ch-empty">Chargement…</p></div>
+          </div>
+        </div>
+
         <!-- MANAGE SCENARIOS (coach/admin only) -->
         <div id="ch-manage-scenarios" class="ch-panel">
           <h2 class="ch-section-title">Gestion des Scenarios</h2>
@@ -794,6 +824,16 @@
           </div>
           <div class="history-chart-wrap"><canvas id="ch-history-chart"></canvas></div>
           <div id="ch-history-content"><p class="ch-empty">Chargement...</p></div>
+
+          <hr style="border-color:var(--border);margin:24px 0 16px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <h3 class="ch-section-title" style="font-size:1rem;margin:0">📈 Progression par mode</h3>
+            <select id="pb-mode-select" class="wu-select" style="font-size:0.8rem" onchange="renderPbChart()">
+              <option value="">— Choisir un mode —</option>
+            </select>
+          </div>
+          <div class="history-chart-wrap" id="pb-chart-wrap" style="display:none"><canvas id="pb-chart"></canvas></div>
+          <div id="pb-all-bests" style="margin-top:16px"></div>
         </div>
 
         <div id="ch-leaderboard" class="ch-panel">
