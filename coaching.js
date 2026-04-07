@@ -700,6 +700,12 @@ function showApp() {
   document.getElementById('menu-user-name').textContent = coachingUser.username;
   const rankEl = document.getElementById('menu-user-rank');
   if (rankEl) rankEl.innerHTML = rankBadge(coachingUser.current_rank);
+  // Hero greeting name
+  const heroName = document.getElementById('menu-hero-name');
+  if (heroName && coachingUser) heroName.textContent = coachingUser.username || coachingUser.email?.split('@')[0] || 'Joueur';
+  // Avatar initiale
+  const avatarEl = document.getElementById('menu-avatar');
+  if (avatarEl && coachingUser) avatarEl.textContent = (coachingUser.username || coachingUser.email || 'J')[0].toUpperCase();
   const roleBadge = document.getElementById('menu-user-role');
   roleBadge.textContent = roleLabels[coachingUserRole] || 'Eleve';
   roleBadge.className = 'user-role-badge role-' + coachingUserRole;
