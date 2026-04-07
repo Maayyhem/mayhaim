@@ -763,8 +763,10 @@ function initCoaching() {
     coachingSwitchTab('hub-home');
   });
 
-  document.querySelectorAll('.ch-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => coachingSwitchTab(btn.dataset.tab));
+  // Event delegation on the sidebar nav — works even if buttons are added/removed
+  document.querySelector('.ch-sidebar-nav')?.addEventListener('click', e => {
+    const btn = e.target.closest('.ch-tab-btn');
+    if (btn && btn.dataset.tab) coachingSwitchTab(btn.dataset.tab);
   });
 
   // Notification bell
