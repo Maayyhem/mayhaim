@@ -592,6 +592,10 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .msg-text { padding:8px 12px; border-radius:16px; font-size:0.83rem; line-height:1.4; word-break:break-word; }
 .msg-mine .msg-text { background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
 .msg-theirs .msg-text { background:rgba(255,255,255,0.08); color:var(--txt); border-bottom-left-radius:4px; }
+/* ── Bouton retour coaching dans résultats ── */
+#btn-back-coaching { background: linear-gradient(135deg, #ff4655, #c0392b); border:none; margin-bottom:2px; }
+#btn-back-coaching:hover { opacity:0.88; }
+
 .msg-sender { font-size:0.7rem; font-weight:700; color:var(--accent); margin-bottom:2px; padding:0 4px; }
 .msg-time { font-size:0.68rem; color:var(--dim); margin-top:3px; padding:0 4px; }
 

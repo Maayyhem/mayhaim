@@ -1003,6 +1003,7 @@ function coachingOpenScenarioModal(s) {
     coachingCloseScenarioModal();
     markScenarioCompleted(s.id);
     incrementSessions();
+    _setCoachLaunchSource('ch-scenarios');
     document.getElementById('coaching-screen').classList.remove('active');
     document.getElementById('menu-screen').classList.add('active');
     if (aimDiff) document.getElementById('opt-diff').value = aimDiff;
@@ -1177,6 +1178,7 @@ function initWarmupPanel() {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       const diff = btn.dataset.diff;
+      _setCoachLaunchSource('ch-warmup');
       document.getElementById('coaching-screen').classList.remove('active');
       document.getElementById('opt-diff').value = diff;
       setTimeout(() => {
@@ -2291,6 +2293,7 @@ function openCoursDetail(cours) {
       const mode = btn.dataset.mode;
       const diff = btn.dataset.diff;
       // Go to menu, set diff, start game
+      _setCoachLaunchSource('ch-cours');
       document.getElementById('coaching-screen').classList.remove('active');
       document.getElementById('menu-screen').classList.add('active');
       document.getElementById('opt-diff').value = diff;
@@ -3009,9 +3012,49 @@ async function sendMessage() {
   } catch {}
 }
 
+// ============ RETOUR COACHING DEPUIS RÉSULTATS ============
+
+window._coachLaunchSource = null;
+
+const _COACH_LAUNCH_LABELS = {
+  'ch-warmup':   '🔥 Continuer le Warmup',
+  'ch-scenarios':'🎯 Retour aux Scénarios',
+  'ch-cours':    '📚 Retour au Cours',
+  'ch-dashboard':'🏠 Retour au Dashboard'
+};
+
+function _setCoachLaunchSource(tab) {
+  window._coachLaunchSource = { tab };
+}
+
+function _updateCoachingReturnBtn() {
+  const btn = document.getElementById('btn-back-coaching');
+  if (!btn) return;
+  const src = window._coachLaunchSource;
+  if (!src) { btn.style.display = 'none'; return; }
+  btn.textContent = _COACH_LAUNCH_LABELS[src.tab] || '← Retour au Coaching';
+  btn.style.display = '';
+  btn.onclick = () => {
+    window._coachLaunchSource = null;
+    btn.style.display = 'none';
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('coaching-screen').classList.add('active');
+    coachingSwitchTab(src.tab);
+  };
+}
+
 // ============ BOOT ============
 document.addEventListener('DOMContentLoaded', () => {
   initGlobalAuth();
   initCoaching();
   meInit();
+
+  // Patch endGame (défini dans game3d.js chargé après) pour injecter le bouton retour
+  if (typeof window.endGame === 'function') {
+    const _origEndGame = window.endGame;
+    window.endGame = function() {
+      _origEndGame.apply(this, arguments);
+      _updateCoachingReturnBtn();
+    };
+  }
 });
