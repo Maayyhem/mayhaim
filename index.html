@@ -344,38 +344,124 @@
     </div>
 
     <!-- COACHING HUB -->
-    <div id="coaching-screen" class="screen scrollable">
-      <div class="ch-wrap">
-        <div class="ch-header">
-          <button id="btn-coaching-back" class="btn-back">&larr; Menu</button>
-          <h1>Coaching <span>Hub</span></h1>
-          <div class="user-bar">
-            <span id="ch-user-info"></span>
+    <div id="coaching-screen" class="screen">
+
+      <!-- SIDEBAR -->
+      <aside class="ch-sidebar">
+        <div class="ch-sidebar-logo">
+          <div class="logo">AIM<span>.</span></div>
+          <div class="subtitle">TRAINING HUB</div>
+        </div>
+
+        <nav class="ch-sidebar-nav">
+          <!-- Entraînement -->
+          <div class="ch-nav-section">Entraînement</div>
+          <button class="ch-nav-item ch-tab-btn active" data-tab="ch-dashboard">
+            <span class="ch-nav-icon">📊</span> Dashboard
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
+            <span class="ch-nav-icon">⚡</span> Benchmark
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily">
+            <span class="ch-nav-icon">📅</span> Daily Challenge
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
+            <span class="ch-nav-icon">📈</span> Historique
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-leaderboard">
+            <span class="ch-nav-icon">🏆</span> Classement
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-achievements">
+            <span class="ch-nav-icon">🏅</span> Succès
+          </button>
+
+          <!-- Coaching -->
+          <div class="ch-nav-section">Coaching</div>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-scenarios">
+            <span class="ch-nav-icon">🎯</span> Scénarios
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-agents">
+            <span class="ch-nav-icon">🧠</span> Agents
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-vods">
+            <span class="ch-nav-icon">📹</span> VODs
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-cours">
+            <span class="ch-nav-icon">📚</span> Cours
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-warmup">
+            <span class="ch-nav-icon">🔥</span> Échauffement
+          </button>
+
+          <!-- Coach tools (hidden by default, shown for coach/admin) -->
+          <div class="ch-nav-section ch-coach-only" style="display:none">Outils Coach</div>
+          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">
+            <span class="ch-nav-icon">👥</span> Élèves
+          </button>
+          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">
+            <span class="ch-nav-icon">🗺️</span> Map Editor
+          </button>
+          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">
+            <span class="ch-nav-icon">🔧</span> Gestion Scénarios
+          </button>
+
+          <!-- Mon espace -->
+          <div class="ch-nav-section">Mon Espace</div>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-messages">
+            <span class="ch-nav-icon">💬</span> Messages
+            <span class="ch-nav-badge" id="nav-notif-badge" style="display:none">0</span>
+          </button>
+          <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">
+            <span class="ch-nav-icon">👨‍🏫</span> Mon Coach
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="cp-mon-plan">
+            <span class="ch-nav-icon">🗓️</span> Mon Plan
+          </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="cp-feedbacks">
+            <span class="ch-nav-icon">📝</span> Feedbacks
+          </button>
+
+          <!-- Admin -->
+          <button class="ch-nav-item ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">
+            <span class="ch-nav-icon">⚙️</span> Admin
+          </button>
+        </nav>
+
+        <div class="ch-sidebar-footer">
+          <div class="ch-sidebar-user">
+            <div class="ch-sidebar-avatar" id="ch-sidebar-avatar">👤</div>
+            <div class="ch-sidebar-user-info">
+              <div class="ch-sidebar-username" id="ch-sidebar-username">—</div>
+              <span class="ch-sidebar-role role-student" id="ch-sidebar-role">Joueur</span>
+            </div>
+          </div>
+          <button class="ch-sidebar-logout" onclick="coachingLogout()">
+            <span>↩</span> Déconnexion
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN AREA -->
+      <div class="ch-main">
+        <div class="ch-topbar">
+          <div class="ch-topbar-title" id="ch-topbar-title">Dashboard</div>
+          <div class="ch-topbar-actions">
+            <div id="ch-notif-wrap" style="position:relative">
+              <button id="ch-notif-btn" class="btn-back" style="padding:6px 10px;font-size:1rem" onclick="toggleCoachNotifPanel()">🔔<span id="ch-notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px" id="ch-notif-badge-btn"></span></button>
+              <div id="ch-notif-panel" class="notif-panel" style="display:none">
+                <div class="notif-panel-header">
+                  <span style="font-weight:700;font-size:0.88rem">Notifications</span>
+                  <button onclick="markAllNotifRead()" style="font-size:0.75rem;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font)">Tout marquer lu</button>
+                </div>
+                <div id="ch-notif-list"></div>
+              </div>
+            </div>
+            <button class="btn-back" onclick="showScreen('menu-screen')" style="padding:6px 12px;font-size:0.8rem">🎮 Jouer</button>
           </div>
         </div>
 
-        <div class="ch-tabs">
-          <button class="ch-tab-btn active" data-tab="ch-dashboard">Dashboard</button>
-          <button class="ch-tab-btn" data-tab="ch-scenarios">Scenarios</button>
-          <button class="ch-tab-btn" data-tab="ch-agents">Agents</button>
-          <button class="ch-tab-btn" data-tab="ch-vods">VODs</button>
-          <button class="ch-tab-btn" data-tab="ch-cours">Cours</button>
-          <button class="ch-tab-btn" data-tab="ch-warmup">&#128293; Échauffement</button>
-          <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
-          <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
-          <button class="ch-tab-btn" data-tab="ch-benchmark">⚡ Benchmark</button>
-          <button class="ch-tab-btn" data-tab="ch-daily">⚡ Daily</button>
-          <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
-          <button class="ch-tab-btn" data-tab="ch-leaderboard">🏆 Classement</button>
-          <button class="ch-tab-btn" data-tab="ch-achievements">🏅 Succès</button>
-          <button class="ch-tab-btn" data-tab="ch-messages">&#128172; Messages</button>
-          <button class="ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">⚙ Admin</button>
-          <span class="ch-tab-sep">—</span>
-          <button class="ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">Mon Coach</button>
-          <button class="ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">Eleves</button>
-          <button class="ch-tab-btn" data-tab="cp-mon-plan">Mon Plan</button>
-          <button class="ch-tab-btn" data-tab="cp-feedbacks">Feedbacks</button>
-        </div>
+        <div class="ch-scroll">
+          <div class="ch-wrap">
 
         <!-- DASHBOARD -->
         <div id="ch-dashboard" class="ch-panel active">
@@ -876,9 +962,10 @@
           <div id="ch-ach-progress" class="ach-progress-wrap"></div>
           <div id="ch-achievements-grid" class="ach-grid"></div>
         </div>
-        </div>
-      </div>
-    </div>
+          </div><!-- end .ch-wrap -->
+        </div><!-- end .ch-scroll -->
+      </div><!-- end .ch-main -->
+    </div><!-- end #coaching-screen -->
 
     <!-- PLAYER DETAIL MODAL — coach -->
     <div id="cp-player-modal" class="ch-modal">

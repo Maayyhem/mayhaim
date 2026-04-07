@@ -610,6 +610,9 @@ function globalLogout() {
   document.getElementById('auth-screen').classList.add('active');
 }
 
+// Alias used by sidebar logout button
+function coachingLogout() { globalLogout(); }
+
 // ============ ANNONCES ============
 
 async function loadAnnouncements() {
@@ -700,8 +703,20 @@ function showApp() {
   const roleBadge = document.getElementById('menu-user-role');
   roleBadge.textContent = roleLabels[coachingUserRole] || 'Eleve';
   roleBadge.className = 'user-role-badge role-' + coachingUserRole;
-  // Update coaching header
-  document.getElementById('ch-user-info').textContent = coachingUser.username + ' (' + (roleLabels[coachingUserRole] || 'Eleve') + ')';
+  // Update coaching header (legacy, kept for safety)
+  const chUserInfo = document.getElementById('ch-user-info');
+  if (chUserInfo) chUserInfo.textContent = coachingUser.username + ' (' + (roleLabels[coachingUserRole] || 'Eleve') + ')';
+
+  // Update sidebar user info
+  const sidebarUsername = document.getElementById('ch-sidebar-username');
+  const sidebarRole = document.getElementById('ch-sidebar-role');
+  const sidebarAvatar = document.getElementById('ch-sidebar-avatar');
+  if (sidebarUsername) sidebarUsername.textContent = coachingUser.username || coachingUser.email || '—';
+  if (sidebarRole && coachingUserRole) {
+    sidebarRole.textContent = coachingUserRole === 'admin' ? 'Admin' : coachingUserRole === 'coach' ? 'Coach' : 'Joueur';
+    sidebarRole.className = 'ch-sidebar-role ' + (coachingUserRole === 'admin' ? 'role-admin' : coachingUserRole === 'coach' ? 'role-coach' : 'role-student');
+  }
+  if (sidebarAvatar) sidebarAvatar.textContent = (coachingUser.username || coachingUser.email || '?')[0].toUpperCase();
   // Show admin-only tab
   document.querySelectorAll('.ch-admin-tab').forEach(el => {
     el.style.display = coachingUserRole === 'admin' ? '' : 'none';
@@ -738,7 +753,7 @@ function initCoaching() {
     coachingSwitchTab('ch-dashboard');
   });
 
-  document.getElementById('btn-coaching-back').addEventListener('click', () => {
+  document.getElementById('btn-coaching-back')?.addEventListener('click', () => {
     coachingCloseVodModal();
     coachingCloseScenarioModal();
     coachingCloseEditModal();
@@ -757,6 +772,10 @@ function initCoaching() {
     const panel = document.getElementById('notif-panel');
     if (panel && panel.style.display !== 'none' && !panel.contains(e.target) && e.target.id !== 'btn-notif-bell') {
       panel.style.display = 'none';
+    }
+    const chPanel = document.getElementById('ch-notif-panel');
+    if (chPanel && chPanel.style.display !== 'none' && !chPanel.contains(e.target) && e.target.id !== 'ch-notif-btn') {
+      chPanel.style.display = 'none';
     }
   });
 
@@ -803,6 +822,19 @@ function coachingSwitchTab(tabId) {
   document.querySelectorAll('.ch-tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tabId)?.classList.add('active');
   document.querySelector(`.ch-tab-btn[data-tab="${tabId}"]`)?.classList.add('active');
+
+  // Update topbar title
+  const TAB_TITLES = {
+    'ch-dashboard':'Dashboard','ch-benchmark':'⚡ Benchmark','ch-daily':'📅 Daily Challenge',
+    'ch-historique':'📈 Historique','ch-leaderboard':'🏆 Classement','ch-achievements':'🏅 Succès',
+    'ch-scenarios':'🎯 Scénarios','ch-agents':'🧠 Agents','ch-vods':'📹 VODs',
+    'ch-cours':'📚 Cours','ch-warmup':'🔥 Échauffement','ch-students':'👥 Élèves',
+    'ch-messages':'💬 Messages','cp-mon-coach':'👨‍🏫 Mon Coach','cp-mon-plan':'🗓️ Mon Plan',
+    'cp-feedbacks':'📝 Feedbacks','ch-map-editor':'🗺️ Map Editor',
+    'ch-manage-scenarios':'🔧 Gestion Scénarios','ch-admin':'⚙️ Admin',
+  };
+  const titleEl = document.getElementById('ch-topbar-title');
+  if (titleEl) titleEl.textContent = TAB_TITLES[tabId] || tabId;
 
   if (tabId === 'ch-dashboard') coachingRenderDashboard();
   if (tabId === 'ch-scenarios') coachingRenderScenarios();
@@ -3221,27 +3253,48 @@ async function loadNotifications() {
 
 function renderNotifBell(count) {
   const badge = document.getElementById('notif-badge');
-  if (!badge) return;
-  badge.textContent = count > 9 ? '9+' : String(count);
-  badge.style.display = count > 0 ? 'flex' : 'none';
+  if (badge) {
+    badge.textContent = count > 9 ? '9+' : String(count);
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  }
+  // Sidebar messages badge
+  const navBadge = document.getElementById('nav-notif-badge');
+  if (navBadge) {
+    if (count > 0) { navBadge.textContent = count > 9 ? '9+' : String(count); navBadge.style.display = 'flex'; }
+    else { navBadge.style.display = 'none'; }
+  }
+  // Coaching topbar bell badge
+  const chBadge = document.getElementById('ch-notif-badge-btn');
+  if (chBadge) {
+    chBadge.textContent = count > 9 ? '9+' : String(count);
+    chBadge.style.display = count > 0 ? 'flex' : 'none';
+  }
 }
 
 function renderNotifList(notifs) {
+  const html = notifs.length
+    ? notifs.map(n => `
+        <div class="notif-item${n.is_read ? '' : ' notif-unread'}" onclick="clickNotif('${san(String(n.id))}','${san(n.tab || '')}')">
+          <div class="notif-text">${san(n.message)}</div>
+          <div class="notif-time">${timeAgo(n.created_at)}</div>
+        </div>`).join('')
+    : '<p class="ch-empty" style="padding:16px;font-size:0.8rem">Aucune notification</p>';
   const el = document.getElementById('notif-list');
-  if (!el) return;
-  if (!notifs.length) {
-    el.innerHTML = '<p class="ch-empty" style="padding:16px;font-size:0.8rem">Aucune notification</p>';
-    return;
-  }
-  el.innerHTML = notifs.map(n => `
-    <div class="notif-item${n.is_read ? '' : ' notif-unread'}" onclick="clickNotif('${san(String(n.id))}','${san(n.tab || '')}')">
-      <div class="notif-text">${san(n.message)}</div>
-      <div class="notif-time">${timeAgo(n.created_at)}</div>
-    </div>`).join('');
+  if (el) el.innerHTML = html;
+  const chEl = document.getElementById('ch-notif-list');
+  if (chEl) chEl.innerHTML = html;
 }
 
 function toggleNotifPanel() {
   const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  const visible = panel.style.display !== 'none';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) loadNotifications();
+}
+
+function toggleCoachNotifPanel() {
+  const panel = document.getElementById('ch-notif-panel');
   if (!panel) return;
   const visible = panel.style.display !== 'none';
   panel.style.display = visible ? 'none' : 'block';
