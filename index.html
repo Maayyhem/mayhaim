@@ -312,6 +312,7 @@
 
     <!-- RESULTS -->
     <div id="results-screen" class="screen">
+      <div id="bm-results-overlay" class="bm-results-overlay" style="display:none"></div>
       <div class="results-wrap">
         <h2>Resultats</h2>
         <div class="results-rank" id="res-rank">-</div>
@@ -362,6 +363,7 @@
           <button class="ch-tab-btn" data-tab="ch-warmup">&#128293; Échauffement</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">Map Editor</button>
           <button class="ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">Gestion Scenarios</button>
+          <button class="ch-tab-btn" data-tab="ch-benchmark">⚡ Benchmark</button>
           <button class="ch-tab-btn" data-tab="ch-daily">⚡ Daily</button>
           <button class="ch-tab-btn" data-tab="ch-historique">Historique</button>
           <button class="ch-tab-btn" data-tab="ch-leaderboard">🏆 Classement</button>
@@ -835,6 +837,13 @@
           </div>
           <div class="history-chart-wrap" id="pb-chart-wrap" style="display:none"><canvas id="pb-chart"></canvas></div>
           <div id="pb-all-bests" style="margin-top:16px"></div>
+        </div>
+
+        <!-- BENCHMARK -->
+        <div id="ch-benchmark" class="ch-panel">
+          <div id="bm-start-panel"></div>
+          <div id="bm-final-results" style="display:none"></div>
+          <div id="bm-history" style="margin-top:8px"></div>
         </div>
 
         <!-- LEADERBOARD -->

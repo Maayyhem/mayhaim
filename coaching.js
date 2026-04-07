@@ -820,6 +820,7 @@ function coachingSwitchTab(tabId) {
     }
     loadLeaderboard();
   }
+  if (tabId === 'ch-benchmark') { renderBenchmarkTab(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
@@ -1175,6 +1176,253 @@ function coachingOpenVodModal(vod) {
 function coachingCloseVodModal() {
   const modal = document.getElementById('ch-vod-modal');
   if (modal) { modal.classList.remove('active'); document.getElementById('ch-vm-iframe').src = ''; }
+}
+
+// ============ VOLTAIC BENCHMARK ============
+
+const BENCHMARK_SCENARIOS = [
+  { mode:'gridshot',      label:'Gridshot',      type:'🖱️ Clicking',  diff:'medium', dur:60,
+    thresholds:[2000,3500,5000,7000,9000,12000,15000,19000] },
+  { mode:'pasu_reload',   label:'Pasu Reload',   type:'🎯 Précision',  diff:'medium', dur:60,
+    thresholds:[1200,2200,3200,4500,6000,8000,10500,13500] },
+  { mode:'whisphere',     label:'Whisphere',     type:'🌊 Tracking',   diff:'medium', dur:60,
+    thresholds:[800,1600,2500,3600,5000,6800,9000,12000] },
+  { mode:'flicker_plaza', label:'Flicker Plaza', type:'⚡ Flicking',   diff:'medium', dur:60,
+    thresholds:[1000,2000,3200,4500,6200,8000,10000,13000] },
+  { mode:'vox_ts2',       label:'VoxTS2',        type:'🔀 Switching',  diff:'medium', dur:60,
+    thresholds:[600,1200,2000,3000,4200,5800,7500,10000] },
+  { mode:'speedflick',    label:'Speed Flick',   type:'🚀 Speed',      diff:'medium', dur:60,
+    thresholds:[900,1800,2900,4200,5800,7600,9800,12500] },
+];
+
+const BENCHMARK_RANKS = [
+  { name:'Pleb',        color:'#6b7280', bg:'rgba(107,114,128,0.15)', emoji:'😶' },
+  { name:'Iron',        color:'#8B9093', bg:'rgba(139,144,147,0.15)', emoji:'⬛' },
+  { name:'Bronze',      color:'#CD7F32', bg:'rgba(205,127,50,0.15)',  emoji:'🟤' },
+  { name:'Silver',      color:'#B0B5BB', bg:'rgba(176,181,187,0.15)', emoji:'⬜' },
+  { name:'Gold',        color:'#E4B549', bg:'rgba(228,181,73,0.15)',  emoji:'🟡' },
+  { name:'Platinum',    color:'#3DBAB0', bg:'rgba(61,186,176,0.15)', emoji:'🔵' },
+  { name:'Diamond',     color:'#4D9BE6', bg:'rgba(77,155,230,0.15)', emoji:'💎' },
+  { name:'Master',      color:'#E0495A', bg:'rgba(224,73,90,0.15)',  emoji:'🔴' },
+  { name:'Grandmaster', color:'#F4D35E', bg:'rgba(244,211,94,0.15)', emoji:'🌟' },
+];
+
+let _bmActive = false;
+let _bmIdx = 0;
+let _bmResults = [];
+
+function _getScoreTier(score, thresholds) {
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (score >= thresholds[i]) return i + 1;
+  }
+  return 0;
+}
+
+function _bmSave(results) {
+  const rank = _bmCalcRank(results);
+  const entry = {
+    date: new Date().toLocaleDateString('fr-FR'),
+    ts: Date.now(),
+    rankIdx: rank,
+    rankName: BENCHMARK_RANKS[rank].name,
+    scenarios: results
+  };
+  try {
+    const hist = JSON.parse(localStorage.getItem('bm_history') || '[]');
+    hist.unshift(entry);
+    localStorage.setItem('bm_history', JSON.stringify(hist.slice(0, 20)));
+  } catch {}
+  return entry;
+}
+
+function _bmCalcRank(results) {
+  if (!results.length) return 0;
+  const avg = results.reduce((s, r) => s + r.tier, 0) / results.length;
+  return Math.min(8, Math.round(avg));
+}
+
+function startBenchmark() {
+  _bmActive = true;
+  _bmIdx = 0;
+  _bmResults = [];
+  _bmLaunchScenario(0);
+}
+
+function _bmLaunchScenario(idx) {
+  if (idx >= BENCHMARK_SCENARIOS.length) { _bmFinish(); return; }
+  const sc = BENCHMARK_SCENARIOS[idx];
+  window._coachLaunchSource = { tab: 'ch-benchmark', isBenchmark: true, bmIdx: idx };
+  const durEl = document.getElementById('opt-duration');
+  const diffEl = document.getElementById('opt-diff');
+  if (durEl) durEl.value = sc.dur;
+  if (diffEl) diffEl.value = sc.diff;
+  document.getElementById('coaching-screen')?.classList.remove('active');
+  document.getElementById('menu-screen')?.classList.add('active');
+  setTimeout(() => {
+    const modeBtn = document.querySelector(`.mode-card[data-mode="${sc.mode}"]`);
+    if (modeBtn) modeBtn.click();
+    else if (typeof startGame === 'function') startGame(sc.mode);
+  }, 120);
+}
+
+function _bmHandleGameEnd() {
+  if (!_bmActive) return;
+  const sc = BENCHMARK_SCENARIOS[_bmIdx];
+  const score = window.G?.score || 0;
+  const tier = _getScoreTier(score, sc.thresholds);
+  _bmResults.push({ mode: sc.mode, label: sc.label, type: sc.type, score, tier, tierName: BENCHMARK_RANKS[tier].name });
+
+  // Show benchmark overlay on results screen
+  const overlay = document.getElementById('bm-results-overlay');
+  if (overlay) {
+    const rank = BENCHMARK_RANKS[tier];
+    const isLast = _bmIdx >= BENCHMARK_SCENARIOS.length - 1;
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `
+      <div class="bm-overlay-inner">
+        <div class="bm-overlay-progress">${sc.label} — Scénario ${_bmIdx+1}/${BENCHMARK_SCENARIOS.length}</div>
+        <div class="bm-overlay-rank-badge" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}44">
+          ${rank.emoji} ${rank.name}
+        </div>
+        <div class="bm-overlay-score">${score.toLocaleString()} pts</div>
+        <div class="bm-overlay-next">${isLast ? '🏁 Calcul du rang final…' : `⏭️ Prochain scénario dans <span id="bm-countdown">3</span>s`}</div>
+      </div>`;
+    if (!isLast) {
+      let t = 3;
+      const cd = setInterval(() => {
+        t--;
+        const el = document.getElementById('bm-countdown');
+        if (el) el.textContent = t;
+        if (t <= 0) {
+          clearInterval(cd);
+          overlay.style.display = 'none';
+          _bmIdx++;
+          _bmLaunchScenario(_bmIdx);
+        }
+      }, 1000);
+    } else {
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        _bmFinish();
+      }, 1500);
+    }
+  } else {
+    if (_bmIdx < BENCHMARK_SCENARIOS.length - 1) {
+      _bmIdx++;
+      setTimeout(() => _bmLaunchScenario(_bmIdx), 2000);
+    } else {
+      _bmFinish();
+    }
+  }
+}
+
+function _bmFinish() {
+  _bmActive = false;
+  window._coachLaunchSource = null;
+  const entry = _bmSave(_bmResults);
+  // Go to coaching screen, switch to benchmark tab
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('coaching-screen')?.classList.add('active');
+  coachingSwitchTab('ch-benchmark');
+  _renderBenchmarkFinalResults(entry);
+}
+
+function _renderBenchmarkFinalResults(entry) {
+  const el = document.getElementById('bm-final-results');
+  if (!el) return;
+  const rank = BENCHMARK_RANKS[entry.rankIdx];
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="bm-final-header">
+      <div class="bm-final-title">Résultats du Benchmark</div>
+      <div class="bm-final-rank" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}55">
+        ${rank.emoji} ${rank.name}
+      </div>
+      <div class="bm-final-date">${entry.date}</div>
+    </div>
+    <div class="bm-scenario-results">
+      ${entry.scenarios.map(s => {
+        const r = BENCHMARK_RANKS[s.tier];
+        const sc = BENCHMARK_SCENARIOS.find(x => x.mode === s.mode);
+        const maxScore = sc ? sc.thresholds[sc.thresholds.length-1] : 10000;
+        const pct = Math.min(100, Math.round(s.score / maxScore * 100));
+        return `<div class="bm-sc-row">
+          <div class="bm-sc-info">
+            <span class="bm-sc-type">${s.type}</span>
+            <span class="bm-sc-label">${san(s.label)}</span>
+          </div>
+          <div class="bm-sc-bar-wrap">
+            <div class="bm-sc-bar"><div class="bm-sc-fill" style="width:${pct}%;background:${r.color}"></div></div>
+          </div>
+          <div class="bm-sc-rank" style="color:${r.color}">${r.emoji} ${r.name}</div>
+          <div class="bm-sc-score">${s.score.toLocaleString()}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderBenchmarkTab() {
+  const el = document.getElementById('bm-start-panel');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="bm-hero">
+      <div class="bm-hero-title">⚡ Voltaic Benchmark</div>
+      <p class="bm-hero-desc">6 scénarios enchaînés automatiquement · Chacun évalué sur un rang · Résultat global calculé</p>
+      <div class="bm-scenarios-list">
+        ${BENCHMARK_SCENARIOS.map((sc,i) => `
+          <div class="bm-sc-preview">
+            <span class="bm-sc-num">${i+1}</span>
+            <span class="bm-sc-ptype">${sc.type}</span>
+            <span class="bm-sc-pname">${sc.label}</span>
+            <span class="bm-sc-pdur">${sc.dur}s</span>
+          </div>`).join('')}
+      </div>
+      <button class="btn-primary bm-start-btn" onclick="startBenchmark()">🚀 Lancer le Benchmark</button>
+    </div>`;
+  // Load and render history
+  _renderBenchmarkHistory();
+}
+
+function _renderBenchmarkHistory() {
+  const el = document.getElementById('bm-history');
+  if (!el) return;
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem('bm_history') || '[]'); } catch {}
+  window._bmHistoryCache = hist;
+  if (!hist.length) {
+    el.innerHTML = '<p class="ch-empty">Aucun benchmark effectué encore.</p>';
+    return;
+  }
+  el.innerHTML = `
+    <h3 class="ch-section-title" style="font-size:0.9rem;margin:20px 0 12px">Historique</h3>
+    <div class="bm-history-list">
+      ${hist.map((e, i) => {
+        const rank = BENCHMARK_RANKS[e.rankIdx];
+        return `<div class="bm-history-row" onclick="_expandBmEntry(this,${i})">
+          <div class="bm-hist-rank" style="color:${rank.color}">${rank.emoji} ${rank.name}</div>
+          <div class="bm-hist-date">${e.date}</div>
+          <div class="bm-hist-scores">${e.scenarios.map(s=>BENCHMARK_RANKS[s.tier].emoji).join(' ')}</div>
+          <div class="bm-hist-arrow">›</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function _expandBmEntry(el, idx) {
+  const entry = window._bmHistoryCache && window._bmHistoryCache[idx];
+  if (!entry) return;
+  // Toggle detail view
+  let detail = el.nextElementSibling;
+  if (detail && detail.classList.contains('bm-hist-detail')) {
+    detail.remove(); return;
+  }
+  detail = document.createElement('div');
+  detail.className = 'bm-hist-detail';
+  detail.innerHTML = entry.scenarios.map(s => {
+    const r = BENCHMARK_RANKS[s.tier];
+    return `<div class="bm-hist-sc"><span>${s.type} ${san(s.label)}</span><span style="color:${r.color}">${r.emoji} ${r.name} — ${s.score.toLocaleString()}</span></div>`;
+  }).join('');
+  el.after(detail);
 }
 
 const WARMUP_ROUTINES = [
@@ -3113,6 +3361,9 @@ function _updateCoachingReturnBtn() {
   const src = window._coachLaunchSource;
   if (!src) { btn.style.display = 'none'; return; }
 
+  // Benchmark mode — hide the back button (benchmark manages its own flow)
+  if (src.isBenchmark) { btn.style.display = 'none'; return; }
+
   // Routine guidée : afficher le prochain exercice
   if (src.routine) {
     const nextIdx = src.routineIdx + 1;
@@ -3510,6 +3761,7 @@ document.addEventListener('DOMContentLoaded', () => {
       _origEndGame.apply(this, arguments);
       _updateCoachingReturnBtn();
       _renderHeatmap();
+      _bmHandleGameEnd();
     };
   }
 });

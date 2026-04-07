@@ -671,3 +671,53 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ach-toast-icon { font-size: 2rem; flex-shrink: 0; }
 .ach-toast-name { font-weight: 700; font-size: 0.85rem; color: var(--accent); margin-bottom: 2px; }
 .ach-toast-desc { font-size: 0.75rem; color: var(--dim); }
+
+/* ═══════════ VOLTAIC BENCHMARK ═══════════ */
+.bm-hero { text-align: center; padding: 8px 0 24px; }
+.bm-hero-title { font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #ff4655, #ff8c94); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.bm-hero-desc { color: var(--dim); font-size: 0.85rem; margin-bottom: 24px; }
+.bm-scenarios-list { display: flex; flex-direction: column; gap: 8px; max-width: 480px; margin: 0 auto 24px; text-align: left; }
+.bm-sc-preview { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.bm-sc-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,70,85,0.15); color: var(--accent); font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bm-sc-ptype { font-size: 0.8rem; min-width: 90px; color: var(--dim); }
+.bm-sc-pname { font-weight: 600; flex: 1; }
+.bm-sc-pdur { font-size: 0.78rem; color: var(--dim); }
+.bm-start-btn { font-size: 1rem; padding: 14px 40px; border-radius: 12px; margin-top: 8px; }
+
+/* Overlay on results screen during benchmark */
+.bm-results-overlay { position: absolute; inset: 0; background: rgba(10,12,16,0.92); z-index: 10; display: flex; align-items: center; justify-content: center; border-radius: 16px; backdrop-filter: blur(8px); }
+.bm-overlay-inner { text-align: center; }
+.bm-overlay-progress { font-size: 0.85rem; color: var(--dim); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.08em; }
+.bm-overlay-rank-badge { display: inline-block; font-size: 1.6rem; font-weight: 800; padding: 12px 32px; border-radius: 16px; border: 2px solid; margin-bottom: 12px; }
+.bm-overlay-score { font-size: 1.1rem; font-weight: 600; color: var(--txt); margin-bottom: 16px; }
+.bm-overlay-next { font-size: 0.85rem; color: var(--dim); }
+.bm-overlay-next span { color: var(--accent); font-weight: 700; font-size: 1rem; }
+
+/* Final results */
+.bm-final-header { text-align: center; margin-bottom: 28px; }
+.bm-final-title { font-size: 1rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.bm-final-rank { display: inline-block; font-size: 1.8rem; font-weight: 800; padding: 14px 36px; border-radius: 20px; border: 2px solid; margin-bottom: 8px; }
+.bm-final-date { font-size: 0.8rem; color: var(--dim); margin-top: 4px; }
+.bm-scenario-results { display: flex; flex-direction: column; gap: 10px; }
+.bm-sc-row { display: grid; grid-template-columns: 180px 1fr 100px 80px; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.bm-sc-info { display: flex; flex-direction: column; gap: 2px; }
+.bm-sc-type { font-size: 0.72rem; color: var(--dim); }
+.bm-sc-label { font-weight: 600; font-size: 0.85rem; }
+.bm-sc-bar-wrap { }
+.bm-sc-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bm-sc-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+.bm-sc-rank { font-weight: 700; font-size: 0.82rem; text-align: center; }
+.bm-sc-score { font-weight: 600; font-size: 0.82rem; text-align: right; color: var(--dim); }
+
+/* History */
+.bm-history-list { display: flex; flex-direction: column; gap: 6px; }
+.bm-history-row { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: background 0.2s; }
+.bm-history-row:hover { background: rgba(255,255,255,0.04); }
+.bm-hist-rank { font-weight: 700; min-width: 100px; }
+.bm-hist-date { font-size: 0.8rem; color: var(--dim); min-width: 70px; }
+.bm-hist-scores { flex: 1; font-size: 1rem; letter-spacing: 4px; }
+.bm-hist-arrow { color: var(--dim); font-size: 1.2rem; }
+.bm-hist-detail { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; margin-top: -6px; }
+.bm-hist-sc { display: flex; justify-content: space-between; font-size: 0.82rem; }
+
+#results-screen { position: relative; }
