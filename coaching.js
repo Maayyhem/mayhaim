@@ -750,15 +750,10 @@ function showApp() {
 // ============ COACHING INIT ============
 
 function initCoaching() {
-  document.getElementById('btn-coaching').addEventListener('click', () => {
-    
-    document.getElementById('coaching-screen').classList.add('active');
-    // Sync DB data on open
-    fetchScenariosFromDB().then(() => { if (document.getElementById('ch-scenarios')?.classList.contains('active')) coachingRenderScenarios(); });
-    fetchAgentEditsFromDB();
-    fetchStratsFromDB();
-    coachingSwitchTab('ch-dashboard');
-  });
+  // btn-coaching removed (now always in hub) — sync DB on init instead
+  fetchScenariosFromDB().then(() => { if (document.getElementById('ch-scenarios')?.classList.contains('active')) coachingRenderScenarios(); });
+  fetchAgentEditsFromDB();
+  fetchStratsFromDB();
 
   document.getElementById('btn-coaching-back')?.addEventListener('click', () => {
     coachingCloseVodModal();
