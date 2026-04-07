@@ -32,6 +32,14 @@ module.exports = async function handler(req, res) {
 
   // Auto-create tables
   await Promise.all([
+    sql`CREATE TABLE IF NOT EXISTS voltaic_benchmarks (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      rank_idx INTEGER NOT NULL,
+      rank_name TEXT NOT NULL,
+      scenarios JSONB NOT NULL,
+      played_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
     sql`CREATE TABLE IF NOT EXISTS announcements (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
@@ -65,6 +73,8 @@ module.exports = async function handler(req, res) {
   // ── GET ──────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const view = req.query?.view;
+    const userId = decoded.id;
+    const userRole = decoded.role;
 
     // Coach : liste ses joueurs actifs
     if (view === 'my-players') {
@@ -335,12 +345,66 @@ module.exports = async function handler(req, res) {
       return res.json({ rows });
     }
 
+    if (view === 'benchmark-history') {
+      const { rows } = await sql`
+        SELECT id, rank_idx, rank_name, scenarios,
+               TO_CHAR(played_at, 'DD/MM/YY') AS day,
+               played_at
+        FROM voltaic_benchmarks
+        WHERE user_id = ${userId}
+        ORDER BY played_at DESC
+        LIMIT 20
+      `;
+      return res.json({ rows });
+    }
+
+    if (view === 'benchmark-all') {
+      if (userRole !== 'coach' && userRole !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+      const { rows } = await sql`
+        SELECT DISTINCT ON (vb.user_id)
+          u.username, u.id AS user_id,
+          vb.rank_idx, vb.rank_name, vb.scenarios,
+          TO_CHAR(vb.played_at, 'DD/MM/YY') AS day,
+          vb.played_at
+        FROM voltaic_benchmarks vb
+        JOIN users u ON u.id = vb.user_id
+        ORDER BY vb.user_id, vb.played_at DESC
+      `;
+      return res.json({ rows });
+    }
+
+    if (view === 'benchmark-player') {
+      if (userRole !== 'coach' && userRole !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+      const targetId = req.query?.player_id;
+      if (!targetId) return res.status(400).json({ error: 'Missing player_id' });
+      const { rows } = await sql`
+        SELECT id, rank_idx, rank_name, scenarios,
+               TO_CHAR(played_at, 'DD/MM/YY') AS day
+        FROM voltaic_benchmarks
+        WHERE user_id = ${targetId}
+        ORDER BY played_at DESC
+        LIMIT 10
+      `;
+      return res.json({ rows });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
   }
 
   // ── POST ─────────────────────────────────────────────────────────────────
   if (req.method === 'POST') {
-    const { action, target_username, message, rel_id } = req.body;
+    const body = req.body;
+    const { action, target_username, message, rel_id } = body;
+    const userId = decoded.id;
+    const userRole = decoded.role;
+
+    if (action === 'save-benchmark') {
+      const { rank_idx, rank_name, scenarios } = body;
+      if (rank_idx == null || !scenarios) return res.status(400).json({ error: 'Missing fields' });
+      await sql`INSERT INTO voltaic_benchmarks (user_id, rank_idx, rank_name, scenarios)
+        VALUES (${userId}, ${rank_idx}, ${rank_name}, ${JSON.stringify(scenarios)})`;
+      return res.json({ ok: true });
+    }
 
     // ── Envoyer une demande ──────────────────────────────────────────────
     if (action === 'request') {

@@ -721,3 +721,10 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .bm-hist-sc { display: flex; justify-content: space-between; font-size: 0.82rem; }
 
 #results-screen { position: relative; }
+
+/* ═══════════ BENCHMARK COACH VIEW ═══════════ */
+.bm-coach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.bm-coach-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 12px; text-align: center; }
+.bm-coach-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; }
+.bm-coach-rank { display: inline-block; font-weight: 700; font-size: 0.85rem; padding: 4px 12px; border-radius: 8px; border: 1px solid; margin-bottom: 6px; }
+.bm-coach-emojis { font-size: 0.85rem; letter-spacing: 2px; margin-bottom: 4px; }

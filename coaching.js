@@ -713,6 +713,8 @@ function showApp() {
   document.querySelectorAll('.ch-coach-only').forEach(el => {
     el.style.display = isStaff ? (el.dataset.display || '') : 'none';
   });
+  const bmCoachSection = document.getElementById('bm-coach-section');
+  if (bmCoachSection) bmCoachSection.style.display = (coachingUserRole === 'coach' || coachingUserRole === 'admin') ? 'block' : 'none';
   // Init coaching platform (roles, student tabs, pending badge)
   if (typeof cpInit === 'function') setTimeout(cpInit, 0);
   // Load announcements banner
@@ -820,7 +822,7 @@ function coachingSwitchTab(tabId) {
     }
     loadLeaderboard();
   }
-  if (tabId === 'ch-benchmark') { renderBenchmarkTab(); }
+  if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
@@ -1218,20 +1220,24 @@ function _getScoreTier(score, thresholds) {
   return 0;
 }
 
-function _bmSave(results) {
-  const rank = _bmCalcRank(results);
+async function _bmSave(results) {
+  const rankIdx = _bmCalcRank(results);
   const entry = {
     date: new Date().toLocaleDateString('fr-FR'),
     ts: Date.now(),
-    rankIdx: rank,
-    rankName: BENCHMARK_RANKS[rank].name,
+    rankIdx,
+    rankName: BENCHMARK_RANKS[rankIdx].name,
     scenarios: results
   };
-  try {
-    const hist = JSON.parse(localStorage.getItem('bm_history') || '[]');
-    hist.unshift(entry);
-    localStorage.setItem('bm_history', JSON.stringify(hist.slice(0, 20)));
-  } catch {}
+  if (coachingToken) {
+    try {
+      await fetch(`${API_BASE}/coaching`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+        body: JSON.stringify({ action: 'save-benchmark', rank_idx: rankIdx, rank_name: entry.rankName, scenarios: results })
+      });
+    } catch {}
+  }
   return entry;
 }
 
@@ -1316,11 +1322,10 @@ function _bmHandleGameEnd() {
   }
 }
 
-function _bmFinish() {
+async function _bmFinish() {
   _bmActive = false;
   window._coachLaunchSource = null;
-  const entry = _bmSave(_bmResults);
-  // Go to coaching screen, switch to benchmark tab
+  const entry = await _bmSave(_bmResults);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('coaching-screen')?.classList.add('active');
   coachingSwitchTab('ch-benchmark');
@@ -1361,7 +1366,7 @@ function _renderBenchmarkFinalResults(entry) {
     </div>`;
 }
 
-function renderBenchmarkTab() {
+async function renderBenchmarkTab() {
   const el = document.getElementById('bm-start-panel');
   if (!el) return;
   el.innerHTML = `
@@ -1380,32 +1385,73 @@ function renderBenchmarkTab() {
       <button class="btn-primary bm-start-btn" onclick="startBenchmark()">🚀 Lancer le Benchmark</button>
     </div>`;
   // Load and render history
-  _renderBenchmarkHistory();
+  await _renderBenchmarkHistory();
 }
 
-function _renderBenchmarkHistory() {
+async function _renderBenchmarkHistory() {
   const el = document.getElementById('bm-history');
   if (!el) return;
-  let hist = [];
-  try { hist = JSON.parse(localStorage.getItem('bm_history') || '[]'); } catch {}
-  window._bmHistoryCache = hist;
-  if (!hist.length) {
-    el.innerHTML = '<p class="ch-empty">Aucun benchmark effectué encore.</p>';
-    return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connectez-vous pour voir l\'historique.</p>'; return; }
+  try {
+    const r = await fetch(`${API_BASE}/coaching?view=benchmark-history`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    const { rows } = await r.json();
+    window._bmHistoryCache = rows || [];
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<p class="ch-empty">Aucun benchmark effectué encore.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <h3 class="ch-section-title" style="font-size:0.9rem;margin:20px 0 12px">Historique</h3>
+      <div class="bm-history-list">
+        ${rows.map((e, i) => {
+          const rank = BENCHMARK_RANKS[e.rank_idx];
+          const scenarios = Array.isArray(e.scenarios) ? e.scenarios : [];
+          return `<div class="bm-history-row" onclick="_expandBmEntry(this,${i})">
+            <div class="bm-hist-rank" style="color:${rank.color}">${rank.emoji} ${rank.name}</div>
+            <div class="bm-hist-date">${e.day}</div>
+            <div class="bm-hist-scores">${scenarios.map(s => BENCHMARK_RANKS[s.tier]?.emoji || '').join(' ')}</div>
+            <div class="bm-hist-arrow">›</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(err) {
+    el.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>';
   }
-  el.innerHTML = `
-    <h3 class="ch-section-title" style="font-size:0.9rem;margin:20px 0 12px">Historique</h3>
-    <div class="bm-history-list">
-      ${hist.map((e, i) => {
-        const rank = BENCHMARK_RANKS[e.rankIdx];
-        return `<div class="bm-history-row" onclick="_expandBmEntry(this,${i})">
-          <div class="bm-hist-rank" style="color:${rank.color}">${rank.emoji} ${rank.name}</div>
-          <div class="bm-hist-date">${e.date}</div>
-          <div class="bm-hist-scores">${e.scenarios.map(s=>BENCHMARK_RANKS[s.tier].emoji).join(' ')}</div>
-          <div class="bm-hist-arrow">›</div>
+}
+
+async function loadCoachBenchmarkOverview() {
+  const el = document.getElementById('ch-coach-bm-list');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+  try {
+    const r = await fetch(`${API_BASE}/coaching?view=benchmark-all`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    const { rows } = await r.json();
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<p class="ch-empty">Aucun élève n\'a encore effectué de benchmark.</p>';
+      return;
+    }
+    el.innerHTML = `<div class="bm-coach-grid">
+      ${rows.map(row => {
+        const rank = BENCHMARK_RANKS[row.rank_idx] || BENCHMARK_RANKS[0];
+        const scenarios = Array.isArray(row.scenarios) ? row.scenarios : [];
+        return `<div class="bm-coach-card">
+          <div class="bm-coach-name">${san(row.username)}</div>
+          <div class="bm-coach-rank" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}44">
+            ${rank.emoji} ${rank.name}
+          </div>
+          <div class="bm-coach-emojis">${scenarios.map(s => BENCHMARK_RANKS[s.tier]?.emoji || '').join(' ')}</div>
+          <div class="bm-coach-date" style="color:var(--dim);font-size:0.75rem">${row.day}</div>
         </div>`;
       }).join('')}
     </div>`;
+  } catch {
+    el.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>';
+  }
 }
 
 function _expandBmEntry(el, idx) {

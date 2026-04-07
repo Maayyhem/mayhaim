@@ -844,6 +844,11 @@
           <div id="bm-start-panel"></div>
           <div id="bm-final-results" style="display:none"></div>
           <div id="bm-history" style="margin-top:8px"></div>
+          <!-- Coach-only section: see all students' benchmarks -->
+          <div class="ch-coach-only" id="bm-coach-section" style="margin-top:24px;display:none">
+            <h3 class="ch-section-title" style="font-size:0.9rem;margin-bottom:12px">📊 Benchmarks de mes élèves</h3>
+            <div id="ch-coach-bm-list"></div>
+          </div>
         </div>
 
         <!-- LEADERBOARD -->
@@ -887,7 +892,7 @@
           <button class="cp-modal-tab" data-ptab="cp-pt-messages">&#9993; Messages</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-progress">&#128200; Progression</button>
         </div>
-        <div id="cp-pt-stats"    class="cp-modal-panel active"></div>
+        <div id="cp-pt-stats"    class="cp-modal-panel active"><div id="cp-pt-bm"></div></div>
         <div id="cp-pt-plan"     class="cp-modal-panel"></div>
         <div id="cp-pt-feedback" class="cp-modal-panel"></div>
         <div id="cp-pt-messages" class="cp-modal-panel">

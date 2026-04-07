@@ -319,11 +319,39 @@ async function cpOpenPlayer(playerId, username, relId, rank) {
   // Fetch best scores
   const data = await cpFetch('GET', `/benchmark?view=best&user_id=${encodeURIComponent(playerId)}`);
   cpRenderPlayerStats(data.best || [], playerId);
+
+  // Load benchmark for this player
+  fetch(`${API_BASE}/coaching?view=benchmark-player&player_id=${playerId}`, {
+    headers: { 'Authorization': `Bearer ${coachingToken}` }
+  }).then(r => r.json()).then(({ rows }) => {
+    const el = document.getElementById('cp-pt-bm');
+    if (!el || !rows || rows.length === 0) return;
+    const latest = rows[0];
+    const rank = [
+      {name:'Pleb',color:'#6b7280',emoji:'😶'},
+      {name:'Iron',color:'#8B9093',emoji:'⬛'},
+      {name:'Bronze',color:'#CD7F32',emoji:'🟤'},
+      {name:'Silver',color:'#B0B5BB',emoji:'⬜'},
+      {name:'Gold',color:'#E4B549',emoji:'🟡'},
+      {name:'Platinum',color:'#3DBAB0',emoji:'🔵'},
+      {name:'Diamond',color:'#4D9BE6',emoji:'💎'},
+      {name:'Master',color:'#E0495A',emoji:'🔴'},
+      {name:'Grandmaster',color:'#F4D35E',emoji:'🌟'}
+    ][latest.rank_idx] || {name:'Pleb',color:'#6b7280',emoji:'😶'};
+    const scenarios = Array.isArray(latest.scenarios) ? latest.scenarios : [];
+    el.innerHTML = `
+      <div style="margin-bottom:12px">
+        <div style="font-size:0.75rem;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Voltaic Benchmark</div>
+        <div style="display:inline-block;font-weight:700;font-size:1rem;padding:6px 16px;border-radius:8px;background:${rank.color}22;color:${rank.color};border:1px solid ${rank.color}44">${rank.emoji} ${rank.name}</div>
+        <div style="margin-top:8px;font-size:0.8rem;color:var(--dim)">${latest.day}</div>
+        <div style="margin-top:6px;font-size:0.85rem;letter-spacing:3px">${scenarios.map(s => ([{emoji:'😶'},{emoji:'⬛'},{emoji:'🟤'},{emoji:'⬜'},{emoji:'🟡'},{emoji:'🔵'},{emoji:'💎'},{emoji:'🔴'},{emoji:'🌟'}][s.tier]||{emoji:'?'}).emoji).join('')}</div>
+      </div>`;
+  }).catch(() => {});
 }
 
 function cpRenderPlayerStats(bests, playerId) {
   if (bests.length === 0) {
-    cpEl('cp-pt-stats').innerHTML = '<p class="ch-empty">Ce joueur n\'a pas encore de runs benchmark.</p>';
+    cpEl('cp-pt-stats').innerHTML = '<div id="cp-pt-bm"></div><p class="ch-empty">Ce joueur n\'a pas encore de runs benchmark.</p>';
     cpEl('cp-modal-energy-summary').textContent = 'Aucun run benchmark';
     return;
   }
@@ -341,6 +369,7 @@ function cpRenderPlayerStats(bests, playerId) {
     </tr>`).join('');
 
   cpEl('cp-pt-stats').innerHTML = `
+    <div id="cp-pt-bm"></div>
     <table class="cp-stats-table">
       <thead><tr>
         <th>Scénario</th><th>Score</th><th>Acc.</th><th>Energy</th><th>Rang</th>
