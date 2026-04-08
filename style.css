@@ -1094,6 +1094,46 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .pb-best-score { font-size:1.15rem; font-weight:800; color:var(--accent); }
 .pb-best-date { font-size:0.7rem; color:var(--dim); margin-top:3px; }
 
+/* ============ PROFIL JOUEUR ============ */
+.pf-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; }
+.pf-avatar { width:54px; height:54px; border-radius:50%; background:var(--red-g); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800; color:var(--accent); flex-shrink:0; }
+.pf-info { flex:1; }
+.pf-username { font-size:1.25rem; font-weight:800; color:var(--txt); }
+.pf-role { font-size:0.8rem; color:var(--dim); margin-top:2px; }
+.pf-rank-global { text-align:center; }
+.pf-rank-label { display:block; font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+.pf-rank-val { display:block; font-size:1.4rem; font-weight:900; color:var(--accent); }
+
+.pf-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:18px; }
+.pf-stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 8px; text-align:center; }
+.pf-stat-val { display:block; font-size:1.3rem; font-weight:800; color:var(--txt); }
+.pf-stat-val.accent { color:var(--accent); }
+.pf-stat-lbl { display:block; font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.8px; margin-top:3px; }
+
+.pf-section { margin-bottom:18px; }
+.pf-section-title { font-size:0.78rem; font-weight:800; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
+
+.pf-bench-row { display:flex; gap:10px; }
+.pf-bench-stat { flex:1; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; }
+.pf-bench-val { display:block; font-size:1.15rem; font-weight:800; color:var(--txt); }
+.pf-bench-lbl { display:block; font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.8px; margin-top:3px; }
+.pf-bench-rank-wrap { display:flex; align-items:center; justify-content:center; flex:1.2; }
+.pf-bench-rank { padding:8px 18px; border-radius:8px; font-size:1rem; font-weight:800; border:1px solid; letter-spacing:1px; }
+
+.pf-chart-wrap { height:110px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+
+.pf-bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:640px) { .pf-bottom-grid { grid-template-columns:1fr; } .pf-stats-row { grid-template-columns:repeat(3,1fr); } }
+
+.pf-recent-list, .pf-mode-list { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.pf-recent-row, .pf-mode-row { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-bottom:1px solid var(--border); }
+.pf-recent-row:last-child, .pf-mode-row:last-child { border-bottom:none; }
+.pf-recent-mode, .pf-mode-name { font-size:0.82rem; font-weight:600; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+.pf-recent-stats, .pf-mode-stats { display:flex; gap:10px; align-items:center; flex-shrink:0; }
+.pf-recent-score, .pf-mode-score { font-size:0.85rem; font-weight:700; color:var(--accent); }
+.pf-recent-acc { font-size:0.78rem; font-weight:600; }
+.pf-recent-date, .pf-mode-plays { font-size:0.72rem; color:var(--dim); }
+
 /* ── Heatmap résultats ── */
 .heatmap-wrap { margin:16px auto 0; text-align:center; }
 .heatmap-title { font-size:0.78rem; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }

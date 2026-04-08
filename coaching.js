@@ -858,6 +858,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-cours') coachingRenderCours();
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
+  if (tabId === 'ch-profile') renderProfile();
   if (tabId === 'ch-historique') { coachingRenderHistory(); loadPbHistory(); }
   if (tabId === 'ch-leaderboard') {
     // Populate mode select
@@ -3197,6 +3198,184 @@ function renderHistoryChart(history) {
       }
     }
   });
+}
+
+// ============ PROFILE ============
+
+async function renderProfile() {
+  // Immediate render from cached user data
+  const u = typeof coachingUser !== 'undefined' ? coachingUser : null;
+  const avatarEl  = document.getElementById('pf-avatar');
+  const nameEl    = document.getElementById('pf-username');
+  const roleEl    = document.getElementById('pf-role');
+  if (avatarEl && u?.username) avatarEl.textContent = u.username[0].toUpperCase();
+  if (nameEl   && u?.username) nameEl.textContent   = u.username;
+  if (roleEl) roleEl.textContent = u?.role === 'coach' ? '🎓 Coach' : u?.role === 'admin' ? '⚙️ Admin' : '🎮 Joueur';
+
+  // Benchmark from localStorage (medium tier)
+  _pfRenderBench();
+
+  // Fetch rich stats
+  if (!coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/coaching?view=player-profile`, {
+      headers: { 'Authorization': 'Bearer ' + coachingToken }
+    });
+    const d = await res.json();
+
+    // Stats row
+    const s = d.stats || {};
+    _pfSet('pf-games',  s.total_games?.toLocaleString() || '0');
+    _pfSet('pf-best',   s.best_score  ? Number(s.best_score).toLocaleString()  : '—');
+    _pfSet('pf-avg',    s.avg_score   ? Number(s.avg_score).toLocaleString()   : '—');
+    _pfSet('pf-acc',    s.avg_accuracy != null ? s.avg_accuracy + '%' : '—');
+    _pfSet('pf-streak', s.streak != null ? s.streak + (s.streak === 1 ? ' j' : ' j') : '—');
+
+    // Global rank
+    if (s.rank) {
+      const rkWrap = document.getElementById('pf-global-rank');
+      if (rkWrap) rkWrap.style.display = '';
+      _pfSet('pf-rank-num', '#' + s.rank);
+    }
+
+    // Activity 30j chart
+    _pfRenderActivityChart(d.activity_30 || []);
+
+    // Recent games
+    _pfRenderRecentGames(d.recent_games || []);
+
+    // Mode breakdown
+    _pfRenderModeBreakdown(d.mode_breakdown || []);
+
+  } catch(e) {
+    console.warn('Profile load error', e);
+  }
+}
+
+function _pfSet(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function _pfRenderBench() {
+  // Read from localStorage — medium tier
+  const TNAMES = ['Unranked','Iron','Bronze','Silver','Gold','Platinum','Diamond','Legendary','Mythic'];
+  const TCOLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5','#2dbe73','#ff4655','#ff4655'];
+  try {
+    const bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}');
+    const SCENARIOS_LOCAL = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
+    let total = 0, maxTotal = 0;
+    Object.entries(SCENARIOS_LOCAL).forEach(([k, v]) => {
+      if (!v.th) return;
+      const best = bench[k] || 0;
+      const th = v.th || [];
+      const threads = th.filter(t => best >= t).length;
+      total += threads;
+      maxTotal += 8;
+    });
+    const energy = maxTotal > 0 ? Math.round(total / maxTotal * 100) : 0;
+    const rankIdx = Math.min(Math.floor(total / maxTotal * 8), 8);
+    const rankName = TNAMES[rankIdx] || 'Unranked';
+    const rankColor = TCOLORS[rankIdx] || '#7c8389';
+
+    _pfSet('pf-bench-threads', total + ' / ' + maxTotal);
+    _pfSet('pf-bench-energy',  energy + '%');
+    const rankEl = document.getElementById('pf-bench-rank');
+    if (rankEl) { rankEl.textContent = rankName; rankEl.style.color = rankColor; rankEl.style.borderColor = rankColor + '55'; rankEl.style.background = rankColor + '18'; }
+  } catch(e) {}
+}
+
+let _pfActivityChart = null;
+function _pfRenderActivityChart(activity30) {
+  const canvas = document.getElementById('pf-activity-chart');
+  if (!canvas) return;
+
+  // Build a 30-day label array
+  const days = [];
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const map = {};
+  activity30.forEach(r => { map[r.day] = r.games; });
+  const values = days.map(d => map[d] || 0);
+
+  const total = values.reduce((a, b) => a + b, 0);
+  const totalEl = document.getElementById('pf-activity-total');
+  if (totalEl) totalEl.textContent = total > 0 ? `· ${total} parties` : '';
+
+  const labels = days.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+  });
+
+  if (typeof Chart === 'undefined') return;
+  if (_pfActivityChart) { _pfActivityChart.destroy(); _pfActivityChart = null; }
+
+  _pfActivityChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: values.map(v => v > 0 ? 'rgba(255,70,85,0.7)' : 'rgba(255,255,255,0.05)'),
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ctx.parsed.y + ' partie' + (ctx.parsed.y !== 1 ? 's' : '') }
+      }},
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#666', font: { size: 9 }, maxRotation: 0,
+          callback: function(val, idx) { return idx % 5 === 0 ? this.getLabelForValue(val) : ''; }
+        }},
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#666', stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function _pfRenderRecentGames(games) {
+  const el = document.getElementById('pf-recent-games');
+  if (!el) return;
+  if (!games.length) { el.innerHTML = '<p class="ch-empty" style="font-size:0.82rem">Aucune partie jouée.</p>'; return; }
+  const SCENARIOS_LOCAL = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
+  el.innerHTML = games.map(g => {
+    const label = SCENARIOS_LOCAL[g.mode]?.label || g.mode.replace(/_/g, ' ');
+    const date = new Date(g.played_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    const accColor = g.accuracy >= 80 ? '#4ade80' : g.accuracy >= 60 ? '#facc15' : '#f87171';
+    return `<div class="pf-recent-row">
+      <div class="pf-recent-mode">${san(label)}</div>
+      <div class="pf-recent-stats">
+        <span class="pf-recent-score">${Number(g.score).toLocaleString()}</span>
+        <span class="pf-recent-acc" style="color:${accColor}">${g.accuracy}%</span>
+        <span class="pf-recent-date">${date}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _pfRenderModeBreakdown(modes) {
+  const el = document.getElementById('pf-mode-breakdown');
+  if (!el) return;
+  if (!modes.length) { el.innerHTML = '<p class="ch-empty" style="font-size:0.82rem">Aucune donnée.</p>'; return; }
+  const SCENARIOS_LOCAL = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
+  el.innerHTML = modes.slice(0, 8).map(m => {
+    const label = SCENARIOS_LOCAL[m.mode]?.label || m.mode.replace(/_/g, ' ');
+    return `<div class="pf-mode-row">
+      <div class="pf-mode-name">${san(label)}</div>
+      <div class="pf-mode-stats">
+        <span class="pf-mode-score">${Number(m.best_score).toLocaleString()}</span>
+        <span class="pf-mode-plays" style="color:var(--dim)">×${m.plays}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ============ LEADERBOARD ============

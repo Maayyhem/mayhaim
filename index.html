@@ -232,6 +232,9 @@
           </button>
 
           <div class="ch-nav-section">Progression</div>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-profile">
+            <span class="ch-nav-icon">👤</span> Mon Profil
+          </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
             <span class="ch-nav-icon">⚡</span> Voltaic Benchmark
           </button>
@@ -1096,6 +1099,67 @@
           <h2 class="ch-section-title">Gestion des Scenarios</h2>
           <button id="ch-add-scenario-btn" class="btn-primary" style="margin-bottom:20px">+ Ajouter un scenario</button>
           <div class="ch-cards-grid" id="ch-manage-scenarios-list"></div>
+        </div>
+
+        <!-- PROFIL JOUEUR -->
+        <div id="ch-profile" class="ch-panel">
+
+          <!-- Header -->
+          <div class="pf-header">
+            <div class="pf-avatar" id="pf-avatar">?</div>
+            <div class="pf-info">
+              <div class="pf-username" id="pf-username">—</div>
+              <div class="pf-role" id="pf-role">—</div>
+            </div>
+            <div class="pf-rank-global" id="pf-global-rank" style="display:none">
+              <span class="pf-rank-label">Classement</span>
+              <span class="pf-rank-val" id="pf-rank-num">—</span>
+            </div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="pf-stats-row">
+            <div class="pf-stat"><span class="pf-stat-val" id="pf-games">—</span><span class="pf-stat-lbl">Parties</span></div>
+            <div class="pf-stat"><span class="pf-stat-val accent" id="pf-best">—</span><span class="pf-stat-lbl">Record</span></div>
+            <div class="pf-stat"><span class="pf-stat-val" id="pf-avg">—</span><span class="pf-stat-lbl">Score moy.</span></div>
+            <div class="pf-stat"><span class="pf-stat-val" id="pf-acc">—</span><span class="pf-stat-lbl">Précision</span></div>
+            <div class="pf-stat"><span class="pf-stat-val" id="pf-streak">—</span><span class="pf-stat-lbl">Streak 🔥</span></div>
+          </div>
+
+          <!-- Benchmark local summary -->
+          <div class="pf-section">
+            <div class="pf-section-title">📊 Viscose Benchmark</div>
+            <div id="pf-bench-row" class="pf-bench-row">
+              <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-threads">—</span><span class="pf-bench-lbl">Threads</span></div>
+              <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-energy">—</span><span class="pf-bench-lbl">Energy</span></div>
+              <div class="pf-bench-stat pf-bench-rank-wrap"><span class="pf-bench-rank" id="pf-bench-rank">Unranked</span></div>
+            </div>
+          </div>
+
+          <!-- 30-day activity chart -->
+          <div class="pf-section">
+            <div class="pf-section-title">📈 Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div class="pf-chart-wrap">
+              <canvas id="pf-activity-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Two-column bottom -->
+          <div class="pf-bottom-grid">
+
+            <!-- Recent games -->
+            <div class="pf-section">
+              <div class="pf-section-title">🕹️ Parties récentes</div>
+              <div id="pf-recent-games" class="pf-recent-list"></div>
+            </div>
+
+            <!-- Best modes -->
+            <div class="pf-section">
+              <div class="pf-section-title">🎯 Meilleurs modes</div>
+              <div id="pf-mode-breakdown" class="pf-mode-list"></div>
+            </div>
+
+          </div>
         </div>
 
         <div id="ch-historique" class="ch-panel">
