@@ -386,57 +386,236 @@
 
         <!-- ══ HUB SETTINGS (remplace settings-screen) ══ -->
         <div id="hub-settings" class="ch-panel">
-          <div class="hub-settings-section">
-            <div class="ch-section-title">Apparence &amp; Son</div>
-            <div class="hub-settings-row">
-              <label>UI: <select id="opt-theme"><option value="default">Valorant</option><option value="midnight">Midnight</option><option value="emerald">Emerald</option><option value="sakura">Sakura</option></select></label>
-              <label>Room: <select id="opt-room-theme"><option value="clean_grey">Clean Grey</option><option value="pure_dark">Pure Dark</option><option value="neon">Neon</option><option value="sunset">Sunset</option><option value="arctic">Arctic</option><option value="matrix">Matrix</option><option value="oxide">Oxide</option><option value="synthwave">Synthwave</option><option value="clover_alt">Clover Alt</option></select></label>
-              <label>Son: <input type="checkbox" id="opt-sound" checked></label>
-            </div>
-          </div>
+  <div class="sett-layout">
 
-          <div class="hub-settings-section">
-            <div class="ch-section-title">Sensibilité</div>
-            <div class="hub-settings-row">
-              <label>DPI: <input type="number" id="opt-dpi" min="100" max="32000" value="800" step="50" style="width:65px"></label>
-              <label>Mode:
-                <select id="opt-sens-mode" style="width:90px">
-                  <option value="cm360">cm/360</option>
-                  <option value="valorant">Valorant</option>
-                  <option value="cs2">CS2</option>
-                  <option value="overwatch">Overwatch</option>
-                  <option value="apex">Apex</option>
-                  <option value="fortnite">Fortnite</option>
-                </select>
-              </label>
-              <label>Valeur: <input type="number" id="opt-sens-val" min="0.01" max="500" value="34" step="0.01" style="width:70px"></label>
-            </div>
-          </div>
+    <!-- ─── COLONNE GAUCHE ─────────────────────────────── -->
+    <div class="sett-left">
 
-          <div class="hub-settings-section">
-            <div class="ch-section-title">Crosshair</div>
-            <div class="xh-preview-wrap"><div class="xh-preview-box" id="xh-preview"></div></div>
-            <div class="hub-settings-row" style="margin-top:12px">
-              <label>Couleur: <input type="color" id="xh-color" value="#00ff88"></label>
-              <label>Opacite: <input type="range" id="xh-opacity" min="0" max="1" value="1" step="0.1"><span id="xh-opacity-val">1</span></label>
-              <label>Outline: <input type="range" id="xh-outline" min="0" max="3" value="1" step="0.5"><span id="xh-outline-val">1</span></label>
-              <label>Dot: <input type="checkbox" id="xh-dot"></label>
-              <label>Dot Size: <input type="range" id="xh-dot-size" min="1" max="6" value="2" step="0.5"><span id="xh-dot-size-val">2</span></label>
-            </div>
-            <div class="hub-settings-row">
-              <label>Inner: <input type="checkbox" id="xh-inner-show" checked></label>
-              <label>Longueur: <input type="range" id="xh-inner-len" min="1" max="20" value="6" step="1"><span id="xh-inner-len-val">6</span></label>
-              <label>Epaisseur: <input type="range" id="xh-inner-thick" min="1" max="6" value="2" step="0.5"><span id="xh-inner-thick-val">2</span></label>
-              <label>Gap: <input type="range" id="xh-inner-gap" min="0" max="15" value="3" step="1"><span id="xh-inner-gap-val">3</span></label>
-            </div>
-            <div class="hub-settings-row">
-              <label>Outer: <input type="checkbox" id="xh-outer-show"></label>
-              <label>Longueur: <input type="range" id="xh-outer-len" min="1" max="10" value="2" step="1"><span id="xh-outer-len-val">2</span></label>
-              <label>Epaisseur: <input type="range" id="xh-outer-thick" min="1" max="6" value="2" step="0.5"><span id="xh-outer-thick-val">2</span></label>
-              <label>Gap: <input type="range" id="xh-outer-gap" min="3" max="25" value="10" step="1"><span id="xh-outer-gap-val">10</span></label>
-            </div>
+      <!-- Apparence -->
+      <div class="sett-card">
+        <div class="sett-card-title">🎨 Apparence</div>
+
+        <div class="sett-field-label">Thème interface</div>
+        <div class="sett-theme-grid" id="ui-theme-chips">
+          <button class="sett-theme-chip" data-theme="default">
+            <span class="sett-theme-dot" style="background:#ff4655"></span>Valorant
+          </button>
+          <button class="sett-theme-chip" data-theme="midnight">
+            <span class="sett-theme-dot" style="background:#818cf8"></span>Midnight
+          </button>
+          <button class="sett-theme-chip" data-theme="emerald">
+            <span class="sett-theme-dot" style="background:#10b981"></span>Emerald
+          </button>
+          <button class="sett-theme-chip" data-theme="sakura">
+            <span class="sett-theme-dot" style="background:#f472b6"></span>Sakura
+          </button>
+        </div>
+        <select id="opt-theme" style="display:none">
+          <option value="default">Valorant</option>
+          <option value="midnight">Midnight</option>
+          <option value="emerald">Emerald</option>
+          <option value="sakura">Sakura</option>
+        </select>
+
+        <div class="sett-field-label" style="margin-top:16px">Thème room 3D</div>
+        <div class="sett-room-grid" id="room-theme-chips">
+          <!-- Généré par JS via initSettingsChips() -->
+        </div>
+        <select id="opt-room-theme" style="display:none">
+          <option value="clean_grey">Clean Grey</option>
+          <option value="pure_dark">Pure Dark</option>
+          <option value="neon">Neon</option>
+          <option value="sunset">Sunset</option>
+          <option value="arctic">Arctic</option>
+          <option value="matrix">Matrix</option>
+          <option value="oxide">Oxide</option>
+          <option value="synthwave">Synthwave</option>
+          <option value="clover_alt">Clover Alt</option>
+        </select>
+      </div>
+
+      <!-- Son -->
+      <div class="sett-card">
+        <div class="sett-card-title">🔊 Son</div>
+        <div class="sett-row">
+          <span class="sett-row-label">Sons de jeu</span>
+          <label class="sett-toggle">
+            <input type="checkbox" id="opt-sound" checked>
+            <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sensibilité -->
+      <div class="sett-card">
+        <div class="sett-card-title">🖱️ Sensibilité</div>
+        <div class="sett-row">
+          <span class="sett-row-label">DPI souris</span>
+          <input type="number" id="opt-dpi" class="sett-input" min="100" max="32000" value="800" step="50" style="width:80px">
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">Jeu de référence</span>
+          <select id="opt-sens-mode" class="sett-select">
+            <option value="cm360">cm/360°</option>
+            <option value="valorant">Valorant</option>
+            <option value="cs2">CS2</option>
+            <option value="overwatch">Overwatch</option>
+            <option value="apex">Apex</option>
+            <option value="fortnite">Fortnite</option>
+          </select>
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">Valeur</span>
+          <input type="number" id="opt-sens-val" class="sett-input" min="0.01" max="500" value="34" step="0.01" style="width:90px">
+        </div>
+        <div class="sett-computed">≈ <span id="sens-cm360-display">34.0</span> cm/360°</div>
+      </div>
+
+      <!-- Jeu -->
+      <div class="sett-card">
+        <div class="sett-card-title">🎮 Jeu</div>
+        <div class="sett-row">
+          <span class="sett-row-label">Durée par défaut</span>
+          <select id="opt-duration" class="sett-select">
+            <option value="30">30s</option>
+            <option value="45">45s</option>
+            <option value="60" selected>60s</option>
+            <option value="90">90s</option>
+          </select>
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">Difficulté</span>
+          <select id="opt-diff" class="sett-select">
+            <option value="easy">Easier</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Harder</option>
+          </select>
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">FOV <span id="opt-fov-val" style="color:var(--accent);font-weight:700">103</span>°</span>
+          <input type="range" id="opt-fov" min="70" max="120" value="103" step="1" class="sett-range" style="width:140px">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── COLONNE DROITE : Crosshair ────────────────── -->
+    <div class="sett-right">
+      <div class="sett-card">
+        <div class="sett-card-title">✚ Crosshair</div>
+
+        <!-- Présets -->
+        <div class="sett-field-label">Présets</div>
+        <div class="xh-presets">
+          <button class="xh-preset" data-preset="dot">Dot</button>
+          <button class="xh-preset" data-preset="classic">Classic</button>
+          <button class="xh-preset" data-preset="plus">Plus</button>
+          <button class="xh-preset" data-preset="valorant">Valorant</button>
+          <button class="xh-preset" data-preset="sniper">Sniper</button>
+        </div>
+
+        <!-- Aperçu live -->
+        <div class="xh-preview-wrap">
+          <div class="xh-preview-bg" id="xh-preview">
+            <!-- SVG crosshair injecté par applyCrosshair() -->
           </div>
         </div>
+
+        <!-- Contrôles -->
+        <div class="sett-xh-controls">
+
+          <div class="xh-ctrl-group">
+            <div class="sett-field-label">Base</div>
+            <div class="sett-row">
+              <span class="sett-row-label">Couleur</span>
+              <input type="color" id="xh-color" value="#00ff88" class="sett-color">
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Opacité</span>
+              <input type="range" id="xh-opacity" min="0" max="1" value="1" step="0.05" class="sett-range">
+              <span class="sett-range-val" id="xh-opacity-val">1</span>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Outline</span>
+              <input type="range" id="xh-outline" min="0" max="4" value="1" step="0.5" class="sett-range">
+              <span class="sett-range-val" id="xh-outline-val">1</span>
+            </div>
+          </div>
+
+          <div class="xh-ctrl-group">
+            <div class="sett-field-label">Point central</div>
+            <div class="sett-row">
+              <span class="sett-row-label">Activer</span>
+              <label class="sett-toggle">
+                <input type="checkbox" id="xh-dot">
+                <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Taille</span>
+              <input type="range" id="xh-dot-size" min="1" max="8" value="2" step="0.5" class="sett-range">
+              <span class="sett-range-val" id="xh-dot-size-val">2</span>
+            </div>
+          </div>
+
+          <div class="xh-ctrl-group">
+            <div class="sett-field-label">Lignes intérieures</div>
+            <div class="sett-row">
+              <span class="sett-row-label">Activer</span>
+              <label class="sett-toggle">
+                <input type="checkbox" id="xh-inner-show" checked>
+                <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Longueur</span>
+              <input type="range" id="xh-inner-len" min="1" max="20" value="6" step="1" class="sett-range">
+              <span class="sett-range-val" id="xh-inner-len-val">6</span>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Épaisseur</span>
+              <input type="range" id="xh-inner-thick" min="1" max="6" value="2" step="0.5" class="sett-range">
+              <span class="sett-range-val" id="xh-inner-thick-val">2</span>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Gap</span>
+              <input type="range" id="xh-inner-gap" min="0" max="15" value="3" step="1" class="sett-range">
+              <span class="sett-range-val" id="xh-inner-gap-val">3</span>
+            </div>
+          </div>
+
+          <div class="xh-ctrl-group">
+            <div class="sett-field-label">Lignes extérieures</div>
+            <div class="sett-row">
+              <span class="sett-row-label">Activer</span>
+              <label class="sett-toggle">
+                <input type="checkbox" id="xh-outer-show">
+                <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Longueur</span>
+              <input type="range" id="xh-outer-len" min="1" max="12" value="2" step="1" class="sett-range">
+              <span class="sett-range-val" id="xh-outer-len-val">2</span>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Épaisseur</span>
+              <input type="range" id="xh-outer-thick" min="1" max="6" value="2" step="0.5" class="sett-range">
+              <span class="sett-range-val" id="xh-outer-thick-val">2</span>
+            </div>
+            <div class="sett-range-row">
+              <span class="sett-row-label">Gap</span>
+              <input type="range" id="xh-outer-gap" min="3" max="30" value="10" step="1" class="sett-range">
+              <span class="sett-range-val" id="xh-outer-gap-val">10</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
         <!-- ══ HUB VISCOSE BENCHMARK (remplace benchmark-screen) ══ -->
         <div id="hub-viscose" class="ch-panel">

@@ -206,13 +206,91 @@ function getBenchmarkScore() {
 }
 function getBest(key) { return loadBench()[key] || 0; }
 
-const DEF_SETTINGS = { sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
+const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
   xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
   xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
   xhOuterLen:2, xhOuterThick:2, xhOuterGap:10, xhOuterShow:false,
   theme:'default', roomTheme:'clean_grey' };
 function loadSettings() { try { return {...DEF_SETTINGS,...JSON.parse(localStorage.getItem('visc_settings'))}; } catch { return {...DEF_SETTINGS}; } }
 function saveSettings(p) { const s = loadSettings(); Object.assign(s, p); localStorage.setItem('visc_settings', JSON.stringify(s)); }
+
+const XH_PRESETS = {
+  dot:     { xhInnerShow:false, xhOuterShow:false, xhDot:true, xhDotSize:3, xhOutline:0, xhInnerGap:0, xhInnerLen:6, xhInnerThick:2, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
+  classic: { xhInnerShow:true, xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhOuterShow:false, xhDot:false, xhOutline:1, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
+  plus:    { xhInnerShow:true, xhInnerLen:8, xhInnerThick:2, xhInnerGap:0, xhOuterShow:false, xhDot:false, xhOutline:0, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
+  valorant:{ xhInnerShow:true, xhInnerLen:6, xhInnerThick:2, xhInnerGap:4, xhOuterShow:false, xhDot:false, xhOutline:1, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
+  sniper:  { xhInnerShow:true, xhInnerLen:14, xhInnerThick:1, xhInnerGap:8, xhOuterShow:false, xhDot:true, xhDotSize:1.5, xhOutline:0, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
+};
+
+function updateSensDisplay() {
+  const s = loadSettings();
+  const cm = gameSensToCm360(s.sensMode, s.sensVal);
+  const el = document.getElementById('sens-cm360-display');
+  if (el) el.textContent = Math.round(cm * 10) / 10;
+}
+
+function initSettingsChips() {
+  const s = loadSettings();
+
+  // UI Theme chips
+  document.getElementById('ui-theme-chips')?.addEventListener('click', e => {
+    const chip = e.target.closest('.sett-theme-chip');
+    if (!chip) return;
+    const t = chip.dataset.theme;
+    saveSettings({ theme: t }); applyTheme(t);
+    document.querySelectorAll('.sett-theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === t));
+    const sel = document.getElementById('opt-theme'); if (sel) sel.value = t;
+  });
+  // Mark active
+  document.querySelectorAll('.sett-theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === (s.theme || 'default')));
+
+  // Room theme chips — generate from ROOM_THEMES
+  const roomGrid = document.getElementById('room-theme-chips');
+  if (roomGrid) {
+    roomGrid.innerHTML = '';
+    Object.entries(ROOM_THEMES).forEach(([key, rt]) => {
+      const bg = '#' + rt.bg.toString(16).padStart(6,'0');
+      const floor = '#' + rt.floor.toString(16).padStart(6,'0');
+      const btn = document.createElement('button');
+      btn.className = 'sett-room-chip' + (key === (s.roomTheme || 'clean_grey') ? ' active' : '');
+      btn.dataset.room = key;
+      btn.innerHTML = `<span class="sett-room-swatch" style="background:linear-gradient(135deg,${bg} 50%,${floor} 50%)"></span>${rt.label}`;
+      btn.addEventListener('click', () => {
+        saveSettings({ roomTheme: key }); applyRoomTheme();
+        document.querySelectorAll('.sett-room-chip').forEach(c => c.classList.toggle('active', c.dataset.room === key));
+        const sel = document.getElementById('opt-room-theme'); if (sel) sel.value = key;
+      });
+      roomGrid.appendChild(btn);
+    });
+  }
+
+  // FOV slider
+  const fovSlider = document.getElementById('opt-fov');
+  const fovVal = document.getElementById('opt-fov-val');
+  if (fovSlider) {
+    fovSlider.value = s.hFov || 103;
+    if (fovVal) fovVal.textContent = s.hFov || 103;
+    fovSlider.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      if (fovVal) fovVal.textContent = v;
+      saveSettings({ hFov: v });
+      updateFOV();
+    });
+  }
+
+  // Crosshair presets
+  document.querySelectorAll('.xh-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = XH_PRESETS[btn.dataset.preset];
+      if (!preset) return;
+      saveSettings(preset);
+      applySettings();
+    });
+  });
+
+  // Sens display update
+  updateSensDisplay();
+}
 
 function applySettings() {
   const s = loadSettings();
@@ -240,6 +318,7 @@ function applySettings() {
   $('#opt-theme').value = s.theme;
   if ($('#opt-room-theme')) $('#opt-room-theme').value = s.roomTheme || 'clean_grey';
   applyCrosshair(); applyTheme(s.theme); applyRoomTheme();
+  initSettingsChips(); updateSensDisplay();
 }
 
 function applyCrosshair() {
@@ -360,7 +439,7 @@ function setupLights() {
   const sun = new THREE.DirectionalLight(0xfff8f0,1); sun.position.set(5,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xaaccff,0x444422,0.4));
 }
-function updateFOV() { const h=103*Math.PI/180; camera.fov=2*Math.atan(Math.tan(h/2)/camera.aspect)*180/Math.PI; camera.updateProjectionMatrix(); }
+function updateFOV() { const h=(loadSettings().hFov||103)*Math.PI/180; camera.fov=2*Math.atan(Math.tan(h/2)/camera.aspect)*180/Math.PI; camera.updateProjectionMatrix(); }
 
 const M = {
   floor: new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:0.85}),
@@ -1699,11 +1778,13 @@ $('#opt-sens-mode').addEventListener('change',e=>{
   $('#opt-sens-val').value = Math.round(newVal*100)/100;
   $('#opt-sens-val').step = (SENS_DEFAULTS[mode]||SENS_DEFAULTS.cm360).step;
   saveSettings({sensMode:mode,sensVal:newVal,cm360:G.cm360});
+  updateSensDisplay();
 });
 $('#opt-sens-val').addEventListener('input',e=>{
   const mode=$('#opt-sens-mode').value, val=parseFloat(e.target.value)||34;
   G.cm360=gameSensToCm360(mode, val);
   saveSettings({sensMode:mode,sensVal:val,cm360:G.cm360});
+  updateSensDisplay();
 });
 $('#opt-dpi').addEventListener('input',e=>{
   const dpi=parseInt(e.target.value)||800;
