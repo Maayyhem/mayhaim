@@ -156,29 +156,50 @@
     <div id="results-screen" class="screen">
       <div id="bm-results-overlay" class="bm-results-overlay" style="display:none"></div>
       <div class="results-wrap">
-        <h2>Resultats</h2>
-        <div class="results-rank" id="res-rank">-</div>
+        <div class="res-header">
+          <div class="res-mode-name" id="res-mode-name"></div>
+          <div class="results-rank" id="res-rank">-</div>
+        </div>
+        <div id="res-pb-wrap" class="res-pb-wrap" style="display:none"></div>
         <div class="results-grid">
-          <div class="r-card"><span class="r-val" id="r-score">0</span><span class="r-lbl">Score</span></div>
-          <div class="r-card"><span class="r-val" id="r-acc">0%</span><span class="r-lbl">Precision</span></div>
-          <div class="r-card"><span class="r-val" id="r-hits">0</span><span class="r-lbl">Hits</span></div>
-          <div class="r-card"><span class="r-val" id="r-misses">0</span><span class="r-lbl">Misses</span></div>
-          <div class="r-card"><span class="r-val" id="r-react">0ms</span><span class="r-lbl">Reaction</span></div>
-          <div class="r-card"><span class="r-val" id="r-combo">0</span><span class="r-lbl">Best Combo</span></div>
+          <div class="r-card r-card-score">
+            <span class="r-val" id="r-score">0</span>
+            <span class="r-lbl">Score</span>
+          </div>
+          <div class="r-card">
+            <span class="r-val" id="r-acc">0%</span>
+            <span class="r-lbl">Précision</span>
+          </div>
+          <div class="r-card">
+            <span class="r-val" id="r-hits">0</span>
+            <span class="r-lbl">Hits</span>
+          </div>
+          <div class="r-card">
+            <span class="r-val" id="r-misses">0</span>
+            <span class="r-lbl">Misses</span>
+          </div>
+          <div class="r-card">
+            <span class="r-val" id="r-react">0ms</span>
+            <span class="r-lbl">Réaction</span>
+          </div>
+          <div class="r-card">
+            <span class="r-val" id="r-combo">0</span>
+            <span class="r-lbl">Best Combo</span>
+          </div>
         </div>
         <div id="res-threads-wrap" class="hidden">
           <div class="r-card r-threads"><span class="r-val" id="r-threads">0/8</span><span class="r-lbl">Threads</span></div>
         </div>
         <div id="heatmap-wrap" class="heatmap-wrap" style="display:none">
           <div class="heatmap-title">🎯 Carte des clics</div>
-          <canvas id="heatmap-canvas" width="320" height="180"></canvas>
+          <canvas id="heatmap-canvas" width="480" height="270"></canvas>
           <div class="heatmap-legend">
             <span class="heatmap-hit">● Hit</span>
             <span class="heatmap-miss">● Miss</span>
           </div>
         </div>
         <div class="results-actions">
-          <button id="btn-retry" class="btn-primary">Rejouer</button>
+          <button id="btn-retry" class="btn-primary">↺ Rejouer</button>
           <button id="btn-back-coaching" class="btn-primary" style="display:none"></button>
           <button id="btn-menu" class="btn-secondary">Menu</button>
         </div>

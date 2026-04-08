@@ -1407,10 +1407,35 @@ function endGame() {
   else acc = total>0?Math.round(G.hits/total*100):0;
   const avgR=G.reactionTimes.length>0?Math.round(G.reactionTimes.reduce((a,b)=>a+b)/G.reactionTimes.length):0;
 
+  // Mode name in header
+  const rModeEl = $('#res-mode-name');
+  if(rModeEl) rModeEl.textContent = (SCENARIOS[G.mode]?.label || G.mode.replace(/_/g,' ')).toUpperCase();
+
   $('#r-score').textContent=G.score.toLocaleString();
   $('#r-acc').textContent=acc+'%'; $('#r-hits').textContent=G.hits;
   $('#r-misses').textContent=G.misses; $('#r-react').textContent=avgR>0?avgR+'ms':'N/A';
   $('#r-combo').textContent=G.bestCombo;
+
+  // PB comparison
+  if(!G.benchmarkMode) {
+    const prevPB = getModeLocalPB(G.mode);
+    const pbWrap = $('#res-pb-wrap');
+    if(pbWrap) {
+      pbWrap.style.display = '';
+      if(prevPB === 0) {
+        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-first">🎯 Premier score enregistré !</div>`;
+      } else if(G.score > prevPB) {
+        const delta = G.score - prevPB;
+        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-new">🏆 NOUVEAU RECORD &nbsp;+${delta.toLocaleString()} pts</div>`;
+      } else {
+        const delta = G.score - prevPB;
+        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-below">Record : ${prevPB.toLocaleString()} pts &nbsp;<span>${delta >= 0 ? '+' : ''}${delta.toLocaleString()}</span></div>`;
+      }
+      setModeLocalPB(G.mode, G.score);
+    }
+  } else {
+    const pbWrap = $('#res-pb-wrap'); if(pbWrap) pbWrap.style.display='none';
+  }
 
   const rk=$('#res-rank'), tw=$('#res-threads-wrap');
 
@@ -1516,6 +1541,10 @@ function showScreen(id) {
 // ---- CAREER ----
 function loadCareer() { try{return JSON.parse(localStorage.getItem('visc_career'))||{best:0,acc:0,games:0};}catch{return{best:0,acc:0,games:0};} }
 function saveCareer(score,accuracy) { const s=loadCareer(); s.best=Math.max(s.best,score); s.acc=s.games>0?((s.acc*s.games)+accuracy)/(s.games+1):accuracy; s.games++; localStorage.setItem('visc_career',JSON.stringify(s)); updateMenuStats(); }
+
+// ---- PER-MODE PERSONAL BEST ----
+function getModeLocalPB(mode) { return parseInt(localStorage.getItem('visc_pb_'+mode)||'0'); }
+function setModeLocalPB(mode, score) { if(score>getModeLocalPB(mode)) localStorage.setItem('visc_pb_'+mode, score); }
 function updateMenuStats() { const s=loadCareer(); $('#menu-best').textContent=s.best.toLocaleString(); $('#menu-acc').textContent=Math.round(s.acc)+'%'; $('#menu-games').textContent=s.games; }
 
 // ============ MISSIONS ============

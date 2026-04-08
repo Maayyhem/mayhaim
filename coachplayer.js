@@ -59,6 +59,19 @@ function cpRankBadge(rank) {
     padding:2px 10px;border-radius:20px;font-size:0.78rem;font-weight:700">${rank||'Unranked'}</span>`;
 }
 
+function cpRelativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return 'Il y a quelques secondes';
+  if (m < 60) return `Il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Il y a ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `Il y a ${d}j`;
+  if (d < 30) return `Il y a ${Math.floor(d/7)} sem.`;
+  return `Il y a ${Math.floor(d/30)} mois`;
+}
+
 // ── Init — appelé quand le coaching screen s'ouvre ───────────
 function cpInit() {
   if (!coachingUser) return;
@@ -242,15 +255,26 @@ function renderPlayersList(players) {
   }
   el.innerHTML = `<h3 class="cp-sub-title">Mes joueurs actifs (${players.length})</h3>
     <div class="cp-players-grid">
-      ${players.map(p => `
+      ${players.map(p => {
+        const lastSeen = p.last_played ? cpRelativeTime(p.last_played) : 'Jamais joué';
+        const weekBadge = p.games_this_week > 0
+          ? `<span class="cp-week-badge">${p.games_this_week} cette semaine</span>`
+          : '';
+        return `
         <div class="cp-player-card" onclick="cpOpenPlayer(${p.id}, '${san(p.username)}', ${p.rel_id}, '${san(p.current_rank || '')}')">
           <div class="cp-player-avatar">${p.username[0].toUpperCase()}</div>
           <div class="cp-player-info">
-            <span class="cp-player-name">${san(p.username)} ${cpRankBadge(p.current_rank)}</span>
-            <span class="cp-player-meta">${p.objective ? san(p.objective) : 'Cliquer pour voir les stats'}</span>
+            <div class="cp-player-name">${san(p.username)} ${cpRankBadge(p.current_rank)}</div>
+            <div class="cp-player-meta">
+              ${p.total_games > 0
+                ? `${p.total_games} parties · Record ${(p.best_score||0).toLocaleString()} · ${Math.round(p.avg_accuracy)}% préc.`
+                : (p.objective ? san(p.objective) : 'Aucune partie jouée')}
+            </div>
+            <div class="cp-player-last">${lastSeen} ${weekBadge}</div>
           </div>
           <span style="color:var(--accent);font-size:1.2rem">&#8250;</span>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 

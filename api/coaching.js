@@ -84,11 +84,26 @@ module.exports = async function handler(req, res) {
       const rows = await sql`
         SELECT
           r.id AS rel_id, r.status, r.created_at,
-          u.id, u.username, u.email, u.current_rank, u.peak_elo, u.objective
+          u.id, u.username, u.email, u.current_rank, u.peak_elo, u.objective,
+          stats.total_games,
+          stats.best_score,
+          stats.avg_accuracy,
+          stats.last_played,
+          stats.games_this_week
         FROM coaching_relationships r
         JOIN users u ON u.id = r.player_id
+        LEFT JOIN LATERAL (
+          SELECT
+            COUNT(*)::int AS total_games,
+            COALESCE(MAX(score), 0)::int AS best_score,
+            COALESCE(ROUND(AVG(accuracy)::numeric, 1), 0) AS avg_accuracy,
+            MAX(played_at) AS last_played,
+            COUNT(*) FILTER (WHERE played_at >= NOW() - INTERVAL '7 days')::int AS games_this_week
+          FROM game_history
+          WHERE user_id = u.id
+        ) stats ON true
         WHERE r.coach_id = ${decoded.id} AND r.status = 'active'
-        ORDER BY r.created_at DESC
+        ORDER BY stats.last_played DESC NULLS LAST
       `;
       return res.status(200).json({ players: rows });
     }
