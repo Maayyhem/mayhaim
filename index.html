@@ -1132,22 +1132,35 @@
         <!-- LEADERBOARD -->
         <div id="ch-leaderboard" class="ch-panel">
           <h2 class="ch-section-title">🏆 Classement Global</h2>
-          <div class="lb-controls">
-            <select id="lb-mode-select" class="lb-select" onchange="_lbMode=this.value;loadLeaderboard()">
-            </select>
+
+          <!-- Toggle: Global vs Par Mode -->
+          <div class="lb-toggle-row">
+            <button class="lb-toggle-btn active" id="lb-tab-global" onclick="switchLbTab('global')">🌍 Général</button>
+            <button class="lb-toggle-btn" id="lb-tab-mode" onclick="switchLbTab('mode')">🎯 Par mode</button>
           </div>
-          <div class="lb-wrap">
-            <table class="lb-table">
-              <thead>
-                <tr>
-                  <th>#</th><th>Joueur</th><th>Score</th><th>Précision</th><th>Date</th>
-                </tr>
-              </thead>
-              <tbody id="ch-lb-table">
-                <tr><td colspan="5" style="color:var(--dim);padding:20px;text-align:center">Sélectionner un mode</td></tr>
-              </tbody>
-            </table>
+
+          <!-- Global leaderboard -->
+          <div id="lb-section-global">
+            <div id="ch-lb-global">
+              <p class="ch-empty" style="padding:24px">Chargement…</p>
+            </div>
           </div>
+
+          <!-- Per-mode leaderboard -->
+          <div id="lb-section-mode" style="display:none">
+            <div class="lb-controls">
+              <select id="lb-mode-select" class="lb-select" onchange="_lbMode=this.value;loadLeaderboard()"></select>
+            </div>
+            <div class="lb-wrap">
+              <table class="lb-table">
+                <thead><tr><th>#</th><th>Joueur</th><th>Score</th><th>Précision</th><th>Date</th></tr></thead>
+                <tbody id="ch-lb-table">
+                  <tr><td colspan="5" style="color:var(--dim);padding:20px;text-align:center">Sélectionner un mode</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
         <!-- ACHIEVEMENTS -->
         <div id="ch-achievements" class="ch-panel">
           <h2 class="ch-section-title">🏅 Succès & Récompenses</h2>

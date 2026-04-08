@@ -866,7 +866,7 @@ function coachingSwitchTab(tabId) {
       sel.dataset.populated = '1';
       sel.innerHTML = LB_MODES.map(([v,l]) => `<option value="${v}"${v===_lbMode?' selected':''}>${l}</option>`).join('');
     }
-    loadLeaderboard();
+    switchLbTab(_lbActiveTab || 'global');
   }
   if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
@@ -3697,6 +3697,50 @@ const LB_MODES = [
   ['vox_ts2','VoxTS2'],['pasu_angelic','Pasu Angelic']
 ];
 
+let _lbActiveTab = 'global';
+
+function switchLbTab(tab) {
+  _lbActiveTab = tab;
+  document.getElementById('lb-section-global').style.display = tab === 'global' ? '' : 'none';
+  document.getElementById('lb-section-mode').style.display   = tab === 'mode'   ? '' : 'none';
+  document.getElementById('lb-tab-global').classList.toggle('active', tab === 'global');
+  document.getElementById('lb-tab-mode').classList.toggle('active', tab === 'mode');
+  if (tab === 'global') loadGlobalLeaderboard();
+  else loadLeaderboard();
+}
+
+async function loadGlobalLeaderboard() {
+  const el = document.getElementById('ch-lb-global');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty" style="padding:24px">Chargement…</p>';
+  try {
+    const res = await fetch(`${API_BASE}/leaderboard`);
+    const { leaderboard } = await res.json();
+    if (!leaderboard || !leaderboard.length) {
+      el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = `<div style="overflow-x:auto"><table class="lb-table" style="width:100%">
+      <thead><tr><th>#</th><th>Joueur</th><th>Score total</th><th>Parties</th><th>Préc. moy.</th><th>Meilleure partie</th></tr></thead>
+      <tbody>${leaderboard.map((p, i) => {
+        const isMe = typeof coachingUser !== 'undefined' && coachingUser && p.username === coachingUser.username;
+        const medal = medals[i] || `<span style="color:var(--dim)">${i+1}</span>`;
+        return `<tr class="lb-row ${i < 3 ? 'lb-top3' : ''} ${isMe ? 'lb-me' : ''}">
+          <td class="lb-rank">${medal}</td>
+          <td class="lb-name" style="${i===0?'color:var(--gold)':isMe?'color:var(--accent)':''}">${san(p.username)}${isMe ? ' <span style="font-size:0.72rem;opacity:0.7">(moi)</span>' : ''}</td>
+          <td class="lb-score">${Number(p.total_score).toLocaleString()}</td>
+          <td style="text-align:right;color:var(--dim)">${p.total_games}</td>
+          <td style="text-align:right;color:${p.avg_accuracy>=80?'#4ade80':p.avg_accuracy>=60?'#facc15':'#f87171'}">${p.avg_accuracy}%</td>
+          <td style="text-align:right;color:var(--accent)">${Number(p.best_game).toLocaleString()}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  } catch(e) {
+    el.innerHTML = `<p class="ch-empty">Erreur de chargement.</p>`;
+  }
+}
+
 async function loadLeaderboard() {
   const el = document.getElementById('ch-lb-table');
   if (!el) return;
@@ -3727,21 +3771,21 @@ async function loadLeaderboard() {
 // ============ ACHIEVEMENTS ============
 
 const ACHIEVEMENTS = [
-  { id:'first_game',   icon:'🎯', name:'Premier Sang',      desc:'Joue ta première partie',          check: s => s.totalGames >= 1 },
-  { id:'ten_games',    icon:'🔥', name:'Sur la lancée',      desc:'Joue 10 parties',                  check: s => s.totalGames >= 10 },
-  { id:'hundred',      icon:'💯', name:'Centurion',          desc:'Joue 100 parties',                 check: s => s.totalGames >= 100 },
-  { id:'acc90',        icon:'🎖️', name:'Tireur d\'Élite',   desc:'90%+ de précision en une partie',  check: s => s.bestAccuracy >= 90 },
-  { id:'acc95',        icon:'⚡', name:'Sniper Mode',        desc:'95%+ de précision en une partie',  check: s => s.bestAccuracy >= 95 },
-  { id:'combo20',      icon:'🌊', name:'Combo King',         desc:'Enchaîner x20 en une partie',      check: s => s.bestCombo >= 20 },
-  { id:'combo50',      icon:'🌪️', name:'Flow State',         desc:'Enchaîner x50 en une partie',      check: s => s.bestCombo >= 50 },
-  { id:'score5k',      icon:'⭐', name:'Pointeur',           desc:'5000+ points en une partie',       check: s => s.bestScore >= 5000 },
-  { id:'score10k',     icon:'🌟', name:'Légende',            desc:'10000+ points en une partie',      check: s => s.bestScore >= 10000 },
-  { id:'react200',     icon:'⚡', name:'Réflexes Vifs',      desc:'Réaction moyenne < 250ms',         check: s => s.bestReaction > 0 && s.bestReaction <= 250 },
-  { id:'react150',     icon:'🚀', name:'Flash',              desc:'Réaction moyenne < 150ms',         check: s => s.bestReaction > 0 && s.bestReaction <= 150 },
-  { id:'daily',        icon:'📅', name:'Daily Warrior',      desc:'Jouer le Daily Challenge',         check: s => s.playedDaily },
-  { id:'routine',      icon:'🏋️', name:'Routine Master',    desc:'Compléter une routine complète',   check: s => s.routineCompleted },
-  { id:'streak3',      icon:'🗓️', name:'Assidu',             desc:'3 jours consécutifs de jeu',       check: s => s.streak >= 3 },
-  { id:'streak7',      icon:'🔑', name:'Hebdomadaire',       desc:'7 jours consécutifs de jeu',       check: s => s.streak >= 7 },
+  { id:'first_game',  icon:'🎯', name:'Premier Sang',     desc:'Joue ta première partie',         check: s => s.totalGames >= 1,                          progress: s => ({ cur: s.totalGames||0, max: 1 }) },
+  { id:'ten_games',   icon:'🔥', name:'Sur la lancée',     desc:'Joue 10 parties',                 check: s => s.totalGames >= 10,                         progress: s => ({ cur: Math.min(s.totalGames||0,10), max: 10 }) },
+  { id:'hundred',     icon:'💯', name:'Centurion',         desc:'Joue 100 parties',                check: s => s.totalGames >= 100,                        progress: s => ({ cur: Math.min(s.totalGames||0,100), max: 100 }) },
+  { id:'acc90',       icon:'🎖️', name:'Tireur d\'Élite',  desc:'90%+ de précision en une partie', check: s => s.bestAccuracy >= 90,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,90), max: 90, unit:'%' }) },
+  { id:'acc95',       icon:'⚡', name:'Sniper Mode',       desc:'95%+ de précision en une partie', check: s => s.bestAccuracy >= 95,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,95), max: 95, unit:'%' }) },
+  { id:'combo20',     icon:'🌊', name:'Combo King',        desc:'Enchaîner x20 en une partie',     check: s => s.bestCombo >= 20,                          progress: s => ({ cur: Math.min(s.bestCombo||0,20), max: 20, unit:'x' }) },
+  { id:'combo50',     icon:'🌪️', name:'Flow State',        desc:'Enchaîner x50 en une partie',     check: s => s.bestCombo >= 50,                          progress: s => ({ cur: Math.min(s.bestCombo||0,50), max: 50, unit:'x' }) },
+  { id:'score5k',     icon:'⭐', name:'Pointeur',          desc:'5 000+ points en une partie',     check: s => s.bestScore >= 5000,                        progress: s => ({ cur: Math.min(s.bestScore||0,5000), max: 5000, unit:' pts' }) },
+  { id:'score10k',    icon:'🌟', name:'Légende',           desc:'10 000+ points en une partie',    check: s => s.bestScore >= 10000,                       progress: s => ({ cur: Math.min(s.bestScore||0,10000), max: 10000, unit:' pts' }) },
+  { id:'react200',    icon:'⚡', name:'Réflexes Vifs',     desc:'Réaction moyenne < 250ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 250, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,250), max: 250, invert:true, unit:'ms' } : { cur:0, max:250 } },
+  { id:'react150',    icon:'🚀', name:'Flash',             desc:'Réaction moyenne < 150ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 150, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,150), max: 150, invert:true, unit:'ms' } : { cur:0, max:150 } },
+  { id:'daily',       icon:'📅', name:'Daily Warrior',     desc:'Jouer le Daily Challenge',        check: s => s.playedDaily,                              progress: s => ({ cur: s.playedDaily?1:0, max:1 }) },
+  { id:'routine',     icon:'🏋️', name:'Routine Master',   desc:'Compléter une routine complète',  check: s => s.routineCompleted,                         progress: s => ({ cur: s.routineCompleted?1:0, max:1 }) },
+  { id:'streak3',     icon:'🗓️', name:'Assidu',            desc:'3 jours consécutifs de jeu',      check: s => s.streak >= 3,                              progress: s => ({ cur: Math.min(s.streak||0,3), max:3, unit:'j' }) },
+  { id:'streak7',     icon:'🔑', name:'Hebdomadaire',      desc:'7 jours consécutifs de jeu',      check: s => s.streak >= 7,                              progress: s => ({ cur: Math.min(s.streak||0,7), max:7, unit:'j' }) },
 ];
 
 function loadAchievementStats() {
@@ -3797,10 +3841,21 @@ function renderAchievements() {
   const stats = loadAchievementStats();
   el.innerHTML = ACHIEVEMENTS.map(a => {
     const done = unlocked.includes(a.id);
+    const prog = a.progress ? a.progress(stats) : null;
+    const pct = prog ? (prog.invert
+      ? Math.round((1 - prog.cur / prog.max) * 100)
+      : Math.round(prog.cur / prog.max * 100)) : 0;
+    const displayVal = prog ? (prog.invert
+      ? `${prog.cur}${prog.unit||''} (objectif ≤ ${prog.max}${prog.unit||''})`
+      : `${typeof prog.cur === 'number' && prog.cur > 999 ? prog.cur.toLocaleString() : prog.cur}${prog.unit||''} / ${typeof prog.max === 'number' && prog.max > 999 ? prog.max.toLocaleString() : prog.max}${prog.unit||''}`) : '';
     return `<div class="ach-card ${done ? 'ach-done' : 'ach-locked'}">
       <div class="ach-icon">${done ? a.icon : '🔒'}</div>
       <div class="ach-name">${san(a.name)}</div>
       <div class="ach-desc">${san(a.desc)}</div>
+      ${!done && prog ? `
+        <div class="ach-prog-bar"><div class="ach-prog-fill" style="width:${pct}%"></div></div>
+        <div class="ach-prog-val">${displayVal}</div>
+      ` : done ? `<div class="ach-prog-val" style="color:#00c882">✓ Débloqué</div>` : ''}
     </div>`;
   }).join('');
   const count = unlocked.length;

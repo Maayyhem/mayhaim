@@ -1719,7 +1719,6 @@ function renderBenchmark() {
   // Update tier selector
   if($('#opt-tier')) $('#opt-tier').value=currentTier;
   const tierLabel = currentTier==='hard'?'Hard':'Medium';
-  $('.bench-title').innerHTML=`Viscose Benchmark <small>${tierLabel}</small>`;
 
   const container=$('#bench-categories'); container.innerHTML='';
   const cats=['control_tracking','reactive_tracking','flick_tech','click_timing'];

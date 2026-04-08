@@ -1137,6 +1137,18 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ach-card:hover { transform: translateY(-2px); }
 .ach-done { border-color: rgba(255,70,85,0.4); background: rgba(255,70,85,0.06); }
 .ach-locked { opacity: 0.45; filter: grayscale(1); }
+
+/* Leaderboard tabs */
+.lb-toggle-row { display:flex; gap:8px; margin-bottom:16px; }
+.lb-toggle-btn { padding:7px 18px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--dim); font-size:0.82rem; font-weight:600; cursor:pointer; transition:all 0.15s; font-family:var(--font); }
+.lb-toggle-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.lb-me { background:rgba(255,70,85,0.04) !important; }
+
+/* Achievement progress */
+.ach-prog-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:2px; margin:6px 0 3px; overflow:hidden; }
+.ach-prog-fill { height:100%; background:var(--accent); border-radius:2px; transition:width 0.4s; }
+.ach-prog-val { font-size:0.68rem; color:var(--dim); }
+
 .ach-icon { font-size: 2rem; margin-bottom: 8px; }
 .ach-name { font-weight: 700; font-size: 0.82rem; margin-bottom: 4px; }
 .ach-desc { font-size: 0.72rem; color: var(--dim); line-height: 1.4; }
