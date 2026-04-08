@@ -513,6 +513,9 @@ async function globalLogin() {
       document.getElementById('auth-mfa-error').style.display = 'none';
     } else if (data.mfa_setup_required) {
       await globalMfaSetupLoad();
+    } else if (data.token) {
+      // Connexion directe (étudiant sans MFA)
+      authFinalize(data.token, data.user);
     }
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
 }
