@@ -481,7 +481,27 @@ module.exports = async function handler(req, res) {
       return res.json({ rows });
     }
 
-    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | all-users | all-relationships | announcements | all-announcements | audit-logs' });
+    // Classement global (remplace api/leaderboard.js)
+    if (view === 'global-leaderboard') {
+      const rows = await sql`
+        SELECT
+          gh.user_id,
+          COALESCE(u.username, gh.username, 'Joueur') AS username,
+          SUM(gh.score) AS total_score,
+          COUNT(*)::int AS total_games,
+          ROUND(AVG(gh.accuracy))::int AS avg_accuracy,
+          MAX(gh.score)::int AS best_game,
+          MAX(gh.played_at) AS last_played
+        FROM game_history gh
+        LEFT JOIN users u ON u.id = gh.user_id
+        GROUP BY gh.user_id, u.username, gh.username
+        ORDER BY total_score DESC
+        LIMIT 50
+      `;
+      return res.status(200).json({ leaderboard: rows });
+    }
+
+    return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | global-leaderboard | ...' });
   }
 
   // ── POST ─────────────────────────────────────────────────────────────────

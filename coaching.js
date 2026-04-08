@@ -3512,7 +3512,7 @@ async function coachingRenderLeaderboard() {
   if (!el) return;
   el.innerHTML = '<p class="ch-empty">Chargement...</p>';
   try {
-    const res = await fetch(`${API_BASE}/leaderboard`);
+    const res = await fetch(`${API_BASE}/coaching?view=global-leaderboard`);
     if (!res.ok) throw new Error('Erreur serveur');
     const { leaderboard } = await res.json();
     if (!leaderboard || !leaderboard.length) { el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>'; return; }
@@ -4020,7 +4020,7 @@ async function loadGlobalLeaderboard() {
   if (!el) return;
   el.innerHTML = '<p class="ch-empty" style="padding:24px">Chargement…</p>';
   try {
-    const res = await fetch(`${API_BASE}/leaderboard`);
+    const res = await fetch(`${API_BASE}/coaching?view=global-leaderboard`);
     const { leaderboard } = await res.json();
     if (!leaderboard || !leaderboard.length) {
       el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>';
