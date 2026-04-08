@@ -203,7 +203,7 @@ Analyse les données réellement — ne sois pas générique. Si le joueur a un 
     let analysis;
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
+        model: 'claude-haiku-4-5',
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }]
       });
