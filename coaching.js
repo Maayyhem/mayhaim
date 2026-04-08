@@ -858,6 +858,7 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-cours') coachingRenderCours();
   if (tabId === 'ch-map-editor') { if (!ME.editingScenario) meUpdateScenarioBanner(); meLoadMapImg(); meRenderSteps(); meRender(); meRenderSaved(); }
   if (tabId === 'ch-manage-scenarios') coachingRenderManageScenarios();
+  if (tabId === 'ch-ai-coach') initAiCoachTab();
   if (tabId === 'ch-profile') renderProfile();
   if (tabId === 'ch-historique') { coachingRenderHistory(); loadPbHistory(); }
   if (tabId === 'ch-leaderboard') {
@@ -3198,6 +3199,132 @@ function renderHistoryChart(history) {
       }
     }
   });
+}
+
+// ============ COACH IA ============
+
+function initAiCoachTab() {
+  // Si déjà un résultat affiché, ne rien faire
+  const result = document.getElementById('ai-coach-result');
+  if (result && result.style.display !== 'none') return;
+  // Sinon essayer de charger le cache
+  loadAiCoach(false);
+}
+
+async function loadAiCoach(force = false) {
+  const idle    = document.getElementById('ai-coach-idle');
+  const loading = document.getElementById('ai-coach-loading');
+  const result  = document.getElementById('ai-coach-result');
+  if (!idle || !loading || !result) return;
+
+  if (!coachingToken) {
+    idle.style.display = '';
+    loading.style.display = 'none';
+    result.style.display = 'none';
+    const msg = document.getElementById('aic-cooldown-msg');
+    if (msg) { msg.style.display = ''; msg.textContent = 'Connecte-toi pour accéder au Coach IA.'; }
+    return;
+  }
+
+  idle.style.display = 'none';
+  loading.style.display = '';
+  result.style.display = 'none';
+
+  try {
+    const url = force ? `${API_BASE}/ai-coach?force=1` : `${API_BASE}/ai-coach`;
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + coachingToken } });
+    const d = await res.json();
+
+    if (d.error) {
+      idle.style.display = '';
+      loading.style.display = 'none';
+      const msg = document.getElementById('aic-cooldown-msg');
+      if (msg) { msg.style.display = ''; msg.textContent = '⚠ ' + d.error; }
+      return;
+    }
+
+    loading.style.display = 'none';
+    result.style.display = '';
+    _renderAiCoach(d.analysis, d.generated_at, d.cached);
+
+  } catch(e) {
+    loading.style.display = 'none';
+    idle.style.display = '';
+    const msg = document.getElementById('aic-cooldown-msg');
+    if (msg) { msg.style.display = ''; msg.textContent = '⚠ Erreur de connexion.'; }
+  }
+}
+
+function _renderAiCoach(a, generatedAt, cached) {
+  if (!a) return;
+
+  // Titre
+  const titreEl = document.getElementById('aic-titre');
+  if (titreEl) titreEl.textContent = a.titre || 'Analyse personnalisée';
+
+  // Date
+  const dateEl = document.getElementById('aic-date');
+  if (dateEl) {
+    const dt = new Date(generatedAt);
+    dateEl.textContent = (cached ? '📋 Analyse du ' : '✨ Générée le ') +
+      dt.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' }) +
+      ' à ' + dt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  // Bouton refresh — désactivé 6h si cache
+  const refreshBtn = document.getElementById('aic-refresh-btn');
+  if (refreshBtn) {
+    const age = Date.now() - new Date(generatedAt).getTime();
+    const remaining = Math.ceil((6 * 3600000 - age) / 60000);
+    if (cached && remaining > 0) {
+      refreshBtn.title = `Disponible dans ${remaining} min`;
+      refreshBtn.style.opacity = '0.4';
+      refreshBtn.style.cursor = 'not-allowed';
+      refreshBtn.onclick = () => null;
+    } else {
+      refreshBtn.title = 'Régénérer l\'analyse';
+      refreshBtn.style.opacity = '';
+      refreshBtn.style.cursor = '';
+      refreshBtn.onclick = () => loadAiCoach(true);
+    }
+  }
+
+  // Diagnostic
+  const diagEl = document.getElementById('aic-diagnostic');
+  if (diagEl) diagEl.textContent = a.diagnostic || '';
+
+  // Forces
+  const forcesEl = document.getElementById('aic-forces');
+  if (forcesEl) forcesEl.innerHTML = (a.forces || []).map(f =>
+    `<li class="aic-list-item aic-force-item">✓ ${san(f)}</li>`).join('');
+
+  // Axes
+  const axesEl = document.getElementById('aic-axes');
+  if (axesEl) axesEl.innerHTML = (a.axes || []).map(ax =>
+    `<li class="aic-list-item aic-axe-item">→ ${san(ax)}</li>`).join('');
+
+  // Focus
+  const focusEl = document.getElementById('aic-focus');
+  if (focusEl) focusEl.textContent = a.focus || '';
+
+  // Plan
+  const planEl = document.getElementById('aic-plan');
+  if (planEl) {
+    planEl.innerHTML = (a.plan || []).map((s, i) => `
+      <div class="aic-plan-item">
+        <div class="aic-plan-num">${i + 1}</div>
+        <div class="aic-plan-info">
+          <div class="aic-plan-label">${san(s.label || s.key || '')}</div>
+          <div class="aic-plan-conseil">${san(s.conseil || '')}</div>
+        </div>
+        <div class="aic-plan-reps">×${s.reps || 1}</div>
+        <button class="aic-plan-play" onclick="${s.key ? `(typeof G!=='undefined'&&(G.benchmarkMode=true,startGame('${s.key}')))` : ''}" title="Lancer">▶</button>
+      </div>`).join('');
+  }
+
+  // Motivation
+  const motivEl = document.getElementById('aic-motivation');
+  if (motivEl) motivEl.textContent = a.motivation || '';
 }
 
 // ============ PROFILE ============

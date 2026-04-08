@@ -1531,3 +1531,67 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .wu-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; min-width:30px; text-align:center; }
 .wu-play-btn { flex-shrink:0; width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; border:none; font-size:0.9rem; cursor:pointer; transition:opacity 0.15s; }
 .wu-play-btn:hover { opacity:0.8; }
+
+/* ============ COACH IA ============ */
+
+/* Idle state */
+.aic-idle { text-align:center; padding:60px 20px; }
+.aic-idle-icon { font-size:4rem; margin-bottom:16px; }
+.aic-idle-title { font-size:1.6rem; font-weight:900; color:var(--txt); margin-bottom:10px; }
+.aic-idle-desc { font-size:0.9rem; color:var(--dim); max-width:420px; margin:0 auto 28px; line-height:1.6; }
+.aic-generate-btn { background:linear-gradient(135deg,#ff4655,#ff6b6b); color:#fff; border:none; padding:14px 32px; border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer; font-family:var(--font); letter-spacing:0.5px; transition:all 0.2s; box-shadow:0 4px 20px rgba(255,70,85,0.35); }
+.aic-generate-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(255,70,85,0.5); }
+.aic-cooldown { font-size:0.8rem; color:var(--dim); margin-top:14px; }
+
+/* Loading */
+.aic-loading { text-align:center; padding:80px 20px; }
+.aic-spinner { width:48px; height:48px; border:3px solid rgba(255,70,85,0.2); border-top-color:var(--accent); border-radius:50%; animation:aic-spin 0.8s linear infinite; margin:0 auto 20px; }
+@keyframes aic-spin { to { transform:rotate(360deg); } }
+.aic-loading-text { font-size:1rem; font-weight:700; color:var(--txt); margin-bottom:8px; }
+.aic-loading-sub { font-size:0.78rem; color:var(--dim); }
+
+/* Result header */
+.aic-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.aic-badge { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
+.aic-title { font-size:1.3rem; font-weight:900; color:var(--txt); margin:0; line-height:1.3; }
+.aic-header-right { flex-shrink:0; text-align:right; }
+.aic-generated-at { font-size:0.72rem; color:var(--dim); display:block; margin-bottom:6px; }
+.aic-refresh-btn { background:var(--card); border:1px solid var(--border); color:var(--dim); padding:5px 10px; border-radius:7px; cursor:pointer; font-size:0.9rem; transition:all 0.15s; font-family:var(--font); }
+.aic-refresh-btn:hover { color:var(--txt); border-color:var(--accent); }
+
+/* Cards */
+.aic-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+.aic-card-label { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; color:var(--dim); margin-bottom:10px; }
+.aic-card-diagnostic { border-left:3px solid var(--accent); }
+.aic-diagnostic-text { font-size:0.9rem; color:var(--txt); line-height:1.65; margin:0; }
+
+/* Two columns */
+.aic-two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+@media(max-width:580px){ .aic-two-col { grid-template-columns:1fr; } }
+.aic-card-forces { border-left:3px solid #4ade80; }
+.aic-card-axes { border-left:3px solid #facc15; }
+.aic-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:7px; }
+.aic-list-item { font-size:0.84rem; line-height:1.4; }
+.aic-force-item { color:#4ade80; }
+.aic-axe-item { color:#facc15; }
+
+/* Focus */
+.aic-card-focus { background:linear-gradient(135deg,rgba(255,70,85,0.08),rgba(255,70,85,0.03)); border-color:rgba(255,70,85,0.25); }
+.aic-focus-text { font-size:0.92rem; color:var(--txt); line-height:1.6; margin:0; font-weight:600; }
+
+/* Plan */
+.aic-plan-list { display:flex; flex-direction:column; gap:8px; }
+.aic-plan-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.aic-plan-item:last-child { border-bottom:none; padding-bottom:0; }
+.aic-plan-num { width:26px; height:26px; border-radius:50%; background:rgba(255,70,85,0.12); color:var(--accent); font-size:0.78rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.aic-plan-info { flex:1; min-width:0; }
+.aic-plan-label { font-weight:700; color:var(--txt); font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.aic-plan-conseil { font-size:0.75rem; color:var(--dim); margin-top:2px; }
+.aic-plan-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; }
+.aic-plan-play { flex-shrink:0; width:32px; height:32px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:0.85rem; cursor:pointer; transition:opacity 0.15s; font-family:var(--font); }
+.aic-plan-play:hover { opacity:0.8; }
+
+/* Motivation */
+.aic-card-motivation { background:linear-gradient(135deg,rgba(255,70,85,0.1),rgba(255,107,107,0.05)); border-color:rgba(255,70,85,0.2); text-align:center; }
+.aic-motivation-icon { font-size:1.8rem; margin-bottom:8px; }
+.aic-motivation-text { font-size:0.95rem; color:var(--txt); line-height:1.65; margin:0; font-style:italic; }
