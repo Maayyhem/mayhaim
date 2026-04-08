@@ -830,6 +830,22 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .cp-week-badge { background:rgba(0,200,130,0.12); color:#00c882; border:1px solid rgba(0,200,130,0.3); padding:1px 7px; border-radius:10px; font-size:0.68rem; font-weight:700; }
 .cp-player-info { flex:1; min-width:0; }
 
+/* Coach summary bar */
+.cp-coach-summary { display:flex; gap:0; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:4px; }
+.cp-coach-stat { flex:1; text-align:center; padding:12px 8px; border-right:1px solid var(--border); }
+.cp-coach-stat:last-child { border-right:none; }
+.cp-coach-stat-val { display:block; font-size:1.25rem; font-weight:800; color:var(--accent); }
+.cp-coach-stat-lbl { display:block; font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.8px; margin-top:2px; }
+
+/* Plan builder rows */
+.cp-plan-rows-header { display:flex; align-items:center; justify-content:space-between; margin:14px 0 8px; }
+.cp-plan-rows { display:flex; flex-direction:column; gap:6px; }
+.cp-plan-row { display:flex; align-items:center; gap:6px; }
+.cp-plan-row-del { flex-shrink:0; width:26px; height:26px; border-radius:6px; border:1px solid rgba(255,70,85,0.3); background:rgba(255,70,85,0.08); color:#ff4655; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+.cp-plan-row-del:hover { background:rgba(255,70,85,0.2); }
+.cp-select { background:var(--card); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:var(--font); flex:2; min-width:0; cursor:pointer; }
+.cp-select:focus { outline:none; border-color:var(--accent); }
+
 /* Coach card */
 .cp-coach-card-inner { display:flex; align-items:flex-start; gap:16px; padding:20px; background:var(--card); border:1px solid var(--border); border-radius:14px; }
 

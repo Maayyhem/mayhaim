@@ -253,7 +253,23 @@ function renderPlayersList(players) {
     el.innerHTML = '<p class="ch-empty" style="margin-top:24px">Aucun joueur suivi pour l\'instant.<br>Invite un joueur par son pseudo ci-dessus.</p>';
     return;
   }
-  el.innerHTML = `<h3 class="cp-sub-title">Mes joueurs actifs (${players.length})</h3>
+  // Compute aggregate stats
+  const totalGames   = players.reduce((s, p) => s + (p.total_games || 0), 0);
+  const weekGames    = players.reduce((s, p) => s + (p.games_this_week || 0), 0);
+  const activePlayers = players.filter(p => p.games_this_week > 0).length;
+  const avgAcc = players.filter(p => p.total_games > 0).length
+    ? Math.round(players.filter(p => p.total_games > 0).reduce((s, p) => s + Number(p.avg_accuracy || 0), 0) / players.filter(p => p.total_games > 0).length)
+    : null;
+
+  el.innerHTML = `
+    <div class="cp-coach-summary">
+      <div class="cp-coach-stat"><span class="cp-coach-stat-val">${players.length}</span><span class="cp-coach-stat-lbl">Joueurs</span></div>
+      <div class="cp-coach-stat"><span class="cp-coach-stat-val">${activePlayers}</span><span class="cp-coach-stat-lbl">Actifs 7j</span></div>
+      <div class="cp-coach-stat"><span class="cp-coach-stat-val">${weekGames}</span><span class="cp-coach-stat-lbl">Parties / sem.</span></div>
+      <div class="cp-coach-stat"><span class="cp-coach-stat-val">${totalGames.toLocaleString()}</span><span class="cp-coach-stat-lbl">Total parties</span></div>
+      ${avgAcc !== null ? `<div class="cp-coach-stat"><span class="cp-coach-stat-val">${avgAcc}%</span><span class="cp-coach-stat-lbl">Préc. moy.</span></div>` : ''}
+    </div>
+    <h3 class="cp-sub-title" style="margin-top:16px">Mes joueurs actifs (${players.length})</h3>
     <div class="cp-players-grid">
       ${players.map(p => {
         const lastSeen = p.last_played ? cpRelativeTime(p.last_played) : 'Jamais joué';
@@ -336,6 +352,8 @@ async function cpOpenPlayer(playerId, username, relId, rank) {
   // Charger stats
   cpEl('cp-pt-stats').innerHTML = '<p class="ch-empty">Chargement...</p>';
   cpEl('cp-pt-plan').innerHTML  = cpRenderPlanForm(playerId);
+  _cpPlanRowId = 0;
+  cpAddPlanRow(); // default empty row
   cpEl('cp-pt-feedback').innerHTML = cpRenderFeedbackForm(playerId);
 
   modal.classList.add('active');
@@ -402,36 +420,78 @@ function cpRenderPlayerStats(bests, playerId) {
     </table>`;
 }
 
+function cpBuildScenarioOptions(selected) {
+  const opts = ['<option value="">-- Scénario --</option>'];
+  if (typeof SCENARIOS !== 'undefined') {
+    const cats = {};
+    Object.entries(SCENARIOS).forEach(([k, v]) => {
+      const c = v.cat || 'other';
+      if (!cats[c]) cats[c] = [];
+      cats[c].push({ k, label: v.label || k });
+    });
+    Object.entries(cats).forEach(([cat, list]) => {
+      const catLabel = cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      opts.push(`<optgroup label="${catLabel}">`);
+      list.forEach(({ k, label }) => {
+        opts.push(`<option value="${k}"${k === selected ? ' selected' : ''}>${label}</option>`);
+      });
+      opts.push('</optgroup>');
+    });
+  }
+  return opts.join('');
+}
+
 function cpRenderPlanForm(playerId) {
   return `
     <h3 class="cp-sub-title">Assigner un plan</h3>
-    <input id="cp-plan-title" class="cp-input" placeholder="Titre du plan (ex: Semaine reactive tracking)" style="margin-bottom:8px">
+    <input id="cp-plan-title" class="cp-input" placeholder="Titre (ex: Semaine reactive tracking)" style="margin-bottom:8px">
     <textarea id="cp-plan-desc" class="cp-textarea" rows="2" placeholder="Description / objectif général..."></textarea>
-    <h4 style="color:var(--dim);font-size:0.8rem;margin:12px 0 6px">Exercices (1 par ligne : scénario | reps | note)</h4>
-    <textarea id="cp-plan-scenarios" class="cp-textarea" rows="5"
-      placeholder="ground_plaza | 3 | Focus sur la hauteur&#10;air_pure | 2 | Prendre son temps&#10;flicker_plaza | 3 | Réagir vite"></textarea>
-    <input id="cp-plan-target-scenario" class="cp-input" placeholder="Scénario objectif (optionnel)" style="margin:8px 0">
-    <input id="cp-plan-target-energy" class="cp-input" type="number" placeholder="Energy cible (ex: 75)" style="margin-bottom:12px">
+    <div class="cp-plan-rows-header">
+      <span style="font-size:0.78rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px">Exercices</span>
+      <button class="wu-btn" style="font-size:0.75rem;padding:4px 12px" onclick="cpAddPlanRow()">+ Ajouter</button>
+    </div>
+    <div id="cp-plan-rows" class="cp-plan-rows"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
+      <input id="cp-plan-target-scenario" class="cp-input" placeholder="🎯 Scénario objectif (opt.)">
+      <input id="cp-plan-target-energy" class="cp-input" type="number" min="0" max="100" placeholder="Energy cible (ex: 75)">
+    </div>
     <div id="cp-plan-msg" class="cp-msg"></div>
     <button class="btn-primary" style="width:100%" onclick="cpSubmitPlan(${playerId})">Assigner ce plan</button>`;
 }
 
+let _cpPlanRowId = 0;
+function cpAddPlanRow(scenario = '', reps = 3, note = '') {
+  const wrap = cpEl('cp-plan-rows');
+  if (!wrap) return;
+  const id = ++_cpPlanRowId;
+  const row = document.createElement('div');
+  row.className = 'cp-plan-row';
+  row.id = `cp-plan-row-${id}`;
+  row.innerHTML = `
+    <select class="cp-plan-row-scenario cp-select">${cpBuildScenarioOptions(scenario)}</select>
+    <input type="number" class="cp-plan-row-reps cp-input" value="${reps}" min="1" max="20" style="width:58px;flex-shrink:0" title="Répétitions">
+    <input type="text" class="cp-plan-row-note cp-input" value="${note}" placeholder="Note optionnelle" style="flex:1;min-width:0">
+    <button class="cp-plan-row-del" onclick="document.getElementById('cp-plan-row-${id}').remove()" title="Supprimer">✕</button>`;
+  wrap.appendChild(row);
+}
+
 async function cpSubmitPlan(playerId) {
-  const title    = cpEl('cp-plan-title')?.value?.trim();
-  const desc     = cpEl('cp-plan-desc')?.value?.trim();
-  const rawLines = cpEl('cp-plan-scenarios')?.value?.trim();
-  const tgtScen  = cpEl('cp-plan-target-scenario')?.value?.trim();
-  const tgtEn    = parseFloat(cpEl('cp-plan-target-energy')?.value) || null;
+  const title   = cpEl('cp-plan-title')?.value?.trim();
+  const desc    = cpEl('cp-plan-desc')?.value?.trim();
+  const tgtScen = cpEl('cp-plan-target-scenario')?.value?.trim();
+  const tgtEn   = parseFloat(cpEl('cp-plan-target-energy')?.value) || null;
 
   if (!title) { cpMsg('cp-plan-msg', 'Le titre est requis', false); return; }
 
-  // Parser les lignes scénarios
-  const scenarios = (rawLines || '').split('\n')
-    .map(l => l.trim()).filter(Boolean)
-    .map(l => {
-      const parts = l.split('|').map(p => p.trim());
-      return { scenario: parts[0], reps: parseInt(parts[1]) || 1, note: parts[2] || '', done: false };
-    });
+  const rows = [...(cpEl('cp-plan-rows')?.querySelectorAll('.cp-plan-row') || [])];
+  const scenarios = rows.map(row => ({
+    scenario: row.querySelector('.cp-plan-row-scenario')?.value || '',
+    reps: parseInt(row.querySelector('.cp-plan-row-reps')?.value) || 1,
+    note: row.querySelector('.cp-plan-row-note')?.value?.trim() || '',
+    done: false
+  })).filter(s => s.scenario);
+
+  if (!scenarios.length) { cpMsg('cp-plan-msg', 'Ajoute au moins un exercice', false); return; }
 
   const data = await cpFetch('POST', '/training-plan', {
     player_id: playerId, title, description: desc,
@@ -441,7 +501,12 @@ async function cpSubmitPlan(playerId) {
   if (data.error) {
     cpMsg('cp-plan-msg', data.error, false);
   } else {
-    cpMsg('cp-plan-msg', 'Plan assigné avec succès !', true);
+    cpMsg('cp-plan-msg', '✓ Plan assigné avec succès !', true);
+    if (cpEl('cp-plan-title'))  cpEl('cp-plan-title').value = '';
+    if (cpEl('cp-plan-desc'))   cpEl('cp-plan-desc').value  = '';
+    if (cpEl('cp-plan-rows'))   cpEl('cp-plan-rows').innerHTML = '';
+    _cpPlanRowId = 0;
+    cpAddPlanRow();
   }
 }
 
