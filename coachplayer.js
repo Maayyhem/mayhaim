@@ -91,7 +91,7 @@ function cpInit() {
   // Pré-charger le bon contenu selon le rôle
   if (isCoach)   cpLoadPlayers();
   if (isAdmin)   cpLoadAdminRelationships();
-  if (isStudent) { cpLoadMyCoach(); cpCheckPendingBadge(); }
+  if (isStudent) { cpLoadMyCoach(); cpCheckPendingBadge(); cpCheckNotifications(); }
 }
 
 // Badge de notification sur l'onglet "Mon Coach"
@@ -358,66 +358,144 @@ async function cpOpenPlayer(playerId, username, relId, rank) {
 
   modal.classList.add('active');
 
-  // Fetch best scores
-  const data = await cpFetch('GET', `/benchmark?view=best&user_id=${encodeURIComponent(playerId)}`);
-  cpRenderPlayerStats(data.best || [], playerId);
-
-  // Load benchmark for this player
-  fetch(`${API_BASE}/coaching?view=benchmark-player&player_id=${playerId}`, {
-    headers: { 'Authorization': `Bearer ${coachingToken}` }
-  }).then(r => r.json()).then(({ rows }) => {
-    const el = document.getElementById('cp-pt-bm');
-    if (!el || !rows || rows.length === 0) return;
-    const latest = rows[0];
-    const rank = [
-      {name:'Pleb',color:'#6b7280',emoji:'😶'},
-      {name:'Iron',color:'#8B9093',emoji:'⬛'},
-      {name:'Bronze',color:'#CD7F32',emoji:'🟤'},
-      {name:'Silver',color:'#B0B5BB',emoji:'⬜'},
-      {name:'Gold',color:'#E4B549',emoji:'🟡'},
-      {name:'Platinum',color:'#3DBAB0',emoji:'🔵'},
-      {name:'Diamond',color:'#4D9BE6',emoji:'💎'},
-      {name:'Master',color:'#E0495A',emoji:'🔴'},
-      {name:'Grandmaster',color:'#F4D35E',emoji:'🌟'}
-    ][latest.rank_idx] || {name:'Pleb',color:'#6b7280',emoji:'😶'};
-    const scenarios = Array.isArray(latest.scenarios) ? latest.scenarios : [];
-    el.innerHTML = `
-      <div style="margin-bottom:12px">
-        <div style="font-size:0.75rem;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Voltaic Benchmark</div>
-        <div style="display:inline-block;font-weight:700;font-size:1rem;padding:6px 16px;border-radius:8px;background:${rank.color}22;color:${rank.color};border:1px solid ${rank.color}44">${rank.emoji} ${rank.name}</div>
-        <div style="margin-top:8px;font-size:0.8rem;color:var(--dim)">${latest.day}</div>
-        <div style="margin-top:6px;font-size:0.85rem;letter-spacing:3px">${scenarios.map(s => ([{emoji:'😶'},{emoji:'⬛'},{emoji:'🟤'},{emoji:'⬜'},{emoji:'🟡'},{emoji:'🔵'},{emoji:'💎'},{emoji:'🔴'},{emoji:'🌟'}][s.tier]||{emoji:'?'}).emoji).join('')}</div>
-      </div>`;
-  }).catch(() => {});
+  cpLoadPlayerStats(playerId);
 }
 
-function cpRenderPlayerStats(bests, playerId) {
-  if (bests.length === 0) {
-    cpEl('cp-pt-stats').innerHTML = '<div id="cp-pt-bm"></div><p class="ch-empty">Ce joueur n\'a pas encore de runs benchmark.</p>';
-    cpEl('cp-modal-energy-summary').textContent = 'Aucun run benchmark';
-    return;
+async function cpLoadPlayerStats(playerId) {
+  const el = cpEl('cp-pt-stats');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
+
+  // Fetch enriched stats AND benchmark bests in parallel
+  const [statsRes, benchRes] = await Promise.all([
+    cpFetch('GET', `/coaching?view=player-stats&player_id=${playerId}`),
+    cpFetch('GET', `/coaching?view=player-history&player_id=${playerId}`)
+  ]);
+
+  const s = statsRes.stats || {};
+  const activity = statsRes.activity_30 || [];
+  const recent   = statsRes.recent_games || [];
+  const wk       = statsRes.week_cmp || {};
+  const history  = benchRes.history || [];
+
+  // Week comparison deltas
+  const wkGames = wk.this_week || 0;
+  const wkGamesLast = wk.last_week || 0;
+  const wkDelta  = wkGames - wkGamesLast;
+  const wkBest   = wk.best_this_week || 0;
+  const wkBestLast = wk.best_last_week || 0;
+  const wkBestDelta = wkBest - wkBestLast;
+
+  function delta(d, unit='') {
+    if (d === 0) return `<span style="color:var(--dim)">±0${unit}</span>`;
+    return d > 0
+      ? `<span style="color:#4ade80">↑+${d}${unit}</span>`
+      : `<span style="color:#f87171">↓${d}${unit}</span>`;
   }
 
-  const avgEnergy = (bests.reduce((s, r) => s + (r.energy || 0), 0) / bests.length).toFixed(1);
-  cpEl('cp-modal-energy-summary').textContent = `${avgEnergy} energy moy. sur ${bests.length} scénarios`;
+  el.innerHTML = `
+    <!-- Summary stats -->
+    <div class="cp-modal-stats-row">
+      <div class="cp-ms"><span class="cp-ms-val">${s.total_games||0}</span><span class="cp-ms-lbl">Parties</span></div>
+      <div class="cp-ms"><span class="cp-ms-val">${s.best_score?Number(s.best_score).toLocaleString():'—'}</span><span class="cp-ms-lbl">Record</span></div>
+      <div class="cp-ms"><span class="cp-ms-val">${s.avg_accuracy!=null?s.avg_accuracy+'%':'—'}</span><span class="cp-ms-lbl">Préc. moy.</span></div>
+      <div class="cp-ms"><span class="cp-ms-val">${wkGames}</span><span class="cp-ms-lbl">Cette sem. ${delta(wkDelta)}</span></div>
+      <div class="cp-ms"><span class="cp-ms-val">${wkBest?Number(wkBest).toLocaleString():'—'}</span><span class="cp-ms-lbl">Record sem. ${wkBestDelta?delta(wkBestDelta,''):'—'}</span></div>
+    </div>
 
-  const rows = bests.map(r => `
-    <tr>
-      <td style="color:var(--txt)">${san(r.scenario)}</td>
-      <td style="text-align:right">${r.score?.toLocaleString() || 0}</td>
-      <td style="text-align:right">${r.accuracy || 0}%</td>
-      <td style="text-align:right">${(r.energy || 0).toFixed(1)}</td>
-      <td style="text-align:right">${cpRankBadge(r.rank_name)}</td>
-    </tr>`).join('');
+    <!-- Activity chart -->
+    <div class="cp-modal-section-title">📈 Activité 30j</div>
+    <div class="cp-modal-chart-wrap"><canvas id="cp-modal-activity-chart"></canvas></div>
 
-  cpEl('cp-pt-stats').innerHTML = `
-    <div id="cp-pt-bm"></div>
-    <table class="cp-stats-table">
-      <thead><tr>
-        <th>Scénario</th><th>Score</th><th>Acc.</th><th>Energy</th><th>Rang</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    <!-- Recent games -->
+    <div class="cp-modal-section-title" style="margin-top:14px">🕹️ Parties récentes</div>
+    <div class="cp-modal-recent">
+      ${recent.length === 0
+        ? '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucune partie.</p>'
+        : recent.map(g => {
+            const sc = typeof SCENARIOS!=='undefined'?SCENARIOS:{}
+            const label = sc[g.mode]?.label || g.mode.replace(/_/g,' ');
+            const date  = new Date(g.played_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+            const accCol = g.accuracy>=80?'#4ade80':g.accuracy>=60?'#facc15':'#f87171';
+            return `<div class="cp-modal-recent-row">
+              <span class="cp-modal-recent-mode">${san(label)}</span>
+              <span class="cp-modal-recent-score">${Number(g.score).toLocaleString()}</span>
+              <span style="color:${accCol};font-size:0.78rem">${g.accuracy}%</span>
+              <span class="cp-modal-recent-date">${date}</span>
+            </div>`;
+          }).join('')
+      }
+    </div>
+
+    <!-- Benchmark bests table (existing) -->
+    <div class="cp-modal-section-title" style="margin-top:14px">📊 Bests Benchmark</div>
+    <div id="cp-pt-bm"></div>`;
+
+  // Draw activity chart
+  _cpModalRenderActivityChart(activity);
+
+  // Render benchmark bests table
+  const bests = history
+    .filter(h => typeof SCENARIOS!=='undefined' && SCENARIOS[h.mode]?.th)
+    .reduce((acc, h) => {
+      const key = h.mode;
+      if (!acc[key] || h.score > acc[key].score) acc[key] = h;
+      return acc;
+    }, {});
+
+  const bmEl = cpEl('cp-pt-bm');
+  if (bmEl) {
+    const rows2 = Object.values(bests);
+    if (rows2.length === 0) {
+      bmEl.innerHTML = '<p class="ch-empty" style="font-size:0.82rem">Aucun score benchmark.</p>';
+    } else {
+      cpEl('cp-modal-energy-summary').textContent = `${rows2.length} scénarios joués`;
+      bmEl.innerHTML = `<table class="cp-stats-table">
+        <thead><tr><th>Scénario</th><th>Score</th><th>Acc.</th></tr></thead>
+        <tbody>${rows2.map(r => `<tr>
+          <td style="color:var(--txt)">${san((typeof SCENARIOS!=='undefined'?SCENARIOS:{})[r.mode]?.label||r.mode)}</td>
+          <td style="text-align:right">${Number(r.score).toLocaleString()}</td>
+          <td style="text-align:right">${r.accuracy||0}%</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+  }
+}
+
+let _cpModalChart = null;
+function _cpModalRenderActivityChart(activity30) {
+  const canvas = document.getElementById('cp-modal-activity-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const days = [];
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  const map = {};
+  activity30.forEach(r => { map[r.day] = r.games; });
+  const values = days.map(d => map[d]||0);
+  const labels = days.map(d => {
+    const dt = new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  });
+  if (_cpModalChart) { _cpModalChart.destroy(); _cpModalChart = null; }
+  _cpModalChart = new Chart(canvas, {
+    type:'bar',
+    data:{ labels, datasets:[{
+      data: values,
+      backgroundColor: values.map(v => v>0?'rgba(255,70,85,0.65)':'rgba(255,255,255,0.04)'),
+      borderRadius:2
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y+' partie'+(ctx.parsed.y!==1?'s':'') }}},
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:'#555', font:{size:8}, maxRotation:0, callback:function(v,i){ return i%7===0?this.getLabelForValue(v):''; }}},
+        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#555',stepSize:1}, beginAtZero:true }
+      }
+    }
+  });
 }
 
 function cpBuildScenarioOptions(selected) {
@@ -616,6 +694,30 @@ async function cpLoadMyCoach() {
   // Demandes en attente côté joueur
   const pendingData = await cpFetch('GET', '/coaching?view=pending');
   renderStudentPending(pendingData.pending || []);
+}
+
+async function cpCheckNotifications() {
+  if (!coachingToken) return;
+  const lastSeenPlan = localStorage.getItem('visc_last_seen_plan') || '0';
+  const lastSeenFb   = localStorage.getItem('visc_last_seen_fb')   || '0';
+  try {
+    const [planRes, fbRes] = await Promise.all([
+      cpFetch('GET', '/training-plan'),
+      cpFetch('GET', '/feedback?limit=1')
+    ]);
+    // Plan badge
+    const plan = planRes.plan;
+    const badgePlan = document.getElementById('badge-plan');
+    if (badgePlan && plan && plan.updated_at && plan.updated_at > lastSeenPlan) {
+      badgePlan.style.display = '';
+    }
+    // Feedback badge
+    const fbs = fbRes.feedbacks || [];
+    const badgeFb = document.getElementById('badge-feedback');
+    if (badgeFb && fbs.length > 0 && fbs[0].created_at > lastSeenFb) {
+      badgeFb.style.display = '';
+    }
+  } catch(e) {}
 }
 
 function renderStudentPending(pending) {

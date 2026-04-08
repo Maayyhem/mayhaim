@@ -1723,6 +1723,10 @@ function renderBenchmark() {
   const container=$('#bench-categories'); container.innerHTML='';
   const cats=['control_tracking','reactive_tracking','flick_tech','click_timing'];
 
+  // Snapshot previous threads for delta display
+  const _prevSnap = JSON.parse(localStorage.getItem('visc_snap_'+currentTier) || '{}');
+  const _newSnap  = {};
+
   cats.forEach(catKey => {
     const col=document.createElement('div'); col.className='bench-cat';
     col.innerHTML=`<div class="bench-cat-title">${CAT_LABELS[catKey]}</div>`;
@@ -1735,6 +1739,13 @@ function renderBenchmark() {
 
       Object.entries(SCENARIOS).filter(([,v])=>v.cat===catKey&&v.sub===sub).forEach(([key,sc])=>{
         const best=getBest(key), threads=calcThreads(key,best);
+        _newSnap[key] = threads;
+        const _prev = _prevSnap[key] ?? null;
+        const _delta = _prev !== null ? threads - _prev : null;
+        const _deltaHtml = _delta === null ? '' : _delta > 0
+          ? `<span class="bench-delta bench-delta-up">↑+${_delta}</span>`
+          : _delta < 0 ? `<span class="bench-delta bench-delta-down">↓${_delta}</span>`
+          : '';
         const pct=Math.min(100,threads/getMaxThreads()*100);
         const mt=getMaxThreads();
         const wrap=document.createElement('div'); wrap.className='bench-scenario-wrap';
@@ -1744,7 +1755,7 @@ function renderBenchmark() {
           <span class="bench-scenario-name">${getLabel(key)}</span>
           <span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span>
           <div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div>
-          <span class="bench-scenario-threads">${threads}/${mt}</span>
+          <span class="bench-scenario-threads">${threads}/${mt} ${_deltaHtml}</span>
           <span class="bench-th-toggle" title="Voir les seuils">&#9660;</span>`;
 
         // Threshold table
@@ -1772,6 +1783,8 @@ function renderBenchmark() {
     });
     container.appendChild(col);
   });
+  // Persist snapshot for next session's delta
+  localStorage.setItem('visc_snap_'+currentTier, JSON.stringify(_newSnap));
 }
 
 // ---- EVENTS ----

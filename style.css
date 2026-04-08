@@ -427,6 +427,20 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .bench-thread-fill { height:100%; border-radius:3px; transition:width 0.3s; }
 .bench-scenario-threads { font-size:0.55rem; font-weight:800; min-width:24px; text-align:center; color:var(--gold); }
 
+/* Benchmark delta threads */
+.bench-delta { font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; margin-left:4px; }
+.bench-delta-up { color:#4ade80; background:rgba(74,222,128,0.12); }
+.bench-delta-down { color:#f87171; background:rgba(248,113,113,0.12); }
+
+/* Heatmap stats */
+.heatmap-stats { margin-top:8px; }
+.hm-stat-row { display:flex; justify-content:center; gap:16px; flex-wrap:wrap; }
+.hm-stat { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.hm-stat-val { font-size:0.9rem; font-weight:700; color:var(--txt); }
+.hm-stat-lbl { font-size:0.65rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; }
+.hm-hit { color:#4ade80; }
+.hm-miss { color:#f87171; }
+
 /* ============ COACHING HUB ============ */
 #coaching-screen {
   flex-direction: row;
@@ -1481,3 +1495,39 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 /* Hub Viscose Benchmark */
 .hub-viscose-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .hub-viscose-tier { background: var(--bg); color: var(--txt); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 14px; font-size: 0.85rem; font-weight: 700; font-family: var(--font); cursor: pointer; }
+
+/* Coach modal enriched stats */
+.cp-modal-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
+.cp-ms { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 6px; text-align:center; }
+.cp-ms-val { display:block; font-size:1rem; font-weight:700; color:var(--accent); }
+.cp-ms-lbl { display:block; font-size:0.62rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+.cp-modal-section-title { font-size:0.72rem; font-weight:800; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; }
+.cp-modal-chart-wrap { height:90px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.cp-modal-recent { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.cp-modal-recent-row { display:flex; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid var(--border); font-size:0.82rem; }
+.cp-modal-recent-row:last-child { border-bottom:none; }
+.cp-modal-recent-mode { flex:1; font-weight:600; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cp-modal-recent-score { color:var(--accent); font-weight:700; flex-shrink:0; }
+.cp-modal-recent-date { color:var(--dim); font-size:0.72rem; flex-shrink:0; }
+
+/* Notification badges */
+.ch-nav-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:var(--accent); color:#fff; font-size:0.6rem; font-weight:800; margin-left:5px; vertical-align:middle; }
+
+/* Warm-up auto */
+.wu-header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.wu-title { font-size:1rem; font-weight:700; color:var(--txt); }
+.wu-meta { font-size:0.78rem; color:var(--dim); margin-top:2px; }
+.wu-list { display:flex; flex-direction:column; gap:6px; }
+.wu-item { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--card); border:1px solid var(--border); border-radius:10px; }
+.wu-weak { border-left:3px solid var(--accent); }
+.wu-discover { border-left:3px solid #a78bfa; }
+.wu-item-num { width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:var(--dim); flex-shrink:0; }
+.wu-item-info { flex:1; min-width:0; }
+.wu-item-label { font-weight:700; color:var(--txt); font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wu-item-meta { font-size:0.72rem; color:var(--dim); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.wu-cat { background:rgba(255,255,255,0.06); padding:1px 6px; border-radius:4px; font-weight:600; color:var(--txt); font-size:0.68rem; }
+.wu-threads { color:var(--accent); font-weight:600; }
+.wu-new-badge { background:rgba(167,139,250,0.15); color:#a78bfa; border:1px solid rgba(167,139,250,0.3); padding:1px 6px; border-radius:4px; font-size:0.68rem; font-weight:700; }
+.wu-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; min-width:30px; text-align:center; }
+.wu-play-btn { flex-shrink:0; width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; border:none; font-size:0.9rem; cursor:pointer; transition:opacity 0.15s; }
+.wu-play-btn:hover { opacity:0.8; }

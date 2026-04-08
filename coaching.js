@@ -876,8 +876,8 @@ function coachingSwitchTab(tabId) {
   if (tabId === 'ch-messages') initMessagesTab();
   if (tabId === 'ch-achievements') renderAchievements();
   if (tabId === 'cp-mon-coach')  { if (typeof cpLoadMyCoach   === 'function') cpLoadMyCoach(); }
-  if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan      === 'function') cpLoadPlan(); }
-  if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); }
+  if (tabId === 'cp-mon-plan')   { if (typeof cpLoadPlan === 'function') cpLoadPlan(); localStorage.setItem('visc_last_seen_plan', new Date().toISOString()); const b = document.getElementById('badge-plan'); if (b) b.style.display='none'; }
+  if (tabId === 'cp-feedbacks')  { if (typeof cpLoadFeedbacks === 'function') cpLoadFeedbacks(); localStorage.setItem('visc_last_seen_fb', new Date().toISOString()); const b = document.getElementById('badge-feedback'); if (b) b.style.display='none'; }
   if (tabId === 'ch-students')   { if (typeof cpLoadPlayers   === 'function') cpLoadPlayers(); }
 }
 
@@ -4093,6 +4093,110 @@ function _renderHeatmap() {
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.font = '11px monospace';
   ctx.fillText(`${hits} hits · ${misses} misses`, 8, H - 8);
+
+  // Stats below heatmap
+  let statsEl = wrap.querySelector('.heatmap-stats');
+  if (!statsEl) { statsEl = document.createElement('div'); statsEl.className = 'heatmap-stats'; wrap.appendChild(statsEl); }
+  if (log.length === 0) { statsEl.innerHTML = ''; return; }
+  // Compute spread (average distance from center)
+  const cx = W / 2, cy = H / 2;
+  const distances = log.map(p => Math.sqrt((p.x * W - cx) ** 2 + (p.y * H - cy) ** 2));
+  const avgSpread = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
+  const spreadPct = Math.round(avgSpread / (Math.min(W, H) / 2) * 100);
+  // Dominant zone (divide canvas into 9 zones 3x3)
+  const zoneCounts = Array(9).fill(0);
+  log.forEach(p => {
+    const col = Math.min(2, Math.floor(p.x * 3));
+    const row = Math.min(2, Math.floor(p.y * 3));
+    zoneCounts[row * 3 + col]++;
+  });
+  const maxZone = zoneCounts.indexOf(Math.max(...zoneCounts));
+  const zoneNames = ['Haut-G','Haut','Haut-D','G','Centre','D','Bas-G','Bas','Bas-D'];
+  const hitRate = Math.round(hits / log.length * 100);
+  statsEl.innerHTML = `
+    <div class="hm-stat-row">
+      <span class="hm-stat"><span class="hm-stat-val hm-hit">${hits}</span><span class="hm-stat-lbl">Hits</span></span>
+      <span class="hm-stat"><span class="hm-stat-val hm-miss">${misses}</span><span class="hm-stat-lbl">Manqués</span></span>
+      <span class="hm-stat"><span class="hm-stat-val">${hitRate}%</span><span class="hm-stat-lbl">Précision</span></span>
+      <span class="hm-stat"><span class="hm-stat-val">${spreadPct}%</span><span class="hm-stat-lbl">Dispersion</span></span>
+      <span class="hm-stat"><span class="hm-stat-val">${zoneNames[maxZone]}</span><span class="hm-stat-lbl">Zone dom.</span></span>
+    </div>`;
+}
+
+// ============ WARM-UP AUTO ============
+
+function cpGenerateWarmup() {
+  const el = document.getElementById('wu-routine-wrap');
+  if (!el) return;
+
+  if (typeof SCENARIOS === 'undefined') {
+    el.innerHTML = '<p class="ch-empty">Lance une partie d\'abord pour initialiser les scénarios.</p>';
+    return;
+  }
+
+  // Read bench scores for medium tier
+  let bench = {};
+  try { bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}'); } catch {}
+
+  // Score each scenario: threads achieved / max threads (0–1)
+  const scored = Object.entries(SCENARIOS)
+    .filter(([, v]) => v.th && v.th.length > 0)
+    .map(([key, v]) => {
+      const best = bench[key] || 0;
+      const threads = v.th.filter(t => best >= t).length;
+      const maxTh = 8;
+      const ratio = threads / maxTh;
+      return { key, label: v.label || key, cat: v.cat, sub: v.sub, ratio, threads, maxTh };
+    });
+
+  if (scored.length === 0) {
+    el.innerHTML = '<p class="ch-empty">Joue d\'abord quelques scénarios du Viscose Benchmark pour générer un warm-up personnalisé.</p>';
+    return;
+  }
+
+  // Separate played vs unplayed
+  const played   = scored.filter(s => bench[s.key]);
+  const unplayed = scored.filter(s => !bench[s.key]);
+
+  // Weakest played scenarios (lowest ratio)
+  const weak = [...played].sort((a, b) => a.ratio - b.ratio).slice(0, 4);
+  // Add 2 unplayed to discover
+  const discover = unplayed.sort(() => Math.random() - 0.5).slice(0, 2);
+
+  const routine = [
+    ...weak.map((s, i) => ({ ...s, reps: i < 2 ? 3 : 2, type: 'weak', note: `Point faible — ${s.threads}/${s.maxTh} threads` })),
+    ...discover.map(s => ({ ...s, reps: 1, type: 'discover', note: 'À découvrir' }))
+  ];
+
+  const totalReps = routine.reduce((a, s) => a + s.reps, 0);
+  const estMin = Math.round(totalReps * 1.2);
+
+  const CAT_SHORT = { control_tracking:'Tracking', reactive_tracking:'Réactif', flick_tech:'Flick', click_timing:'Click' };
+
+  el.innerHTML = `
+    <div class="wu-header-row">
+      <div>
+        <div class="wu-title">Warm-up personnalisé</div>
+        <div class="wu-meta">${routine.length} exercices · ~${estMin} minutes</div>
+      </div>
+      <button class="wu-btn" onclick="cpGenerateWarmup()">↺ Regénérer</button>
+    </div>
+    <div class="wu-list">
+      ${routine.map((s, i) => `
+        <div class="wu-item ${s.type === 'discover' ? 'wu-discover' : 'wu-weak'}">
+          <div class="wu-item-num">${i+1}</div>
+          <div class="wu-item-info">
+            <div class="wu-item-label">${san(s.label)}</div>
+            <div class="wu-item-meta">
+              <span class="wu-cat">${CAT_SHORT[s.cat]||s.cat}</span>
+              ${s.type === 'weak' ? `<span class="wu-threads">${s.threads}/${s.maxTh} threads</span>` : '<span class="wu-new-badge">Nouveau</span>'}
+              · <span style="color:var(--dim)">${s.note}</span>
+            </div>
+          </div>
+          <div class="wu-reps">×${s.reps}</div>
+          <button class="wu-play-btn" onclick="${typeof G !== 'undefined' ? `G.benchmarkMode=true;startGame('${s.key}')` : `alert('Lance le jeu d\\'abord')`}">▶</button>
+        </div>`).join('')}
+    </div>`;
 }
 
 // ============ BOOT ============

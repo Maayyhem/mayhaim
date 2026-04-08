@@ -262,6 +262,38 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ history: rows });
     }
 
+    // Stats agrégées d'un joueur (pour le coach)
+    if (view === 'player-stats') {
+      const playerId = req.query?.player_id;
+      if (!playerId) return res.status(400).json({ error: 'player_id requis' });
+      const rel = await sql`SELECT id FROM coaching_relationships WHERE coach_id = ${decoded.id} AND player_id = ${playerId} AND status = 'active'`;
+      if (!rel.length && decoded.role !== 'admin') return res.status(403).json({ error: 'Non autorisé' });
+      const uid = parseInt(playerId);
+      const [statsRow, activity30, recent10, weekCmp] = await Promise.all([
+        sql`SELECT COUNT(*)::int AS total_games, COALESCE(MAX(score),0)::int AS best_score,
+              COALESCE(ROUND(AVG(score)),0)::int AS avg_score,
+              COALESCE(ROUND(AVG(accuracy)::numeric,1),0) AS avg_accuracy
+            FROM game_history WHERE user_id = ${uid}`,
+        sql`SELECT DATE(played_at)::text AS day, COUNT(*)::int AS games, MAX(score)::int AS best
+            FROM game_history WHERE user_id = ${uid} AND played_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(played_at) ORDER BY day`,
+        sql`SELECT mode, score, accuracy, played_at FROM game_history
+            WHERE user_id = ${uid} ORDER BY played_at DESC LIMIT 10`,
+        sql`SELECT
+              COUNT(*) FILTER (WHERE played_at >= NOW() - INTERVAL '7 days')::int AS this_week,
+              COUNT(*) FILTER (WHERE played_at >= NOW() - INTERVAL '14 days' AND played_at < NOW() - INTERVAL '7 days')::int AS last_week,
+              COALESCE(MAX(score) FILTER (WHERE played_at >= NOW() - INTERVAL '7 days'),0)::int AS best_this_week,
+              COALESCE(MAX(score) FILTER (WHERE played_at >= NOW() - INTERVAL '14 days' AND played_at < NOW() - INTERVAL '7 days'),0)::int AS best_last_week
+            FROM game_history WHERE user_id = ${uid}`
+      ]);
+      return res.status(200).json({
+        stats: statsRow[0] || {},
+        activity_30: activity30,
+        recent_games: recent10,
+        week_cmp: weekCmp[0] || {}
+      });
+    }
+
     // Dashboard stats (utilisateur connecté)
     if (view === 'dashboard-stats') {
       const uid = decoded.id;
