@@ -327,7 +327,9 @@ async function fetchScenariosFromDB() {
 
 async function fetchAgentEditsFromDB() {
   try {
-    const res = await fetch(`${API_BASE}/coach-data?type=agent`);
+    const res = await fetch(`${API_BASE}/coach-data?type=agent`, {
+      headers: coachingToken ? { 'Authorization': `Bearer ${coachingToken}` } : {}
+    });
     if (!res.ok) return;
     const { data } = await res.json();
     if (!data || !data.length) return;
@@ -339,7 +341,9 @@ async function fetchAgentEditsFromDB() {
 
 async function fetchStratsFromDB() {
   try {
-    const res = await fetch(`${API_BASE}/coach-data?type=strat`);
+    const res = await fetch(`${API_BASE}/coach-data?type=strat`, {
+      headers: coachingToken ? { 'Authorization': `Bearer ${coachingToken}` } : {}
+    });
     if (!res.ok) return;
     const { data } = await res.json();
     if (!data || !data.length) return;
@@ -773,13 +777,7 @@ function initCoaching() {
   });
 
   // Notification bell
-  const bellBtn = document.getElementById('btn-notif-bell');
-  if (bellBtn) bellBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleNotifPanel(); });
   document.addEventListener('click', (e) => {
-    const panel = document.getElementById('notif-panel');
-    if (panel && panel.style.display !== 'none' && !panel.contains(e.target) && e.target.id !== 'btn-notif-bell') {
-      panel.style.display = 'none';
-    }
     const chPanel = document.getElementById('ch-notif-panel');
     if (chPanel && chPanel.style.display !== 'none' && !chPanel.contains(e.target) && e.target.id !== 'ch-notif-btn') {
       chPanel.style.display = 'none';
@@ -816,6 +814,7 @@ function populateVodFilters() {
   const pSel = document.getElementById('ch-vod-player-filter');
   const aSel = document.getElementById('ch-vod-agent-filter');
   const mSel = document.getElementById('ch-vod-map-filter');
+  if (!pSel || !aSel || !mSel) return;
 
   players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; pSel.appendChild(o); });
   agents.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; aSel.appendChild(o); });
@@ -1032,7 +1031,7 @@ function coachingRenderScenarios() {
         ${done ? '<span class="ch-badge-done">Complete</span>' : ''}
       </div>
       <div class="ch-card-title">${s.title}</div>
-      <div class="ch-card-meta">${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'défense' ? 'défense' : 'Retake'}</div>
+      <div class="ch-card-meta">${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'defense' ? 'Défense' : 'Retake'}</div>
       <p class="ch-card-desc">${s.description || ''}</p>
       <button class="btn-primary ch-card-btn">Voir le guide</button>
     `;
@@ -1046,7 +1045,7 @@ function coachingOpenScenarioModal(s) {
   if (!modal) return;
   document.getElementById('ch-sm-title').textContent = s.title;
   document.getElementById('ch-sm-badge').textContent = s.rank || '';
-  document.getElementById('ch-sm-meta').textContent = `${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'défense' ? 'défense' : 'Retake'} \u00b7 Difficulte ${s.difficulty || 3}/5`;
+  document.getElementById('ch-sm-meta').textContent = `${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'defense' ? 'Défense' : 'Retake'} \u00b7 Difficulte ${s.difficulty || 3}/5`;
   document.getElementById('ch-sm-guide').textContent = s.guide || 'Guide non disponible.';
   document.getElementById('ch-sm-tips').textContent = s.tips || '';
   // Render blank map or custom annotations if available
@@ -1571,7 +1570,7 @@ function _launchRoutineExercise(routine, idx) {
 }
 
 function _renderRoutineCards() {
-  const el = document.getElementById('wu-routines');
+  const el = document.getElementById('wu-routine-wrap');
   if (!el) return;
   el.innerHTML = WARMUP_ROUTINES.map(r => `
     <div class="wu-routine-card">
@@ -1600,8 +1599,8 @@ function initWarmupPanel() {
       const mode = btn.dataset.mode;
       const diff = btn.dataset.diff;
       _setCoachLaunchSource('ch-warmup');
-      
-      document.getElementById('opt-diff').value = diff;
+      const _diffEl = document.getElementById('opt-diff');
+      if (_diffEl) _diffEl.value = diff;
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
         if (modeBtn) modeBtn.click();
@@ -2820,6 +2819,7 @@ function meInit() {
 }
 
 function meLoadMapImg() {
+  if (typeof MAP_DATA === 'undefined') return;
   const img = document.getElementById('me-map-img');
   const mapData = MAP_DATA[ME.currentMap];
   if (img && mapData) { img.src = mapData.img; meApplyRotation(); }
@@ -3610,45 +3610,6 @@ function pfShareProfile() {
   });
 }
 
-// ============ LEADERBOARD ============
-
-async function coachingRenderLeaderboard() {
-  const el = document.getElementById('ch-leaderboard-content');
-  if (!el) return;
-  el.innerHTML = '<p class="ch-empty">Chargement...</p>';
-  try {
-    const res = await fetch(`${API_BASE}/coaching?view=global-leaderboard`);
-    if (!res.ok) throw new Error('Erreur serveur');
-    const { leaderboard } = await res.json();
-    if (!leaderboard || !leaderboard.length) { el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>'; return; }
-    const medals = ['🥇','🥈','🥉'];
-    el.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.88rem">
-      <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);color:var(--text-muted)">
-        <th style="padding:10px;text-align:center">#</th>
-        <th style="padding:10px;text-align:left">Joueur</th>
-        <th style="padding:10px;text-align:right">Score Total</th>
-        <th style="padding:10px;text-align:right">Parties</th>
-        <th style="padding:10px;text-align:right">Précision</th>
-        <th style="padding:10px;text-align:right">Meilleure Partie</th>
-      </tr></thead>
-      <tbody>${leaderboard.map((p,i) => {
-        const isMe = coachingUser && p.username === coachingUser.email;
-        const bg = i===0?'rgba(232,197,109,0.06)':i===1?'rgba(192,192,192,0.04)':i===2?'rgba(180,90,50,0.04)':'';
-        const rank = medals[i] || `<span style="color:var(--text-muted)">${i+1}</span>`;
-        const nameColor = isMe ? 'color:var(--accent)' : i===0?'color:#e8c56d':'';
-        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);${bg?'background:'+bg:''}">
-          <td style="padding:10px;text-align:center;font-size:1rem">${rank}</td>
-          <td style="padding:10px;font-weight:600;${nameColor}">${san(p.username) || 'Joueur'}${isMe?' (moi)':''}</td>
-          <td style="padding:10px;text-align:right;color:var(--accent);font-weight:700">${Number(p.total_score).toLocaleString()}</td>
-          <td style="padding:10px;text-align:right">${p.total_games}</td>
-          <td style="padding:10px;text-align:right">${p.avg_accuracy}%</td>
-          <td style="padding:10px;text-align:right">${Number(p.best_game).toLocaleString()}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
-  } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${e.message}</p>`; }
-}
-
 // ============ NOTIFICATIONS ============
 
 let _notifPollInterval = null;
@@ -3711,11 +3672,7 @@ function renderNotifList(notifs) {
 }
 
 function toggleNotifPanel() {
-  const panel = document.getElementById('notif-panel');
-  if (!panel) return;
-  const visible = panel.style.display !== 'none';
-  panel.style.display = visible ? 'none' : 'block';
-  if (!visible) loadNotifications();
+  toggleCoachNotifPanel();
 }
 
 function toggleCoachNotifPanel() {
@@ -3736,7 +3693,8 @@ async function clickNotif(id, tab) {
   } catch {}
   loadNotifications();
   if (tab) {
-    document.getElementById('notif-panel').style.display = 'none';
+    const _np = document.getElementById('ch-notif-panel');
+    if (_np) _np.style.display = 'none';
     coachingSwitchTab(tab);
   }
 }
@@ -3795,7 +3753,7 @@ function renderConversations(convs) {
     return `<div class="msg-conv-item${_activeRelId == c.rel_id ? ' active' : ''}" onclick="openConversation(${c.rel_id},'${name}')">
       <div class="msg-conv-avatar">${name[0]?.toUpperCase() || '?'}</div>
       <div class="msg-conv-info">
-        <div class="msg-conv-name">${name}${unread ? `<span class="msg-unread-badge">${c.unread_count}</span>` : ''}</div>
+        <div class="msg-conv-name">${name}${unread ? `<span class="msg-unread-badge">${c.unread}</span>` : ''}</div>
         <div class="msg-conv-last">${last}</div>
       </div>
     </div>`;

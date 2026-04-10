@@ -617,6 +617,39 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   border-color: rgba(255,70,85,0.4);
 }
 
+.ch-sidebar-socials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  transition: all 0.15s;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.social-link svg {
+  width: 14px;
+  height: 14px;
+}
+.social-link:hover { border-color: transparent; }
+.social-x:hover       { background: #000; color: #fff; }
+.social-twitch:hover  { background: #9146ff; color: #fff; }
+.social-youtube:hover { background: #ff0000; color: #fff; }
+.social-discord:hover { background: #5865f2; color: #fff; }
+
 /* ── Main area ───────────────────────────────────────── */
 .ch-main {
   flex: 1;

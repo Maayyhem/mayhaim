@@ -349,7 +349,7 @@ Clés valides pour plan: ${Object.keys(SCENARIO_LABELS).join(', ')}
     let analysis;
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 1800,
         messages: [{ role: 'user', content: prompt }]
       });

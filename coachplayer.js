@@ -10,14 +10,6 @@ function san(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
-// Rank badge
-function cpRankBadge(rank) {
-  if (!rank) return '';
-  const tier = rank.split(' ')[0];
-  const c = (typeof VALORANT_RANK_COLORS !== 'undefined' ? VALORANT_RANK_COLORS[tier] : null) || '#888';
-  return `<span class="rank-badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${san(rank)}</span>`;
-}
-
 // ── Helpers API ──────────────────────────────────────────────
 async function cpFetch(method, path, body) {
   const opts = {

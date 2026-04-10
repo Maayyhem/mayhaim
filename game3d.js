@@ -178,7 +178,7 @@ function calcTotalThreads() {
 }
 function calcMaxTotal() { return Object.keys(SCENARIOS).filter(k=>SCENARIOS[k].th).length * getMaxThreads(); }
 function calcRankFromThreads(threads) {
-  const total = Object.keys(SCENARIOS).length * 8; // 256
+  const total = calcMaxTotal();
   const pct = threads / total;
   if (pct >= 0.9) return { label:'Mythic', color:'#ff4655' };
   if (pct >= 0.75) return { label:'Legendary', color:'#d882f5' };
@@ -1495,7 +1495,6 @@ function endGame() {
   }
   // Check achievements
   if (typeof checkAndUnlockAchievements === 'function') {
-    const acc = G.hits+G.misses > 0 ? Math.round(G.hits/(G.hits+G.misses)*100) : 100;
     const avgR = G.reactionTimes.length > 0 ? Math.round(G.reactionTimes.reduce((a,b)=>a+b,0)/G.reactionTimes.length) : 0;
     checkAndUnlockAchievements({
       score: G.score, accuracy: acc, bestCombo: G.bestCombo,

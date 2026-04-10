@@ -21,6 +21,60 @@ function verifyToken(req) {
   catch { return null; }
 }
 
+let _tablesReady = false;
+async function ensureTables(sql) {
+  if (_tablesReady) return;
+  await Promise.all([
+    sql`CREATE TABLE IF NOT EXISTS voltaic_benchmarks (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      rank_idx INTEGER NOT NULL,
+      rank_name TEXT NOT NULL,
+      scenarios JSONB NOT NULL,
+      played_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS announcements (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      type TEXT DEFAULT 'info',
+      active BOOLEAN DEFAULT TRUE,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      expires_at TIMESTAMPTZ
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS audit_logs (
+      id SERIAL PRIMARY KEY,
+      actor_id INTEGER,
+      actor_email TEXT,
+      action TEXT NOT NULL,
+      target_id INTEGER,
+      target_username TEXT,
+      details TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      rel_id INTEGER NOT NULL REFERENCES coaching_relationships(id) ON DELETE CASCADE,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT,
+      title TEXT,
+      body TEXT,
+      tab TEXT,
+      read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`
+  ]);
+  _tablesReady = true;
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -77,48 +131,45 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // ── Classements publics (sans authentification) ──────────────────────────
+  if (req.method === 'GET' && req.query?.view === 'global-leaderboard') {
+    const rows = await sql`
+      SELECT
+        gh.user_id,
+        COALESCE(u.username, gh.username, 'Joueur') AS username,
+        SUM(gh.score) AS total_score,
+        COUNT(*)::int AS total_games,
+        ROUND(AVG(gh.accuracy))::int AS avg_accuracy,
+        MAX(gh.score)::int AS best_game,
+        MAX(gh.played_at) AS last_played
+      FROM game_history gh
+      LEFT JOIN users u ON u.id = gh.user_id
+      GROUP BY gh.user_id, u.username, gh.username
+      ORDER BY total_score DESC
+      LIMIT 50
+    `;
+    return res.status(200).json({ leaderboard: rows });
+  }
+
+  if (req.method === 'GET' && req.query?.view === 'leaderboard') {
+    const mode = req.query?.mode || 'gridshot';
+    const rows = await sql`
+      SELECT u.username, h.score, h.accuracy, h.hits, h.misses,
+             TO_CHAR(h.played_at, 'DD/MM/YY') AS day
+      FROM game_history h
+      JOIN users u ON u.id = h.user_id
+      WHERE h.mode = ${mode}
+      ORDER BY h.score DESC
+      LIMIT 15
+    `;
+    return res.status(200).json({ rows });
+  }
+
   const decoded = verifyToken(req);
   if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
-  // Auto-create tables
-  await Promise.all([
-    sql`CREATE TABLE IF NOT EXISTS voltaic_benchmarks (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      rank_idx INTEGER NOT NULL,
-      rank_name TEXT NOT NULL,
-      scenarios JSONB NOT NULL,
-      played_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-    sql`CREATE TABLE IF NOT EXISTS announcements (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      type TEXT DEFAULT 'info',
-      active BOOLEAN DEFAULT TRUE,
-      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      expires_at TIMESTAMPTZ
-    )`,
-    sql`CREATE TABLE IF NOT EXISTS audit_logs (
-      id SERIAL PRIMARY KEY,
-      actor_id INTEGER,
-      actor_email TEXT,
-      action TEXT NOT NULL,
-      target_id INTEGER,
-      target_username TEXT,
-      details TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-    sql`CREATE TABLE IF NOT EXISTS messages (
-      id SERIAL PRIMARY KEY,
-      rel_id INTEGER NOT NULL REFERENCES coaching_relationships(id) ON DELETE CASCADE,
-      sender_id INTEGER NOT NULL REFERENCES users(id),
-      content TEXT NOT NULL,
-      read BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`
-  ]);
+  // Auto-create tables (once per cold start)
+  await ensureTables(sql);
 
   // ── GET ──────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
@@ -474,22 +525,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ pb_history: rows });
     }
 
-    if (view === 'leaderboard') {
-      const mode = url.searchParams.get('mode') || 'gridshot';
-      const { rows } = await sql`
-        SELECT u.username, h.score, h.accuracy, h.hits, h.misses,
-               TO_CHAR(h.played_at, 'DD/MM/YY') AS day
-        FROM game_history h
-        JOIN users u ON u.id = h.user_id
-        WHERE h.mode = ${mode}
-        ORDER BY h.score DESC
-        LIMIT 15
-      `;
-      return res.json({ rows });
-    }
-
     if (view === 'benchmark-history') {
-      const { rows } = await sql`
+      const rows = await sql`
         SELECT id, rank_idx, rank_name, scenarios,
                TO_CHAR(played_at, 'DD/MM/YY') AS day,
                played_at
@@ -503,7 +540,7 @@ module.exports = async function handler(req, res) {
 
     if (view === 'benchmark-all') {
       if (userRole !== 'coach' && userRole !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-      const { rows } = await sql`
+      const rows = await sql`
         SELECT DISTINCT ON (vb.user_id)
           u.username, u.id AS user_id,
           vb.rank_idx, vb.rank_name, vb.scenarios,
@@ -520,7 +557,7 @@ module.exports = async function handler(req, res) {
       if (userRole !== 'coach' && userRole !== 'admin') return res.status(403).json({ error: 'Forbidden' });
       const targetId = req.query?.player_id;
       if (!targetId) return res.status(400).json({ error: 'Missing player_id' });
-      const { rows } = await sql`
+      const rows = await sql`
         SELECT id, rank_idx, rank_name, scenarios,
                TO_CHAR(played_at, 'DD/MM/YY') AS day
         FROM voltaic_benchmarks
@@ -531,25 +568,7 @@ module.exports = async function handler(req, res) {
       return res.json({ rows });
     }
 
-    // Classement global (remplace api/leaderboard.js)
-    if (view === 'global-leaderboard') {
-      const rows = await sql`
-        SELECT
-          gh.user_id,
-          COALESCE(u.username, gh.username, 'Joueur') AS username,
-          SUM(gh.score) AS total_score,
-          COUNT(*)::int AS total_games,
-          ROUND(AVG(gh.accuracy))::int AS avg_accuracy,
-          MAX(gh.score)::int AS best_game,
-          MAX(gh.played_at) AS last_played
-        FROM game_history gh
-        LEFT JOIN users u ON u.id = gh.user_id
-        GROUP BY gh.user_id, u.username, gh.username
-        ORDER BY total_score DESC
-        LIMIT 50
-      `;
-      return res.status(200).json({ leaderboard: rows });
-    }
+
 
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | global-leaderboard | ...' });
   }
