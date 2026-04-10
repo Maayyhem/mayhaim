@@ -145,6 +145,50 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // Mise à jour du profil (username, rang, objectif)
+    if (action === 'update-profile') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+
+      const { username, current_rank, objective } = req.body || {};
+
+      if (username !== undefined) {
+        const trimmed = String(username).trim();
+        if (trimmed.length < 3) return res.status(400).json({ error: 'Pseudo minimum 3 caractères' });
+        if (trimmed.length > 32) return res.status(400).json({ error: 'Pseudo maximum 32 caractères' });
+        if (!/^[a-zA-Z0-9_\-\.]+$/.test(trimmed)) return res.status(400).json({ error: 'Pseudo invalide (lettres, chiffres, _ - . uniquement)' });
+        // Vérifier unicité — exclure l'utilisateur actuel
+        const taken = await sql`SELECT id FROM users WHERE LOWER(username) = LOWER(${trimmed}) AND id != ${decoded.id}`;
+        if (taken.length > 0) return res.status(409).json({ error: 'Ce pseudo est déjà pris' });
+      }
+
+      // Build update selectively
+      const newUsername    = username     !== undefined ? String(username).trim() : null;
+      const newRank        = current_rank !== undefined ? (current_rank || null)  : null;
+      const newObjective   = objective    !== undefined ? (objective    || null)  : undefined;
+
+      let updated;
+      if (newObjective !== undefined) {
+        updated = await sql`
+          UPDATE users SET
+            username     = CASE WHEN ${newUsername}     IS NOT NULL THEN ${newUsername}   ELSE username     END,
+            current_rank = CASE WHEN ${newRank}         IS NOT NULL THEN ${newRank}       ELSE current_rank END,
+            objective    = ${newObjective}
+          WHERE id = ${decoded.id}
+          RETURNING id, email, username, role, current_rank, peak_elo, objective
+        `;
+      } else {
+        updated = await sql`
+          UPDATE users SET
+            username     = CASE WHEN ${newUsername} IS NOT NULL THEN ${newUsername} ELSE username     END,
+            current_rank = CASE WHEN ${newRank}     IS NOT NULL THEN ${newRank}     ELSE current_rank END
+          WHERE id = ${decoded.id}
+          RETURNING id, email, username, role, current_rank, peak_elo, objective
+        `;
+      }
+      return res.status(200).json({ success: true, user: updated[0] });
+    }
+
     // Marquer une notification lue
     if (action === 'mark-read') {
       const decoded = verifyToken(req, false);

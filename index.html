@@ -1115,7 +1115,43 @@
           </div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
             <button class="btn-outline" style="font-size:0.78rem;padding:6px 14px;display:flex;align-items:center;gap:6px" onclick="pfShareProfile()">🔗 Partager mon profil</button>
+            <button class="btn-outline" style="font-size:0.78rem;padding:6px 14px;display:flex;align-items:center;gap:6px" onclick="pfToggleEdit()">✏️ Modifier</button>
             <span id="pf-share-copied" style="font-size:0.75rem;color:#10b981;display:none">✓ Lien copié !</span>
+          </div>
+
+          <!-- Formulaire d'édition (masqué par défaut) -->
+          <div id="pf-edit-form" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:12px;color:var(--accent)">✏️ Modifier mon profil</div>
+            <div style="display:grid;gap:10px">
+              <div>
+                <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px">PSEUDO</label>
+                <input id="pf-edit-username" type="text" maxlength="32" class="auth-input" style="padding:8px 12px;font-size:0.88rem" placeholder="Ton pseudo">
+              </div>
+              <div>
+                <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px">RANG ACTUEL</label>
+                <select id="pf-edit-rank" class="wu-select" style="font-size:0.88rem">
+                  <option value="">— Sélectionner —</option>
+                  <option>Iron 1</option><option>Iron 2</option><option>Iron 3</option>
+                  <option>Bronze 1</option><option>Bronze 2</option><option>Bronze 3</option>
+                  <option>Silver 1</option><option>Silver 2</option><option>Silver 3</option>
+                  <option>Gold 1</option><option>Gold 2</option><option>Gold 3</option>
+                  <option>Platinum 1</option><option>Platinum 2</option><option>Platinum 3</option>
+                  <option>Diamond 1</option><option>Diamond 2</option><option>Diamond 3</option>
+                  <option>Ascendant 1</option><option>Ascendant 2</option><option>Ascendant 3</option>
+                  <option>Immortal 1</option><option>Immortal 2</option><option>Immortal 3</option>
+                  <option>Radiant</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px">OBJECTIF</label>
+                <input id="pf-edit-objective" type="text" maxlength="120" class="auth-input" style="padding:8px 12px;font-size:0.88rem" placeholder="Ex: Atteindre Diamond 3">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+              <button class="btn-primary" style="font-size:0.82rem;padding:8px 20px" onclick="pfSaveProfile()">Enregistrer</button>
+              <button class="btn-secondary" style="font-size:0.82rem;padding:8px 16px" onclick="pfToggleEdit()">Annuler</button>
+              <span id="pf-edit-msg" style="font-size:0.78rem;display:none"></span>
+            </div>
           </div>
 
           <!-- Stats row -->

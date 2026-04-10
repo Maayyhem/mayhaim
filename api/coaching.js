@@ -136,7 +136,7 @@ module.exports = async function handler(req, res) {
     const rows = await sql`
       SELECT
         gh.user_id,
-        COALESCE(u.username, gh.username, 'Joueur') AS username,
+        COALESCE(MAX(u.username), MAX(gh.username), 'Joueur') AS username,
         SUM(gh.score) AS total_score,
         COUNT(*)::int AS total_games,
         ROUND(AVG(gh.accuracy))::int AS avg_accuracy,
@@ -144,7 +144,7 @@ module.exports = async function handler(req, res) {
         MAX(gh.played_at) AS last_played
       FROM game_history gh
       LEFT JOIN users u ON u.id = gh.user_id
-      GROUP BY gh.user_id, u.username, gh.username
+      GROUP BY gh.user_id
       ORDER BY total_score DESC
       LIMIT 50
     `;
@@ -154,12 +154,17 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET' && req.query?.view === 'leaderboard') {
     const mode = req.query?.mode || 'gridshot';
     const rows = await sql`
-      SELECT u.username, h.score, h.accuracy, h.hits, h.misses,
-             TO_CHAR(h.played_at, 'DD/MM/YY') AS day
-      FROM game_history h
-      JOIN users u ON u.id = h.user_id
-      WHERE h.mode = ${mode}
-      ORDER BY h.score DESC
+      SELECT username, score, accuracy, hits, misses, day FROM (
+        SELECT DISTINCT ON (h.user_id)
+          COALESCE(u.username, h.username, 'Joueur') AS username,
+          h.score, h.accuracy, h.hits, h.misses,
+          TO_CHAR(h.played_at, 'DD/MM/YY') AS day
+        FROM game_history h
+        LEFT JOIN users u ON u.id = h.user_id
+        WHERE h.mode = ${mode}
+        ORDER BY h.user_id, h.score DESC
+      ) best
+      ORDER BY score DESC
       LIMIT 15
     `;
     return res.status(200).json({ rows });

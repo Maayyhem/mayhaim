@@ -3597,6 +3597,68 @@ function _pfRenderModeBreakdown(modes) {
   }).join('');
 }
 
+function pfToggleEdit() {
+  const form = document.getElementById('pf-edit-form');
+  if (!form) return;
+  const isOpen = form.style.display !== 'none';
+  if (!isOpen) {
+    // Pré-remplir avec les valeurs actuelles
+    const u = coachingUser;
+    if (u) {
+      const uInput = document.getElementById('pf-edit-username');
+      const rInput = document.getElementById('pf-edit-rank');
+      const oInput = document.getElementById('pf-edit-objective');
+      if (uInput) uInput.value = u.username || '';
+      if (rInput) rInput.value = u.current_rank || '';
+      if (oInput) oInput.value = u.objective || '';
+    }
+    const msg = document.getElementById('pf-edit-msg');
+    if (msg) msg.style.display = 'none';
+  }
+  form.style.display = isOpen ? 'none' : 'block';
+}
+
+async function pfSaveProfile() {
+  const uInput = document.getElementById('pf-edit-username');
+  const rInput = document.getElementById('pf-edit-rank');
+  const oInput = document.getElementById('pf-edit-objective');
+  const msgEl  = document.getElementById('pf-edit-msg');
+
+  const username     = uInput?.value.trim();
+  const current_rank = rInput?.value || null;
+  const objective    = oInput?.value.trim() || null;
+
+  if (!username || username.length < 3) {
+    if (msgEl) { msgEl.textContent = 'Pseudo minimum 3 caractères'; msgEl.style.color = '#ff4655'; msgEl.style.display = 'inline'; }
+    return;
+  }
+
+  const btn = document.querySelector('#pf-edit-form .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
+
+  try {
+    const res = await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'update-profile', username, current_rank, objective })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+
+    // Mettre à jour le cache local
+    coachingUser = { ...coachingUser, ...data.user };
+    updateUserUI();
+    renderProfile();
+    pfToggleEdit();
+
+    if (msgEl) { msgEl.textContent = '✓ Profil mis à jour'; msgEl.style.color = '#10b981'; msgEl.style.display = 'inline'; }
+  } catch(e) {
+    if (msgEl) { msgEl.textContent = e.message; msgEl.style.color = '#ff4655'; msgEl.style.display = 'inline'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+  }
+}
+
 function pfShareProfile() {
   const u = typeof coachingUser !== 'undefined' ? coachingUser : null;
   if (!u) return;
