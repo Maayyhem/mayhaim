@@ -200,6 +200,7 @@
         </div>
         <div class="results-actions">
           <button id="btn-retry" class="btn-primary">↺ Rejouer</button>
+          <button id="btn-replay" class="btn-secondary" style="display:none" onclick="showReplay()">🎬 Replay</button>
           <button id="btn-back-coaching" class="btn-primary" style="display:none"></button>
           <button id="btn-menu" class="btn-secondary">Menu</button>
         </div>
@@ -664,33 +665,42 @@
         <!-- ══ COACH IA ══ -->
         <div id="ch-ai-coach" class="ch-panel">
 
-          <!-- État initial / loading / résultat -->
+          <!-- État idle : pas encore de plan cette semaine -->
           <div id="ai-coach-idle" class="aic-idle">
             <div class="aic-idle-icon">🤖</div>
-            <h2 class="aic-idle-title">Ton Coach IA</h2>
-            <p class="aic-idle-desc">Analyse tes stats, ton benchmark et tes parties récentes pour générer un coaching personnalisé par Claude.</p>
-            <button class="aic-generate-btn" onclick="loadAiCoach(false)">⚡ Analyser ma progression</button>
+            <h2 class="aic-idle-title">Coach IA — Plan Hebdomadaire</h2>
+            <p class="aic-idle-desc">Claude analyse tes stats, tendances et benchmark pour générer un plan d'entraînement personnalisé pour la semaine. Un nouveau plan disponible chaque lundi.</p>
+            <button class="aic-generate-btn" id="aic-generate-btn" onclick="generateWeeklyPlan()">⚡ Générer le plan de cette semaine</button>
             <p class="aic-cooldown" id="aic-cooldown-msg" style="display:none"></p>
           </div>
 
+          <!-- Chargement -->
           <div id="ai-coach-loading" class="aic-loading" style="display:none">
             <div class="aic-spinner"></div>
-            <div class="aic-loading-text">Claude analyse ta progression…</div>
-            <div class="aic-loading-sub">Examen du benchmark · Analyse des tendances · Génération du plan</div>
+            <div class="aic-loading-text">Claude construit ton plan hebdomadaire…</div>
+            <div class="aic-loading-sub">Analyse du benchmark · Tendances · Comparaison semaine précédente</div>
           </div>
 
+          <!-- Résultat : plan de la semaine -->
           <div id="ai-coach-result" style="display:none">
 
-            <!-- Header -->
+            <!-- Header semaine -->
             <div class="aic-header">
               <div class="aic-header-left">
                 <div class="aic-badge">🤖 Coach IA</div>
+                <div class="aic-week-badge" id="aic-week-badge"></div>
                 <h2 class="aic-title" id="aic-titre">—</h2>
               </div>
               <div class="aic-header-right">
                 <span class="aic-generated-at" id="aic-date">—</span>
-                <button class="aic-refresh-btn" id="aic-refresh-btn" onclick="loadAiCoach(true)" title="Régénérer l'analyse">↺</button>
+                <span class="aic-countdown" id="aic-countdown"></span>
               </div>
+            </div>
+
+            <!-- Objectif de la semaine -->
+            <div class="aic-card aic-card-objectif">
+              <div class="aic-card-label">🎯 Objectif de la semaine</div>
+              <p class="aic-objectif-text" id="aic-objectif">—</p>
             </div>
 
             <!-- Diagnostic -->
@@ -706,20 +716,20 @@
                 <ul class="aic-list" id="aic-forces"></ul>
               </div>
               <div class="aic-card aic-card-axes">
-                <div class="aic-card-label">🎯 Axes d'amélioration</div>
+                <div class="aic-card-label">📈 Axes d'amélioration</div>
                 <ul class="aic-list" id="aic-axes"></ul>
               </div>
             </div>
 
             <!-- Focus technique -->
             <div class="aic-card aic-card-focus">
-              <div class="aic-card-label">⚡ Focus technique</div>
+              <div class="aic-card-label">⚡ Focus de la semaine</div>
               <p class="aic-focus-text" id="aic-focus">—</p>
             </div>
 
-            <!-- Plan semaine -->
+            <!-- Plan 4 scénarios -->
             <div class="aic-card">
-              <div class="aic-card-label">📅 Plan de la semaine</div>
+              <div class="aic-card-label">📅 Programme — 4 scénarios pour la semaine</div>
               <div class="aic-plan-list" id="aic-plan"></div>
             </div>
 
@@ -728,6 +738,9 @@
               <div class="aic-motivation-icon">🔥</div>
               <p class="aic-motivation-text" id="aic-motivation">—</p>
             </div>
+
+            <!-- Historique semaines précédentes -->
+            <div id="aic-history" style="display:none"></div>
 
           </div>
         </div>
@@ -1086,6 +1099,10 @@
               <span class="pf-rank-val" id="pf-rank-num">—</span>
             </div>
           </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+            <button class="btn-outline" style="font-size:0.78rem;padding:6px 14px;display:flex;align-items:center;gap:6px" onclick="pfShareProfile()">🔗 Partager mon profil</button>
+            <span id="pf-share-copied" style="font-size:0.75rem;color:#10b981;display:none">✓ Lien copié !</span>
+          </div>
 
           <!-- Stats row -->
           <div class="pf-stats-row">
@@ -1314,6 +1331,38 @@
     </div>
 
   </div>
+  <!-- REPLAY OVERLAY -->
+  <div id="replay-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center">
+    <div style="width:min(90vw,720px);padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <span style="font-size:1.1rem;font-weight:800">🎬 Session Replay</span>
+          <span id="rpl-mode-lbl" style="font-size:0.78rem;color:var(--dim);margin-left:10px"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select id="rpl-speed" onchange="replaySetSpeed()" style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:0.78rem">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+          <button onclick="hideReplay()" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:var(--font);font-size:0.82rem">✕ Fermer</button>
+        </div>
+      </div>
+      <canvas id="rpl-canvas" style="width:100%;border-radius:10px;background:#0a0a0f;border:1px solid var(--border);display:block"></canvas>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+        <button id="rpl-playpause" onclick="replayToggle()" style="background:var(--accent);border:none;color:#fff;border-radius:8px;padding:7px 18px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:0.85rem;min-width:80px">⏸ Pause</button>
+        <input type="range" id="rpl-scrub" min="0" max="100" value="0" step="0.1" oninput="replayScrub(this.value)" style="flex:1;accent-color:var(--accent)">
+        <span id="rpl-time" style="font-size:0.78rem;color:var(--dim);min-width:60px;text-align:right">0s / 0s</span>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:16px;font-size:0.72rem;color:var(--dim)">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px"></span>Hit</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px"></span>Miss</span>
+        <span><span style="display:inline-block;width:30px;height:2px;background:#ffffff33;margin-right:4px;vertical-align:middle"></span>Trajectoire souris</span>
+      </div>
+    </div>
+  </div>
+
   <script src="audio.js"></script>
   <script src="maps.js"></script>
   <script src="scenario-maps-data.js"></script>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil — MayhAim</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+    .pub-wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    /* TOPBAR */
+    .pub-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .pub-logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+    .pub-logo span { color: var(--accent); }
+    .pub-back-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; font-family: var(--font); text-decoration: none; }
+    .pub-back-btn:hover { background: var(--card-hover); }
+
+    /* HEADER */
+    .pub-header { display: flex; align-items: center; gap: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+    .pub-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-dim, rgba(255,70,85,.15)); color: var(--accent); font-size: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+    .pub-info { flex: 1; min-width: 0; }
+    .pub-username { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+    .pub-rank-badge { display: inline-block; background: var(--accent-dim, rgba(255,70,85,.12)); color: var(--accent); border-radius: 6px; padding: 2px 10px; font-size: 0.78rem; font-weight: 700; margin-top: 5px; }
+    .pub-objective { color: var(--dim); font-size: 0.83rem; margin-top: 6px; }
+    .pub-global-rank { text-align: right; flex-shrink: 0; }
+    .pub-global-rank .rank-num { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .pub-global-rank .rank-lbl { font-size: 0.72rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .pub-member-since { font-size: 0.74rem; color: var(--dim); margin-top: 4px; }
+
+    /* STATS ROW */
+    .pub-stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+    .pub-stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 10px; text-align: center; }
+    .pub-stat-val { display: block; font-size: 1.35rem; font-weight: 800; color: var(--text); }
+    .pub-stat-val.accent { color: var(--accent); }
+    .pub-stat-lbl { display: block; font-size: 0.7rem; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* SECTIONS */
+    .pub-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .pub-section-title { font-size: 0.85rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+
+    /* ACTIVITY CHART */
+    .pub-chart-wrap { height: 120px; }
+
+    /* BOTTOM GRID */
+    .pub-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* MODE LIST */
+    .pub-mode-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .pub-mode-item:last-child { border-bottom: none; }
+    .pub-mode-name { flex: 1; font-size: 0.82rem; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pub-mode-score { font-size: 0.88rem; font-weight: 700; color: var(--accent); }
+    .pub-mode-acc { font-size: 0.72rem; color: var(--dim); }
+
+    /* RECENT GAMES */
+    .pub-game-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+    .pub-game-item:last-child { border-bottom: none; }
+    .pub-game-mode { flex: 1; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pub-game-score { font-weight: 700; color: var(--accent); }
+    .pub-game-acc { color: var(--dim); font-size: 0.73rem; }
+    .pub-game-date { color: var(--dim); font-size: 0.72rem; }
+
+    /* STREAK BADGE */
+    .pub-streak { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#f59e0b22,#f59e0b11); border: 1px solid #f59e0b44; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #f59e0b; margin-top: 5px; }
+
+    /* EMPTY / ERROR / LOADING */
+    .pub-loading { text-align: center; color: var(--dim); padding: 60px 0; font-size: 0.9rem; }
+    .pub-error { text-align: center; padding: 60px 20px; }
+    .pub-error-title { font-size: 2rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+    .pub-error-msg { color: var(--dim); font-size: 0.9rem; }
+
+    /* SHARE */
+    .pub-share-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .pub-share-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 0.8rem; font-family: var(--font); display: flex; align-items: center; gap: 6px; }
+    .pub-share-btn:hover { background: var(--card-hover); }
+    .pub-share-copied { font-size: 0.75rem; color: #10b981; display: none; }
+
+    /* FOOTER */
+    .pub-footer { text-align: center; color: var(--dim); font-size: 0.75rem; margin-top: 40px; }
+    .pub-footer a { color: var(--accent); text-decoration: none; }
+
+    @media(max-width: 600px) {
+      .pub-stats-row { grid-template-columns: repeat(3, 1fr); }
+      .pub-bottom-grid { grid-template-columns: 1fr; }
+      .pub-header { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="pub-wrap">
+
+  <!-- Topbar -->
+  <div class="pub-topbar">
+    <div class="pub-logo">Mayh<span>Aim</span></div>
+    <a href="/" class="pub-back-btn">← Accueil</a>
+  </div>
+
+  <!-- Content -->
+  <div id="pub-content">
+    <div class="pub-loading" id="pub-loading">Chargement du profil…</div>
+  </div>
+
+</div>
+
+<script>
+const SCENARIO_LABELS = {
+  whisphereraw:'WhisphereRawControl', whisphere:'Whisphere', smoothbot:'SmoothBot Goated', leaptrack:'Leaptrack Goated',
+  ctrlsphere_aim:'Controlsphere rAim', vt_ctrlsphere:'VT Controlsphere', air_angelic:'Air Angelic 4', cloverraw:'Cloverrawcontrol',
+  ctrlsphere_far:'Controlsphere Far', pgti:'PGTI Voltaic Easy', air_celestial:'Air CELESTIAL', whisphere_slow:'Whisphere Slow',
+  ground_plaza:'Ground Plaza Sparky', ctrlsphere_ow:'Controlsphere OW', flicker_plaza:'Flicker Plaza rAim',
+  polarized_hell:'Polarized Hell', air_pure:'Air Pure', air_voltaic:'Air Voltaic',
+  pokeball_frenzy:'Pokeball Frenzy', w1w3ts_reload:'1w3ts Reload', vox_ts2:'voxTargetSwitch 2',
+  beants:'BeanTS', floatts:'FloatTS', waldots:'WaldoTS', devts:'devTS', domiswitch:'domiSwitch', tamts:'tamTargetSwitch',
+  pasu_reload:'Pasu Reload', vt_bounceshot:'VT Bounceshot', ctrlsphere_clk:'Controlsphere Click',
+  popcorn_mv:'Popcorn MV', pasu_angelic:'Pasu Angelic', pasu_perfected:'1w2ts Pasu Perfected',
+  pasu_micro:'1w3ts Pasu Perfected Micro', floatheads_t:'Floating Heads Timing', vox_click:'voxTargetClick',
+  gridshot:'Gridshot', speedflick:'Speed Flick', crosshair_drill:'Crosshair Drill',
+  deadzone_drill:'Deadzone Drill', burst_drill:'Burst Drill', strafe_drill:'Strafe Drill',
+  reaction_drill:'Reaction Drill', micro_drill:'Micro Precision'
+};
+
+function modeLabel(m) { return SCENARIO_LABELS[m] || m.replace(/_/g,' '); }
+
+function relTime(iso) {
+  const d = new Date(iso), now = Date.now(), diff = now - d;
+  const s = Math.floor(diff/1000), m = Math.floor(s/60), h = Math.floor(m/60), dy = Math.floor(h/24);
+  if (dy > 30) return d.toLocaleDateString('fr-FR');
+  if (dy > 0) return 'Il y a ' + dy + 'j';
+  if (h > 0) return 'Il y a ' + h + 'h';
+  if (m > 0) return 'Il y a ' + m + 'min';
+  return 'À l\'instant';
+}
+
+function memberSince(iso) {
+  const d = new Date(iso);
+  return 'Membre depuis ' + d.toLocaleDateString('fr-FR', { year:'numeric', month:'long' });
+}
+
+function copyShareLink() {
+  navigator.clipboard.writeText(location.href).then(() => {
+    const el = document.getElementById('pub-copied');
+    if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2000); }
+  });
+}
+
+let _actChart = null;
+
+function render(data) {
+  const { user, stats, top_modes, recent_games, activity_30 } = data;
+  const initial = user.username.charAt(0).toUpperCase();
+
+  const html = `
+    <!-- Header -->
+    <div class="pub-header">
+      <div class="pub-avatar">${initial}</div>
+      <div class="pub-info">
+        <div class="pub-username">${user.username}</div>
+        ${user.current_rank ? `<div class="pub-rank-badge">🎮 ${user.current_rank}</div>` : ''}
+        ${user.objective ? `<div class="pub-objective">🎯 ${user.objective}</div>` : ''}
+        ${stats.streak > 0 ? `<div class="pub-streak">🔥 ${stats.streak} jour${stats.streak>1?'s':''} de streak</div>` : ''}
+        <div class="pub-member-since">${memberSince(user.created_at)}</div>
+      </div>
+      ${stats.rank ? `<div class="pub-global-rank">
+        <div class="rank-num">#${stats.rank}</div>
+        <div class="rank-lbl">Classement global</div>
+      </div>` : ''}
+    </div>
+
+    <!-- Share row -->
+    <div class="pub-share-row">
+      <button class="pub-share-btn" onclick="copyShareLink()">🔗 Copier le lien</button>
+      <span class="pub-share-copied" id="pub-copied">✓ Copié !</span>
+    </div>
+
+    <!-- Stats row -->
+    <div class="pub-stats-row" style="margin-top:14px">
+      <div class="pub-stat"><span class="pub-stat-val">${stats.total_games.toLocaleString()}</span><span class="pub-stat-lbl">Parties</span></div>
+      <div class="pub-stat"><span class="pub-stat-val accent">${Number(stats.best_score).toLocaleString()}</span><span class="pub-stat-lbl">Record</span></div>
+      <div class="pub-stat"><span class="pub-stat-val">${Number(stats.avg_score).toLocaleString()}</span><span class="pub-stat-lbl">Score moy.</span></div>
+      <div class="pub-stat"><span class="pub-stat-val">${stats.avg_accuracy}%</span><span class="pub-stat-lbl">Précision</span></div>
+      <div class="pub-stat"><span class="pub-stat-val">${stats.streak > 0 ? '🔥'+stats.streak : '—'}</span><span class="pub-stat-lbl">Streak</span></div>
+    </div>
+
+    <!-- Activity chart -->
+    <div class="pub-section">
+      <div class="pub-section-title">📈 Activité — 30 derniers jours</div>
+      <div class="pub-chart-wrap"><canvas id="pub-act-chart"></canvas></div>
+    </div>
+
+    <!-- Bottom grid -->
+    <div class="pub-bottom-grid">
+      <div class="pub-section">
+        <div class="pub-section-title">🎯 Meilleurs modes</div>
+        ${top_modes.length === 0 ? '<p style="color:var(--dim);font-size:0.82rem">Aucune donnée</p>' :
+          top_modes.map(m => `
+            <div class="pub-mode-item">
+              <div class="pub-mode-name">${modeLabel(m.mode)}</div>
+              <div>
+                <span class="pub-mode-score">${Number(m.best_score).toLocaleString()}</span>
+                <span class="pub-mode-acc"> · ${m.avg_acc}%</span>
+              </div>
+            </div>`).join('')}
+      </div>
+      <div class="pub-section">
+        <div class="pub-section-title">🕹️ Parties récentes</div>
+        ${recent_games.length === 0 ? '<p style="color:var(--dim);font-size:0.82rem">Aucune partie</p>' :
+          recent_games.map(g => `
+            <div class="pub-game-item">
+              <div class="pub-game-mode">${modeLabel(g.mode)}</div>
+              <span class="pub-game-score">${Number(g.score).toLocaleString()}</span>
+              <span class="pub-game-acc">${g.accuracy}%</span>
+              <span class="pub-game-date">${relTime(g.played_at)}</span>
+            </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="pub-footer">
+      Profil public · <a href="/">MayhAim</a> — Viscose Benchmark Aim Trainer
+    </div>
+  `;
+
+  document.getElementById('pub-content').innerHTML = html;
+  document.title = user.username + ' — MayhAim';
+
+  // Build activity chart
+  const days30 = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days30.push(d.toISOString().slice(0,10));
+  }
+  const actMap = {};
+  activity_30.forEach(r => actMap[r.day] = r.games);
+  const actData = days30.map(d => actMap[d] || 0);
+
+  if (_actChart) _actChart.destroy();
+  const ctx = document.getElementById('pub-act-chart');
+  if (ctx) {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff4655';
+    _actChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: days30.map(d => d.slice(5)),
+        datasets: [{ data: actData, backgroundColor: accent + '66', borderColor: accent, borderWidth: 1, borderRadius: 3 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#666', maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false } },
+          y: { ticks: { color: '#666', font: { size: 9 }, stepSize: 1 }, grid: { color: '#ffffff11' }, min: 0 }
+        }
+      }
+    });
+  }
+}
+
+function showError(msg) {
+  document.getElementById('pub-content').innerHTML = `
+    <div class="pub-error">
+      <div class="pub-error-title">404</div>
+      <div class="pub-error-msg">${msg}</div>
+      <a href="/" style="display:inline-block;margin-top:20px;color:var(--accent);text-decoration:none;font-weight:700">← Retour à MayhAim</a>
+    </div>`;
+}
+
+// Load on init
+(async function() {
+  const params = new URLSearchParams(location.search);
+  const username = params.get('u');
+  if (!username) { showError('Aucun pseudo spécifié. Utilise ?u=pseudo dans l\'URL.'); return; }
+
+  try {
+    const resp = await fetch('/api/coaching?view=public-profile&username=' + encodeURIComponent(username));
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      showError(err.error || 'Profil introuvable');
+      return;
+    }
+    const data = await resp.json();
+    render(data);
+  } catch(e) {
+    showError('Erreur réseau : ' + e.message);
+  }
+})();
+</script>
+</body>
+</html>

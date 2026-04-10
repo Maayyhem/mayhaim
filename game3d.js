@@ -547,13 +547,15 @@ function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.
 function spawn_pokeball_frenzy() {
   if(!G.running) return;
   G.targets = G.targets.filter(t => t.alive);
-  const maxT = G.diff==='hard' ? 6 : G.diff==='easy' ? 3 : 5;
+  const maxT = G.diff==='hard' ? 5 : G.diff==='easy' ? 3 : 4;
   if(G.targets.filter(t=>t.alive).length >= maxT) return;
-  const r = G.diff==='hard' ? rand(0.17,0.23) : G.diff==='easy' ? rand(0.28,0.38) : rand(0.16,0.24);
-  const x = rand(-5.5,5.5), y = rand(0.5,3.8), z = rand(-9,-14);
+  const r = G.diff==='hard' ? rand(0.22,0.30) : G.diff==='easy' ? rand(0.42,0.56) : rand(0.32,0.42);
+  const z = G.diff==='hard' ? rand(-9,-12) : G.diff==='easy' ? rand(-7,-10) : rand(-8,-11);
+  const x = rand(-4.5,4.5), y = rand(0.8,3.5);
   const mesh = mkSphere(x, y, z, r, M.t2);
-  const vx = rand(-1.5,1.5), vy = rand(-0.8,0.8);
-  const ttl = G.diff==='hard' ? rand(0.72,1.1) : G.diff==='easy' ? rand(1.5,2.5) : rand(0.8,1.5);
+  const spd = G.diff==='hard' ? rand(1.2,2.0) : G.diff==='easy' ? rand(0.6,1.2) : rand(0.9,1.6);
+  const vx = rand(-spd,spd), vy = rand(-spd*0.5,spd*0.5);
+  const ttl = G.diff==='hard' ? rand(1.1,1.6) : G.diff==='easy' ? rand(2.2,3.5) : rand(1.5,2.4);
   G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), vx, vy, dynamic:true, ttl, age:0, pokeball:true});
 }
 function spawn_w1w3ts_reload() {
@@ -1144,7 +1146,7 @@ function updateDynamic(dt) {
       if(t.mesh.position.x < -6.5||t.mesh.position.x > 6.5) t.vx *= -1;
       if(t.mesh.position.y < 0.3||t.mesh.position.y > 4.5) t.vy *= -1;
       const lifeFrac = Math.min(1, t.age / t.ttl);
-      t.mesh.scale.setScalar(Math.max(0.15, 1 - lifeFrac * 0.55));
+      t.mesh.scale.setScalar(Math.max(0.6, 1 - lifeFrac * 0.35));
       if(t.age >= t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
     } else if(t.floater) {
       t.mesh.position.y += t.vy*dt; t.mesh.position.x += (t.vx||0)*dt;
@@ -1210,7 +1212,7 @@ function shoot() {
         updateHUD(); return;
       }
     }
-    G.clickLog.push({x:0.5,y:0.5,hit:false}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
+    G.clickLog.push({x:0.5,y:0.5,hit:false,t:Date.now()-G.startTime}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
   }
 
   // Click modes
@@ -1247,7 +1249,7 @@ function shoot() {
 function hitTarget(t) {
   const rt=Date.now()-t.spawnTime; G.reactionTimes.push(rt);
   G.hits++; G.combo++; G.bestCombo=Math.max(G.bestCombo,G.combo);
-  try { const sp=t.mesh.position.clone().project(camera); G.clickLog.push({x:(sp.x+1)/2,y:(1-sp.y)/2,hit:true}); } catch(e){}
+  try { const sp=t.mesh.position.clone().project(camera); G.clickLog.push({x:(sp.x+1)/2,y:(1-sp.y)/2,hit:true,t:Date.now()-G.startTime}); } catch(e){}
   let pts=100*Math.min(1+G.combo*0.1,3);
   if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
   pts=Math.round(pts); G.score+=pts;
@@ -1290,6 +1292,13 @@ function onMouseMove(e) {
   camera.rotation.order = 'YXZ';
   camera.rotation.y = G.yaw;
   camera.rotation.x = G.pitch;
+  // Trail recording (30fps sample)
+  if(G.running && now - G._lastTrailSample >= 33) {
+    G._lastTrailSample = now;
+    const t = Date.now() - G.startTime;
+    G.trailLog.push({t, yaw: G.yaw, pitch: G.pitch});
+    if(G.trailLog.length > 2000) G.trailLog.shift(); // cap at ~66s
+  }
 }
 function lockPointer() { const c=$('#game-canvas');(c.requestPointerLock||c.mozRequestPointerLock).call(c); }
 // pointerlockchange handled in pause section; reset mouse filter on lock change
@@ -1352,6 +1361,7 @@ function startGame(mode) {
 
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];G.clickLog=[];
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
+  G.trailLog=[];G.startTime=Date.now();G._lastTrailSample=0;
   G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
   skipFrames=3;
@@ -1492,6 +1502,17 @@ function endGame() {
       avgReaction: avgR, isDaily: G.benchmarkMode && G.mode === window._dailyMode
     });
   }
+  // Save replay
+  try {
+    localStorage.setItem('mayhaim_replay', JSON.stringify({
+      mode: G.mode, score: G.score, duration: G.duration,
+      trail: G.trailLog, clicks: G.clickLog,
+      ts: Date.now()
+    }));
+  } catch(e) {}
+  const replayBtn = $('#btn-replay');
+  if(replayBtn) replayBtn.style.display = G.trailLog.length > 5 ? '' : 'none';
+
   showScreen('results-screen');
 }
 
@@ -1993,3 +2014,185 @@ document.addEventListener('pointerlockchange', () => {
 
 // ---- INIT ----
 initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions(); renderLevelUI();
+
+// ---- SESSION REPLAY ----
+let _rpl = { data: null, playing: false, elapsed: 0, lastRaf: null, raf: null, speed: 1 };
+
+function showReplay() {
+  const raw = localStorage.getItem('mayhaim_replay');
+  if (!raw) return;
+  let data;
+  try { data = JSON.parse(raw); } catch(e) { return; }
+  _rpl.data = data;
+  _rpl.playing = true;
+  _rpl.elapsed = 0;
+  _rpl.lastRaf = null;
+  _rpl.speed = parseFloat($('#rpl-speed')?.value || 1);
+
+  const overlay = $('#replay-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  const modeLabel = (typeof SCENARIOS !== 'undefined' && SCENARIOS[data.mode]?.label) || data.mode.replace(/_/g,' ');
+  const modeLblEl = $('#rpl-mode-lbl');
+  if (modeLblEl) modeLblEl.textContent = modeLabel + ' · ' + data.duration + 's';
+
+  const canvas = $('#rpl-canvas');
+  if (!canvas) return;
+  // Set canvas internal resolution
+  canvas.width  = 720;
+  canvas.height = 405;
+
+  const scrub = $('#rpl-scrub');
+  if (scrub) scrub.value = 0;
+
+  cancelAnimationFrame(_rpl.raf);
+  _rpl.raf = requestAnimationFrame(_replayTick);
+}
+
+function hideReplay() {
+  const overlay = $('#replay-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _rpl.playing = false;
+  cancelAnimationFrame(_rpl.raf);
+}
+
+function replayToggle() {
+  // Si la lecture est terminée, repartir depuis le début
+  const totalMs = (_rpl.data?.duration || 0) * 1000;
+  if (!_rpl.playing && totalMs > 0 && _rpl.elapsed >= totalMs) {
+    _rpl.elapsed = 0;
+    const scrub = $('#rpl-scrub');
+    if (scrub) scrub.value = 0;
+  }
+  _rpl.playing = !_rpl.playing;
+  const btn = $('#rpl-playpause');
+  if (btn) btn.textContent = _rpl.playing ? '⏸ Pause' : '▶ Play';
+  if (_rpl.playing) {
+    _rpl.lastRaf = null;
+    _rpl.raf = requestAnimationFrame(_replayTick);
+  }
+}
+
+function replaySetSpeed() {
+  _rpl.speed = parseFloat($('#rpl-speed')?.value || 1);
+}
+
+function replayScrub(val) {
+  if (!_rpl.data) return;
+  const totalMs = _rpl.data.duration * 1000;
+  _rpl.elapsed = (parseFloat(val) / 100) * totalMs;
+  _rpl.playing = false;
+  const btn = $('#rpl-playpause');
+  if (btn) btn.textContent = '▶ Play';
+  _replayDraw(_rpl.elapsed);
+}
+
+function _replayTick(now) {
+  if (!_rpl.playing || !_rpl.data) return;
+  if (_rpl.lastRaf !== null) {
+    _rpl.elapsed += (now - _rpl.lastRaf) * _rpl.speed;
+  }
+  _rpl.lastRaf = now;
+
+  const totalMs = _rpl.data.duration * 1000;
+  if (_rpl.elapsed >= totalMs) {
+    _rpl.elapsed = totalMs;
+    _rpl.playing = false;
+    const btn = $('#rpl-playpause');
+    if (btn) btn.textContent = '▶ Play';
+  }
+
+  _replayDraw(_rpl.elapsed);
+
+  const scrub = $('#rpl-scrub');
+  if (scrub) scrub.value = ((_rpl.elapsed / totalMs) * 100).toFixed(1);
+  const timeEl = $('#rpl-time');
+  if (timeEl) timeEl.textContent = (_rpl.elapsed/1000).toFixed(1)+'s / '+_rpl.data.duration+'s';
+
+  if (_rpl.playing) _rpl.raf = requestAnimationFrame(_replayTick);
+}
+
+function _replayDraw(elapsed) {
+  const canvas = $('#rpl-canvas');
+  if (!canvas || !_rpl.data) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const { trail, clicks } = _rpl.data;
+
+  // Background
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#ffffff08';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += W/8) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += H/6) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Center crosshair
+  ctx.strokeStyle = '#ffffff22';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw trail (only if we have trail data)
+  const visibleTrail = trail.filter(p => p.t <= elapsed);
+  if (trail.length > 0 && visibleTrail.length > 0) {
+    const yaws = trail.map(p => p.yaw), pitches = trail.map(p => p.pitch);
+    let minY = Math.min(...yaws), maxY = Math.max(...yaws);
+    let minP = Math.min(...pitches), maxP = Math.max(...pitches);
+
+    const padY = Math.max((maxY - minY) * 0.15, 0.05);
+    const padP = Math.max((maxP - minP) * 0.15, 0.03);
+    minY -= padY; maxY += padY;
+    minP -= padP; maxP += padP;
+    const rangeY = maxY - minY || 1, rangeP = maxP - minP || 1;
+
+    const toX = yaw   => W * (1 - (yaw   - minY) / rangeY);
+    const toY = pitch => H * ((pitch - minP) / rangeP);
+
+    ctx.lineWidth = 1.5;
+    const tc = visibleTrail.length;
+    for (let i = 1; i < tc; i++) {
+      const age = tc - i;
+      const alpha = Math.max(0.05, 1 - age / Math.min(tc, 120));
+      ctx.strokeStyle = `rgba(255,255,255,${(alpha * 0.5).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.moveTo(toX(visibleTrail[i-1].yaw), toY(visibleTrail[i-1].pitch));
+      ctx.lineTo(toX(visibleTrail[i].yaw),   toY(visibleTrail[i].pitch));
+      ctx.stroke();
+    }
+
+    // Crosshair at current position
+    const last = visibleTrail[tc - 1];
+    const cx = toX(last.yaw), cy = toY(last.pitch);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#00ff88cc'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10); ctx.stroke();
+  }
+
+  // Draw clicks — always shown regardless of trail (screen [0,1] → canvas px)
+  const visClicks = clicks.filter(c => (c.t || 0) <= elapsed);
+  visClicks.forEach(c => {
+    const sx = W * c.x, sy = H * c.y;
+    const fade = Math.max(0, 1 - (elapsed - (c.t || 0)) / 3000);
+    const alpha = Math.max(0.25, fade);
+    const radius = c.hit ? 7 : 5;
+    ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = c.hit
+      ? `rgba(34,197,94,${alpha.toFixed(2)})`
+      : `rgba(239,68,68,${alpha.toFixed(2)})`;
+    ctx.fill();
+    if (c.hit) {
+      ctx.strokeStyle = `rgba(134,239,172,${(alpha * 0.6).toFixed(2)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(sx, sy, radius + 4, 0, Math.PI * 2); ctx.stroke();
+    }
+  });
+}
+

@@ -1559,6 +1559,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .aic-refresh-btn { background:var(--card); border:1px solid var(--border); color:var(--dim); padding:5px 10px; border-radius:7px; cursor:pointer; font-size:0.9rem; transition:all 0.15s; font-family:var(--font); }
 .aic-refresh-btn:hover { color:var(--txt); border-color:var(--accent); }
 
+
 /* Cards */
 .aic-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
 .aic-card-label { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; color:var(--dim); margin-bottom:10px; }
@@ -1590,6 +1591,21 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .aic-plan-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; }
 .aic-plan-play { flex-shrink:0; width:32px; height:32px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:0.85rem; cursor:pointer; transition:opacity 0.15s; font-family:var(--font); }
 .aic-plan-play:hover { opacity:0.8; }
+
+/* Week badge + countdown */
+.aic-week-badge { display:inline-block; background:var(--accent-dim,rgba(255,70,85,.12)); color:var(--accent); border-radius:6px; padding:2px 10px; font-size:0.75rem; font-weight:700; margin-bottom:4px; }
+.aic-countdown { font-size:0.72rem; color:var(--dim); display:block; margin-top:4px; }
+
+/* Objectif semaine */
+.aic-card-objectif { background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02)); border-color:rgba(16,185,129,.25); }
+.aic-objectif-text { font-size:0.95rem; color:var(--txt); font-weight:600; margin:0; }
+
+/* Historique semaines */
+.aic-history-list { display:flex; flex-direction:column; gap:10px; }
+.aic-history-item { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 14px; }
+.aic-history-week { font-size:0.7rem; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
+.aic-history-titre { font-size:0.85rem; font-weight:700; color:var(--txt); margin-bottom:3px; }
+.aic-history-diag { font-size:0.75rem; color:var(--dim); line-height:1.45; }
 
 /* Motivation */
 .aic-card-motivation { background:linear-gradient(135deg,rgba(255,70,85,0.1),rgba(255,107,107,0.05)); border-color:rgba(255,70,85,0.2); text-align:center; }

@@ -25,10 +25,60 @@ module.exports = async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const sql = neon(process.env.DATABASE_URL);
+
+  // ── Profil public (sans authentification) ─────────────────────────────
+  if (req.method === 'GET' && req.query?.view === 'public-profile') {
+    const username = req.query?.username;
+    if (!username) return res.status(400).json({ error: 'username requis' });
+
+    const userRows = await sql`
+      SELECT id, username, current_rank, objective, created_at
+      FROM users WHERE username = ${username}`;
+    if (!userRows.length) return res.status(404).json({ error: 'Joueur introuvable' });
+    const u = userRows[0];
+    const uid = u.id;
+
+    const [statsRow, rankRow, topModes, recentGames] = await Promise.all([
+      sql`SELECT COUNT(*)::int AS total_games,
+            COALESCE(MAX(score),0)::int AS best_score,
+            COALESCE(ROUND(AVG(score)),0)::int AS avg_score,
+            COALESCE(ROUND(AVG(accuracy)::numeric,1),0) AS avg_accuracy
+          FROM game_history WHERE user_id = ${uid}`,
+      sql`SELECT rank FROM (
+            SELECT user_id, RANK() OVER (ORDER BY SUM(score) DESC)::int AS rank
+            FROM game_history GROUP BY user_id
+          ) t WHERE user_id = ${uid}`,
+      sql`SELECT mode, MAX(score)::int AS best_score, ROUND(AVG(accuracy)::numeric,1) AS avg_acc, COUNT(*)::int AS plays
+          FROM game_history WHERE user_id = ${uid}
+          GROUP BY mode ORDER BY best_score DESC LIMIT 6`,
+      sql`SELECT mode, score, accuracy, played_at
+          FROM game_history WHERE user_id = ${uid}
+          ORDER BY played_at DESC LIMIT 5`
+    ]);
+
+    const streakRows = await sql`
+      WITH days AS (SELECT DISTINCT DATE(played_at) AS d FROM game_history WHERE user_id = ${uid} ORDER BY d DESC),
+      numbered AS (SELECT d, ROW_NUMBER() OVER (ORDER BY d DESC) - 1 AS rn FROM days)
+      SELECT COUNT(*)::int AS streak FROM numbered
+      WHERE d = (CURRENT_DATE - (rn || ' days')::interval)::date`;
+
+    const activity30 = await sql`
+      SELECT DATE(played_at)::text AS day, COUNT(*)::int AS games
+      FROM game_history WHERE user_id = ${uid} AND played_at >= NOW() - INTERVAL '30 days'
+      GROUP BY DATE(played_at) ORDER BY day`;
+
+    return res.status(200).json({
+      user: { username: u.username, current_rank: u.current_rank, objective: u.objective, created_at: u.created_at },
+      stats: { ...statsRow[0], streak: streakRows[0]?.streak || 0, rank: rankRow[0]?.rank || null },
+      top_modes: topModes,
+      recent_games: recentGames,
+      activity_30: activity30
+    });
+  }
+
   const decoded = verifyToken(req);
   if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
-
-  const sql = neon(process.env.DATABASE_URL);
 
   // Auto-create tables
   await Promise.all([

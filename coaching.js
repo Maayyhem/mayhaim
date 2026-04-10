@@ -3201,28 +3201,23 @@ function renderHistoryChart(history) {
   });
 }
 
-// ============ COACH IA ============
+// ============ COACH IA (plan hebdomadaire) ============
 
 function initAiCoachTab() {
-  // Si déjà un résultat affiché, ne rien faire
+  // Ne recharge pas si le résultat de la semaine courante est déjà affiché
   const result = document.getElementById('ai-coach-result');
   if (result && result.style.display !== 'none') return;
-  // Sinon essayer de charger le cache
-  loadAiCoach(false);
+  loadAiCoach();
 }
 
-async function loadAiCoach(force = false) {
+async function loadAiCoach() {
   const idle    = document.getElementById('ai-coach-idle');
   const loading = document.getElementById('ai-coach-loading');
   const result  = document.getElementById('ai-coach-result');
   if (!idle || !loading || !result) return;
 
   if (!coachingToken) {
-    idle.style.display = '';
-    loading.style.display = 'none';
-    result.style.display = 'none';
-    const msg = document.getElementById('aic-cooldown-msg');
-    if (msg) { msg.style.display = ''; msg.textContent = 'Connecte-toi pour accéder au Coach IA.'; }
+    _aicShowIdle('Connecte-toi pour accéder au Coach IA.', false);
     return;
   }
 
@@ -3231,61 +3226,158 @@ async function loadAiCoach(force = false) {
   result.style.display = 'none';
 
   try {
-    const url = force ? `${API_BASE}/ai-coach?force=1` : `${API_BASE}/ai-coach`;
-    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + coachingToken } });
+    // GET : plan de la semaine courante (ou null si pas encore généré)
+    const res = await fetch(`${API_BASE}/ai-coach`, {
+      headers: { 'Authorization': 'Bearer ' + coachingToken }
+    });
     const d = await res.json();
-
-    if (d.error) {
-      idle.style.display = '';
-      loading.style.display = 'none';
-      const msg = document.getElementById('aic-cooldown-msg');
-      if (msg) { msg.style.display = ''; msg.textContent = '⚠ ' + d.error; }
-      return;
-    }
-
     loading.style.display = 'none';
-    result.style.display = '';
-    _renderAiCoach(d.analysis, d.generated_at, d.cached);
 
+    if (d.error) { _aicShowIdle('⚠ ' + d.error, false); return; }
+
+    if (!d.analysis) {
+      // Pas encore de plan cette semaine → état idle avec CTA
+      _aicShowIdle(null, true, d.week_label, d.days_until_next);
+    } else {
+      result.style.display = '';
+      _renderAiCoach(d.analysis, d.generated_at, d.week_label, d.week_start, d.days_until_next);
+      // Charger l'historique en parallèle
+      _aicLoadHistory();
+    }
   } catch(e) {
     loading.style.display = 'none';
-    idle.style.display = '';
-    const msg = document.getElementById('aic-cooldown-msg');
-    if (msg) { msg.style.display = ''; msg.textContent = '⚠ Erreur de connexion.'; }
+    _aicShowIdle('⚠ Erreur de connexion.', false);
   }
 }
 
-function _renderAiCoach(a, generatedAt, cached) {
+async function generateWeeklyPlan() {
+  const idle    = document.getElementById('ai-coach-idle');
+  const loading = document.getElementById('ai-coach-loading');
+  const result  = document.getElementById('ai-coach-result');
+  if (!idle || !loading || !result || !coachingToken) return;
+
+  idle.style.display = 'none';
+  loading.style.display = '';
+  result.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/ai-coach`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + coachingToken, 'Content-Type': 'application/json' }
+    });
+    const d = await res.json();
+    loading.style.display = 'none';
+
+    if (res.status === 409) {
+      // Plan déjà généré cette semaine (race condition)
+      loadAiCoach();
+      return;
+    }
+    if (d.error) { _aicShowIdle('⚠ ' + d.error, false); return; }
+
+    result.style.display = '';
+    _renderAiCoach(d.analysis, d.generated_at, d.week_label, d.week_start, d.days_until_next);
+    _aicLoadHistory();
+  } catch(e) {
+    loading.style.display = 'none';
+    _aicShowIdle('⚠ Erreur de connexion.', false);
+  }
+}
+
+function _aicShowIdle(errorMsg, canGenerate, weekLabel, daysLeft) {
+  const idle    = document.getElementById('ai-coach-idle');
+  const loading = document.getElementById('ai-coach-loading');
+  const result  = document.getElementById('ai-coach-result');
+  if (!idle) return;
+  idle.style.display = '';
+  if (loading) loading.style.display = 'none';
+  if (result)  result.style.display  = 'none';
+
+  // Met à jour le bouton generate et le message
+  const btn = document.getElementById('aic-generate-btn');
+  const msg = document.getElementById('aic-cooldown-msg');
+
+  if (canGenerate) {
+    if (btn) {
+      btn.style.display = '';
+      btn.textContent = '⚡ Générer le plan de la ' + (weekLabel || 'cette semaine');
+      btn.onclick = generateWeeklyPlan;
+    }
+    if (msg) msg.style.display = 'none';
+  } else {
+    if (btn) btn.style.display = 'none';
+    if (msg) {
+      msg.style.display = '';
+      msg.textContent = errorMsg || '';
+    }
+  }
+}
+
+async function _aicLoadHistory() {
+  const histEl = document.getElementById('aic-history');
+  if (!histEl || !coachingToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/ai-coach?view=history`, {
+      headers: { 'Authorization': 'Bearer ' + coachingToken }
+    });
+    const d = await res.json();
+    const rows = (d.history || []).slice(1); // exclure la semaine courante déjà affichée
+    if (!rows.length) { histEl.style.display = 'none'; return; }
+    histEl.style.display = '';
+    histEl.innerHTML = `
+      <div class="aic-card" style="margin-top:16px">
+        <div class="aic-card-label">📅 Semaines précédentes</div>
+        <div class="aic-history-list">
+          ${rows.map(r => `
+            <div class="aic-history-item">
+              <div class="aic-history-week">${_aicWeekLabel(r.week_start)}</div>
+              <div class="aic-history-titre">${san(r.titre || '—')}</div>
+              <div class="aic-history-diag">${san((r.diagnostic || '').slice(0,120))}${(r.diagnostic||'').length>120?'…':''}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) {}
+}
+
+function _aicWeekLabel(iso) {
+  if (!iso) return '';
+  return 'Semaine du ' + new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', timeZone:'UTC' });
+}
+
+function _renderAiCoach(a, generatedAt, weekLabel, weekStart, daysLeft) {
   if (!a) return;
+
+  // Badge semaine + countdown
+  const weekBadge = document.getElementById('aic-week-badge');
+  if (weekBadge) weekBadge.textContent = weekLabel || '';
+
+  const countdown = document.getElementById('aic-countdown');
+  if (countdown) {
+    countdown.textContent = daysLeft !== undefined
+      ? `Prochain plan dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`
+      : '';
+  }
 
   // Titre
   const titreEl = document.getElementById('aic-titre');
-  if (titreEl) titreEl.textContent = a.titre || 'Analyse personnalisée';
+  if (titreEl) titreEl.textContent = a.titre || 'Plan de la semaine';
 
-  // Date
+  // Date génération
   const dateEl = document.getElementById('aic-date');
   if (dateEl) {
     const dt = new Date(generatedAt);
-    dateEl.textContent = (cached ? '📋 Analyse du ' : '✨ Générée le ') +
-      dt.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' }) +
+    dateEl.textContent = 'Généré le ' + dt.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' }) +
       ' à ' + dt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
   }
 
-  // Bouton refresh — désactivé 6h si cache
-  const refreshBtn = document.getElementById('aic-refresh-btn');
-  if (refreshBtn) {
-    const age = Date.now() - new Date(generatedAt).getTime();
-    const remaining = Math.ceil((6 * 3600000 - age) / 60000);
-    if (cached && remaining > 0) {
-      refreshBtn.title = `Disponible dans ${remaining} min`;
-      refreshBtn.style.opacity = '0.4';
-      refreshBtn.style.cursor = 'not-allowed';
-      refreshBtn.onclick = () => null;
+  // Objectif de la semaine (nouveau champ)
+  const objEl = document.getElementById('aic-objectif');
+  if (objEl) {
+    if (a.objectif_semaine) {
+      objEl.textContent = a.objectif_semaine;
+      objEl.parentElement.style.display = '';
     } else {
-      refreshBtn.title = 'Régénérer l\'analyse';
-      refreshBtn.style.opacity = '';
-      refreshBtn.style.cursor = '';
-      refreshBtn.onclick = () => loadAiCoach(true);
+      objEl.parentElement.style.display = 'none';
     }
   }
 
@@ -3307,7 +3399,7 @@ function _renderAiCoach(a, generatedAt, cached) {
   const focusEl = document.getElementById('aic-focus');
   if (focusEl) focusEl.textContent = a.focus || '';
 
-  // Plan
+  // Plan (4 scénarios pour la semaine)
   const planEl = document.getElementById('aic-plan');
   if (planEl) {
     planEl.innerHTML = (a.plan || []).map((s, i) => `
@@ -3317,8 +3409,8 @@ function _renderAiCoach(a, generatedAt, cached) {
           <div class="aic-plan-label">${san(s.label || s.key || '')}</div>
           <div class="aic-plan-conseil">${san(s.conseil || '')}</div>
         </div>
-        <div class="aic-plan-reps">×${s.reps || 1}</div>
-        <button class="aic-plan-play" onclick="${s.key ? `(typeof G!=='undefined'&&(G.benchmarkMode=true,startGame('${s.key}')))` : ''}" title="Lancer">▶</button>
+        <div class="aic-plan-reps">${s.reps || 1}×/sem</div>
+        <button class="aic-plan-play" onclick="${s.key ? `(typeof G!=='undefined'&&(G.benchmarkMode=false,startGame('${s.key}')))` : ''}" title="Lancer">▶</button>
       </div>`).join('');
   }
 
@@ -3503,6 +3595,19 @@ function _pfRenderModeBreakdown(modes) {
       </div>
     </div>`;
   }).join('');
+}
+
+function pfShareProfile() {
+  const u = typeof coachingUser !== 'undefined' ? coachingUser : null;
+  if (!u) return;
+  const base = location.origin;
+  const url = `${base}/profile.html?u=${encodeURIComponent(u.username)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById('pf-share-copied');
+    if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2500); }
+  }).catch(() => {
+    prompt('Copie ce lien :', url);
+  });
 }
 
 // ============ LEADERBOARD ============
