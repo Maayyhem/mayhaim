@@ -33,10 +33,6 @@ let coachingToken = null;
 
 // ============ LOCAL STORAGE TRACKING ============
 
-function getWatchedVods() { try { return JSON.parse(localStorage.getItem('ch_watched_vods')) || []; } catch { return []; } }
-function markVodWatched(id) { const w = getWatchedVods(); if (!w.includes(id)) { w.push(id); localStorage.setItem('ch_watched_vods', JSON.stringify(w)); } }
-function getCompletedscenarios() { try { return JSON.parse(localStorage.getItem('ch_completed_scenarios')) || []; } catch { return []; } }
-function markScenarioCompleted(id) { const c = getCompletedscenarios(); if (!c.includes(id)) { c.push(id); localStorage.setItem('ch_completed_scenarios', JSON.stringify(c)); } }
 function getSessionCount() { return parseInt(localStorage.getItem('ch_sessions') || '0'); }
 function incrementSessions() { localStorage.setItem('ch_sessions', String(getSessionCount() + 1)); }
 
@@ -2103,9 +2099,9 @@ async function coachingRenderStudents() {
     const data = await res.json();
 
     list.innerHTML = '';
-    if (!data.students.length) { list.innerHTML = '<p class="ch-empty">Aucun utilisateur.</p>'; return; }
+    if (!data.users.length) { list.innerHTML = '<p class="ch-empty">Aucun utilisateur.</p>'; return; }
 
-    data.students.forEach(s => {
+    data.users.forEach(s => {
       const roleLabels = { admin: 'Admin', coach: 'Coach', student: 'Eleve' };
       const card = document.createElement('div');
       card.className = 'ch-card';

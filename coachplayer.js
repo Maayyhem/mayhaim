@@ -344,8 +344,8 @@ async function cpOpenPlayer(playerId, username, relId, rank) {
 
   // Charger stats
   cpEl('cp-pt-stats').innerHTML = '<p class="ch-empty">Chargement...</p>';
-  cpEl('cp-pt-plan').innerHTML  = cpRenderPlanForm(playerId);
   _cpPlanRowId = 0;
+  cpEl('cp-pt-plan').innerHTML  = cpRenderPlanForm(playerId);
   cpAddPlanRow(); // default empty row
   cpEl('cp-pt-feedback').innerHTML = cpRenderFeedbackForm(playerId);
 
@@ -691,6 +691,10 @@ async function cpLoadMyCoach() {
 
 async function cpCheckNotifications() {
   if (!coachingToken) return;
+  // Ne vérifier les badges que si l'élève a un coach actif
+  const coachData = await cpFetch('GET', '/coaching?view=my-coach');
+  if (!coachData.coach) return;
+
   const lastSeenPlan = localStorage.getItem('visc_last_seen_plan') || '0';
   const lastSeenFb   = localStorage.getItem('visc_last_seen_fb')   || '0';
   const lastSeenVods = localStorage.getItem('visc_last_seen_vods') || '0';

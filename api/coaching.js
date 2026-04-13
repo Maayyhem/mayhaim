@@ -17,8 +17,11 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
-  catch { return null; }
+  try {
+    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+    if (!decoded.mfa_verified) return null;
+    return decoded;
+  } catch { return null; }
 }
 
 let _tablesReady = false;
@@ -264,7 +267,7 @@ module.exports = async function handler(req, res) {
                current_rank, peak_elo, objective, created_at
         FROM users ORDER BY created_at DESC
       `;
-      return res.status(200).json({ users: rows, students: rows });
+      return res.status(200).json({ users: rows });
     }
 
     // Admin : stats globales

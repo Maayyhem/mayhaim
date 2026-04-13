@@ -814,6 +814,7 @@ function spawn_gridshot() {
     const mesh=mkSphere(x,y,-11.5,r,M.t2);
     mesh.scale.setScalar(0.01);
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
+      _cell:`${col},${row}`,
       baseX:x,baseY:y,
       driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
       scaleIn:true,scaleProgress:0
@@ -822,15 +823,26 @@ function spawn_gridshot() {
 }
 
 function _respawnOneGridshot() {
-  // Fait réapparaître UNE cible à une position aléatoire de la grille (style Aimlabs)
+  // Fait réapparaître UNE cible dans une cellule libre de la grille (style Aimlabs)
   if(!G.running) return;
   const r=DIFF[G.diff].gR;
-  const col=Math.floor(Math.random()*GRIDSHOT_COLS);
-  const row=Math.floor(Math.random()*GRIDSHOT_ROWS);
+
+  // Construire la liste des cellules déjà occupées par les cibles vivantes
+  const occupied=new Set(G.targets.filter(t=>t.alive).map(t=>t._cell));
+
+  // Choisir une cellule libre parmi les 25 ; si toutes occupées (impossible en pratique) → bail
+  const allCells=[];
+  for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) allCells.push(`${co},${ro}`);
+  const free=allCells.filter(c=>!occupied.has(c));
+  if(!free.length) return;
+
+  const chosen=free[Math.floor(Math.random()*free.length)];
+  const [col,row]=chosen.split(',').map(Number);
   const {x,y}=_gridspotXY(col,row);
   const mesh=mkSphere(x,y,-11.5,r,M.t2);
   mesh.scale.setScalar(0.01);
   G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
+    _cell:chosen,
     baseX:x,baseY:y,
     driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
     scaleIn:true,scaleProgress:0
