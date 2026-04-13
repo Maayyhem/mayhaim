@@ -874,12 +874,126 @@
 
         <!-- ÉCHAUFFEMENT -->
         <div id="ch-warmup" class="ch-panel">
-          <h2 class="ch-section-title">🔥 Warm-up</h2>
-          <div class="wu-controls" style="margin-bottom:16px">
-            <button class="btn-primary" onclick="cpGenerateWarmup()">⚡ Générer mon warm-up</button>
-            <span style="font-size:0.78rem;color:var(--dim);margin-left:12px">Basé sur tes points faibles du Viscose Benchmark</span>
+          <h2 class="ch-section-title">🔥 Routine d'Échauffement</h2>
+          <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Une session de warm-up complète avant de jouer. Inspirée de la méthode Oblivity.</p>
+
+          <div class="warmup-phases">
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">01</span>
+                <div>
+                  <div class="warmup-phase-title">🫀 Physique — 5 min</div>
+                  <div class="warmup-phase-sub">Préparer le corps avant de toucher la souris</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step"><strong>Poignets :</strong> Cercles lents x10 dans chaque sens. Étire vers le haut et vers le bas, maintiens 15s.</div>
+                <div class="warmup-step"><strong>Doigts :</strong> Ouvre et ferme le poing 10 fois. Étire chaque doigt individuellement.</div>
+                <div class="warmup-step"><strong>Cou :</strong> Rotations lentes. Incline droite/gauche, maintiens 10s chaque côté.</div>
+                <div class="warmup-step"><strong>Épaules :</strong> Cercles vers l'arrière x10. Relève les épaules puis relâche brusquement.</div>
+                <div class="warmup-tip">💡 Oblivity insiste : une blessure de poignet peut te mettre hors jeu plusieurs semaines. Ces 5 minutes sont non-négociables.</div>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">02</span>
+                <div>
+                  <div class="warmup-phase-title">👁️ Visuel — 5 min</div>
+                  <div class="warmup-phase-sub">Réveiller les yeux et la coordination oeil-main</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step"><strong>Focus switch :</strong> Alterne le regard entre un objet proche (doigts) et lointain (mur) x15. Active la mise au point rapide.</div>
+                <div class="warmup-step"><strong>Tracking visuel :</strong> Suis lentement les bords de ton écran avec les yeux dans les 4 coins. Pas de mouvement de tête.</div>
+                <div class="warmup-step"><strong>Saccades :</strong> Regarde rapidement 4 points fixes sur l'écran (coins) en ordre aléatoire x20. Améliore la réactivité visuelle.</div>
+                <div class="warmup-step"><strong>Repos :</strong> Ferme les yeux 30s. Respire profondément. L'écran est lumineux — tes yeux ont besoin de cette pause.</div>
+                <div class="warmup-tip">💡 La fatigue visuelle est la cause #1 de baisse de performance invisible. Tes yeux travaillent autant que ta main.</div>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">03</span>
+                <div>
+                  <div class="warmup-phase-title">🧠 Mental — 3 min</div>
+                  <div class="warmup-phase-sub">Mettre le cerveau en mode performance</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step"><strong>Respiration box :</strong> Inspire 4s → retiens 4s → expire 4s → retiens 4s. Répète 4 fois. Réduit le cortisol et stabilise le rythme cardiaque.</div>
+                <div class="warmup-step"><strong>Intention :</strong> Définis 1 objectif concret pour la session (ex : "améliorer mon tracking sur Whisphere" ou "ne pas tilt si je meurs vite").</div>
+                <div class="warmup-step"><strong>Déconnexion :</strong> Ferme tes autres onglets, coupe les notifications. La concentration se construit avant le premier clic.</div>
+                <div class="warmup-tip">💡 Les pros ne jouent jamais "juste pour voir". Chaque session a un but. Le mental, c'est 40% de la performance.</div>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">04</span>
+                <div>
+                  <div class="warmup-phase-title">🎯 Aim — Tracking lent (5 min)</div>
+                  <div class="warmup-phase-sub">Activer la connexion cerveau-souris, ne pas forcer</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Commence sur <strong>Facile</strong>. L'objectif n'est PAS la performance — c'est ressentir la souris. Si tu forces dès maintenant, tu accumules de la tension musculaire.</div>
+                <div class="warmup-step">Concentre-toi sur la <strong>fluidité</strong> du mouvement, pas sur le score. Aucune correction brusque.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="whisphere" data-diff="easy">
+                <span>Lancer Whisphere</span>
+                <span class="warmup-ex-tag">Facile · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">05</span>
+                <div>
+                  <div class="warmup-phase-title">🎯 Aim — Clicking medium (5 min)</div>
+                  <div class="warmup-phase-sub">Activer la précision de clic</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Monte en <strong>Normal</strong>. Vise la consistance, pas le score maximum. Si ta main tremble encore, tu t'es pas assez échauffé en phase 04.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="pasu_reload" data-diff="medium">
+                <span>Lancer Pasu Reload</span>
+                <span class="warmup-ex-tag">Normal · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-phase">
+              <div class="warmup-phase-header">
+                <span class="warmup-phase-num">06</span>
+                <div>
+                  <div class="warmup-phase-title">⚡ Aim — Switch (5 min)</div>
+                  <div class="warmup-phase-sub">Activer les transferts rapides entre cibles</div>
+                </div>
+              </div>
+              <div class="warmup-steps">
+                <div class="warmup-step">Le switching est souvent négligé dans le warm-up. C'est pourtant ce qui simule le mieux les gunfights multi-ennemis de Valorant.</div>
+              </div>
+              <div class="warmup-exercise-btn" data-mode="vox_ts2" data-diff="medium">
+                <span>Lancer VoxTS Switch</span>
+                <span class="warmup-ex-tag">Normal · 60s</span>
+              </div>
+            </div>
+
+            <div class="warmup-summary">
+              <div class="warmup-summary-title">Total : ~23 minutes</div>
+              <div class="warmup-summary-sub">Après cette routine tu peux lancer le Benchmark ou tes parties ranked. Tu ne devrais jamais jouer ranked sans t'être échauffé.</div>
+            </div>
           </div>
-          <div id="wu-routine-wrap"></div>
+
+          <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:20px">
+            <h3 class="ch-section-title" style="font-size:0.9rem;margin-bottom:12px">Ou choisir une routine guidée</h3>
+            <div class="wu-controls" style="margin-bottom:12px">
+              <button class="btn-primary" onclick="cpGenerateWarmup()">⚡ Générer mon warm-up personnalisé</button>
+              <span style="font-size:0.78rem;color:var(--dim);margin-left:12px">Basé sur tes points faibles du Benchmark</span>
+            </div>
+            <div id="wu-routine-wrap"></div>
+          </div>
         </div>
 
         <!-- MAP EDITOR -->
