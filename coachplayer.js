@@ -197,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (panel) panel.classList.add('active');
       if (tab.dataset.ptab === 'cp-pt-messages') cpLoadMessages();
       if (tab.dataset.ptab === 'cp-pt-progress') cpLoadProgression();
+      if (tab.dataset.ptab === 'cp-pt-vods' && cpCurrentPlayer) cpLoadPlayerVods(cpCurrentPlayer.id);
     }
 
     // Fermer modal player
@@ -692,10 +693,12 @@ async function cpCheckNotifications() {
   if (!coachingToken) return;
   const lastSeenPlan = localStorage.getItem('visc_last_seen_plan') || '0';
   const lastSeenFb   = localStorage.getItem('visc_last_seen_fb')   || '0';
+  const lastSeenVods = localStorage.getItem('visc_last_seen_vods') || '0';
   try {
-    const [planRes, fbRes] = await Promise.all([
+    const [planRes, fbRes, vodRes] = await Promise.all([
       cpFetch('GET', '/training-plan'),
-      cpFetch('GET', '/feedback?limit=1')
+      cpFetch('GET', '/feedback?limit=1'),
+      cpFetch('GET', '/coaching?view=my-vods')
     ]);
     // Plan badge
     const plan = planRes.plan;
@@ -708,6 +711,13 @@ async function cpCheckNotifications() {
     const badgeFb = document.getElementById('badge-feedback');
     if (badgeFb && fbs.length > 0 && fbs[0].created_at > lastSeenFb) {
       badgeFb.style.display = '';
+    }
+    // VOD badge — au moins une VOD commentée après lastSeen
+    const vods = vodRes.vods || [];
+    const badgeVods = document.getElementById('badge-vods');
+    if (badgeVods) {
+      const hasNew = vods.some(v => v.reviewed && v.created_at > lastSeenVods);
+      badgeVods.style.display = hasNew ? '' : 'none';
     }
   } catch(e) {}
 }
@@ -988,6 +998,126 @@ function cpRenderProgressionTable(history, el) {
   </table>`;
 }
 
+// ── VODs — étudiant ──────────────────────────────────────────
+
+async function cpLoadMyVods() {
+  const el = cpEl('cp-vods-list');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement...</p>';
+  const data = await cpFetch('GET', '/coaching?view=my-vods');
+  const vods = data.vods || [];
+  if (!vods.length) {
+    el.innerHTML = '<p class="ch-empty">Aucune VOD soumise pour l\'instant.</p>';
+    return;
+  }
+  el.innerHTML = vods.map(v => {
+    const date = new Date(v.created_at).toLocaleDateString('fr-FR');
+    const reviewedBadge = v.reviewed
+      ? `<span style="background:#4ade8022;color:#4ade80;border:1px solid #4ade8055;padding:2px 8px;border-radius:12px;font-size:0.72rem">✓ Commenté</span>`
+      : `<span style="background:rgba(255,255,255,0.06);color:var(--dim);border:1px solid var(--border);padding:2px 8px;border-radius:12px;font-size:0.72rem">En attente</span>`;
+    return `
+    <div class="cp-vod-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div>
+          <div style="font-weight:600;color:var(--txt);margin-bottom:4px">${san(v.title)}</div>
+          <div style="font-size:0.75rem;color:var(--dim)">${date}</div>
+        </div>
+        ${reviewedBadge}
+      </div>
+      <a href="${san(v.url)}" target="_blank" rel="noopener noreferrer"
+         style="font-size:0.78rem;color:var(--accent);word-break:break-all">${san(v.url)}</a>
+      ${v.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px">${san(v.notes)}</div>` : ''}
+      ${v.coach_feedback ? `
+        <div style="margin-top:10px;background:rgba(0,200,136,0.08);border:1px solid rgba(0,200,136,0.2);border-radius:8px;padding:10px">
+          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">💬 Feedback coach</div>
+          <div style="font-size:0.82rem;color:var(--txt)">${san(v.coach_feedback)}</div>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function cpSubmitVod() {
+  const url = cpEl('cp-vod-url')?.value?.trim();
+  const title = cpEl('cp-vod-title')?.value?.trim();
+  const notes = cpEl('cp-vod-notes')?.value?.trim();
+  const msgEl = cpEl('cp-vod-submit-msg');
+
+  if (!url) { cpMsg('cp-vod-submit-msg', 'Le lien est requis.', false); return; }
+  if (!title) { cpMsg('cp-vod-submit-msg', 'Le titre est requis.', false); return; }
+
+  if (msgEl) { msgEl.textContent = 'Envoi...'; msgEl.style.color = 'var(--dim)'; msgEl.style.display = 'block'; }
+
+  const data = await cpFetch('POST', '/coaching', { action: 'submit-vod', url, title, notes: notes || null });
+  if (data.error) {
+    cpMsg('cp-vod-submit-msg', data.error, false);
+  } else {
+    cpMsg('cp-vod-submit-msg', '✓ VOD soumise avec succès !', true);
+    if (cpEl('cp-vod-url')) cpEl('cp-vod-url').value = '';
+    if (cpEl('cp-vod-title')) cpEl('cp-vod-title').value = '';
+    if (cpEl('cp-vod-notes')) cpEl('cp-vod-notes').value = '';
+    setTimeout(() => { cpLoadMyVods(); }, 600);
+  }
+}
+
+// ── VODs — coach (modal joueur, onglet VODs) ─────────────────
+
+async function cpLoadPlayerVods(playerId) {
+  const el = cpEl('cp-pt-vods-list');
+  if (!el) return;
+  el.innerHTML = '<p class="ch-empty">Chargement...</p>';
+  // On filtre côté client après avoir récupéré toutes les VODs du coach
+  const data = await cpFetch('GET', '/coaching?view=student-vods');
+  const vods = (data.vods || []).filter(v => String(v.student_id) === String(playerId));
+  if (!vods.length) {
+    el.innerHTML = '<p class="ch-empty">Cet élève n\'a soumis aucune VOD.</p>';
+    return;
+  }
+  el.innerHTML = vods.map(v => {
+    const date = new Date(v.created_at).toLocaleDateString('fr-FR');
+    const reviewedBadge = v.reviewed
+      ? `<span style="background:#4ade8022;color:#4ade80;border:1px solid #4ade8055;padding:2px 8px;border-radius:12px;font-size:0.72rem">✓ Commenté</span>`
+      : `<span style="background:rgba(255,200,0,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);padding:2px 8px;border-radius:12px;font-size:0.72rem">Nouveau</span>`;
+    return `
+    <div class="cp-vod-card" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px" id="vod-card-${v.id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div>
+          <div style="font-weight:600;color:var(--txt);margin-bottom:4px">${san(v.title)}</div>
+          <div style="font-size:0.75rem;color:var(--dim)">${date}</div>
+        </div>
+        ${reviewedBadge}
+      </div>
+      <a href="${san(v.url)}" target="_blank" rel="noopener noreferrer"
+         style="font-size:0.78rem;color:var(--accent);word-break:break-all">${san(v.url)}</a>
+      ${v.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px">${san(v.notes)}</div>` : ''}
+      ${v.coach_feedback ? `
+        <div style="margin-top:10px;background:rgba(0,200,136,0.08);border:1px solid rgba(0,200,136,0.2);border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">💬 Mon feedback</div>
+          <div style="font-size:0.82rem;color:var(--txt)">${san(v.coach_feedback)}</div>
+        </div>` : ''}
+      <div style="margin-top:10px" id="vod-fb-wrap-${v.id}">
+        <textarea id="vod-fb-${v.id}" class="cp-input" placeholder="Laisser un feedback..." rows="2"
+          style="width:100%;resize:vertical;font-family:inherit;font-size:0.82rem;padding:7px 10px;
+                 background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--txt)"
+        >${san(v.coach_feedback || '')}</textarea>
+        <button class="btn-primary" style="margin-top:6px;width:100%;font-size:0.8rem"
+          onclick="cpSaveVodFeedback(${v.id}, ${playerId})">💬 Sauvegarder le feedback</button>
+        <div id="vod-fb-msg-${v.id}" class="cp-msg" style="margin-top:4px"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function cpSaveVodFeedback(vodId, playerId) {
+  const feedback = cpEl(`vod-fb-${vodId}`)?.value?.trim();
+  const data = await cpFetch('POST', '/coaching', { action: 'vod-feedback', vod_id: vodId, feedback: feedback || '' });
+  if (data.error) {
+    cpMsg(`vod-fb-msg-${vodId}`, data.error, false);
+  } else {
+    cpMsg(`vod-fb-msg-${vodId}`, '✓ Feedback sauvegardé', true);
+    setTimeout(() => cpLoadPlayerVods(playerId), 700);
+  }
+}
+
 // ── Hook dans l'init global du coaching ─────────────────────
 // Patch : on surcharge showApp pour appeler cpInit
 const _origShowApp = typeof showApp === 'function' ? showApp : null;
@@ -998,5 +1128,11 @@ document.addEventListener('click', e => {
   }
   if (e.target.closest('.ch-tab-btn')?.dataset.tab === 'ch-students') {
     setTimeout(cpLoadPlayers, 50);
+  }
+  if (e.target.closest('.ch-tab-btn')?.dataset.tab === 'cp-mes-vods') {
+    setTimeout(cpLoadMyVods, 50);
+    localStorage.setItem('visc_last_seen_vods', new Date().toISOString());
+    const bv = document.getElementById('badge-vods');
+    if (bv) bv.style.display = 'none';
   }
 });

@@ -70,6 +70,17 @@ async function ensureTables(sql) {
       tab TEXT,
       read BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    sql`CREATE TABLE IF NOT EXISTS student_vods (
+      id SERIAL PRIMARY KEY,
+      student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      coach_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      notes TEXT,
+      coach_feedback TEXT,
+      reviewed BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )`
   ]);
   _tablesReady = true;
@@ -575,6 +586,33 @@ module.exports = async function handler(req, res) {
 
 
 
+    // Mes VODs (étudiant — ses propres soumissions)
+    if (view === 'my-vods') {
+      const rows = await sql`
+        SELECT id, url, title, notes, coach_feedback, reviewed, created_at
+        FROM student_vods WHERE student_id = ${decoded.id}
+        ORDER BY created_at DESC LIMIT 50
+      `;
+      return res.status(200).json({ vods: rows });
+    }
+
+    // VODs des élèves (coach)
+    if (view === 'student-vods') {
+      if (decoded.role !== 'coach' && decoded.role !== 'admin') {
+        return res.status(403).json({ error: 'Rôle coach requis' });
+      }
+      const rows = await sql`
+        SELECT v.id, v.url, v.title, v.notes, v.coach_feedback, v.reviewed, v.created_at,
+               u.username AS student_username, u.id AS student_id
+        FROM student_vods v
+        JOIN users u ON u.id = v.student_id
+        JOIN coaching_relationships r ON r.player_id = v.student_id AND r.coach_id = ${decoded.id} AND r.status = 'active'
+        ORDER BY v.reviewed ASC, v.created_at DESC
+        LIMIT 100
+      `;
+      return res.status(200).json({ vods: rows });
+    }
+
     return res.status(400).json({ error: 'view requis : my-players | my-coach | pending | global-leaderboard | ...' });
   }
 
@@ -738,6 +776,57 @@ module.exports = async function handler(req, res) {
         VALUES (${recipientId}, 'message', 'Nouveau message',
                 ${`${senderRow[0]?.username || '...'}: ${content.substring(0,50)}`}, 'ch-messages')`.catch(() => {});
       return res.status(201).json({ message: msg[0] });
+    }
+
+    // ── Soumettre une VOD (étudiant) ──────────────────────────────────────
+    if (action === 'submit-vod') {
+      const { url, title, notes } = req.body;
+      if (!url || !title) return res.status(400).json({ error: 'url et title requis' });
+      // Valider URL basique
+      let parsedUrl;
+      try { parsedUrl = new URL(url); } catch { return res.status(400).json({ error: 'URL invalide' }); }
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) return res.status(400).json({ error: 'URL invalide' });
+
+      // Trouver le coach actif de l'étudiant
+      const relRows = await sql`SELECT coach_id FROM coaching_relationships WHERE player_id = ${decoded.id} AND status = 'active' LIMIT 1`;
+      const coachId = relRows[0]?.coach_id || null;
+
+      await sql`INSERT INTO student_vods (student_id, coach_id, url, title, notes)
+        VALUES (${decoded.id}, ${coachId}, ${url}, ${String(title).substring(0,120)}, ${notes ? String(notes).substring(0,500) : null})`;
+
+      // Notifier le coach
+      if (coachId) {
+        const studentRow = await sql`SELECT username FROM users WHERE id = ${decoded.id} LIMIT 1`;
+        sql`INSERT INTO notifications (user_id, type, title, body, tab)
+          VALUES (${coachId}, 'vod', 'Nouvelle VOD soumise',
+                  ${`${studentRow[0]?.username || 'Un élève'} a soumis une VOD : ${String(title).substring(0,60)}`},
+                  'ch-students')`.catch(() => {});
+      }
+      return res.status(201).json({ success: true });
+    }
+
+    // ── Feedback VOD (coach) ──────────────────────────────────────────────
+    if (action === 'vod-feedback') {
+      if (decoded.role !== 'coach' && decoded.role !== 'admin') return res.status(403).json({ error: 'Rôle coach requis' });
+      const { vod_id, feedback } = req.body;
+      if (!vod_id) return res.status(400).json({ error: 'vod_id requis' });
+
+      // Vérifier que la VOD appartient à un élève de ce coach
+      const vodRows = await sql`SELECT v.*, r.player_id FROM student_vods v
+        JOIN coaching_relationships r ON r.player_id = v.student_id AND r.coach_id = ${decoded.id} AND r.status = 'active'
+        WHERE v.id = ${vod_id} LIMIT 1`;
+      if (!vodRows.length) return res.status(403).json({ error: 'Non autorisé' });
+
+      await sql`UPDATE student_vods SET coach_feedback = ${feedback ? String(feedback).substring(0,1000) : null}, reviewed = TRUE WHERE id = ${vod_id}`;
+
+      // Notifier l'élève
+      const coachRow = await sql`SELECT username FROM users WHERE id = ${decoded.id} LIMIT 1`;
+      sql`INSERT INTO notifications (user_id, type, title, body, tab)
+        VALUES (${vodRows[0].student_id}, 'vod', 'Feedback VOD reçu',
+                ${`${coachRow[0]?.username || 'Votre coach'} a commenté votre VOD`},
+                'cp-mon-coach')`.catch(() => {});
+
+      return res.status(200).json({ success: true });
     }
 
     return res.status(400).json({ error: 'action requis : request | accept | decline | end | admin-delete-rel | create-announcement | toggle-announcement | delete-announcement' });

@@ -288,6 +288,9 @@
           <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">
             <span class="ch-nav-icon">👨‍🏫</span> Mon Coach
           </button>
+          <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mes-vods" style="display:none">
+            <span class="ch-nav-icon">🎬</span> Mes VODs<span class="ch-nav-badge" id="badge-vods" style="display:none">!</span>
+          </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="cp-mon-plan">
             <span class="ch-nav-icon">🗓️</span> Mon Plan<span class="ch-nav-badge" id="badge-plan" style="display:none">!</span>
           </button>
@@ -1062,6 +1065,21 @@
           <div id="cp-student-pending"></div>
         </div>
 
+        <!-- MES VODS — student only -->
+        <div id="cp-mes-vods" class="ch-panel">
+          <h2 class="ch-section-title">Mes VODs</h2>
+          <p style="font-size:0.83rem;color:var(--dim);margin-bottom:16px">Partage un lien vidéo (YouTube, Twitch, Medal.tv…) avec ton coach pour recevoir un feedback.</p>
+          <div class="cp-vod-form">
+            <input id="cp-vod-url" class="cp-input" placeholder="Lien de la vidéo (YouTube, Twitch, Medal…)" style="width:100%;margin-bottom:8px">
+            <input id="cp-vod-title" class="cp-input" placeholder="Titre / contexte (ex: Ranked Ascent — j'ai du mal sur B)" style="width:100%;margin-bottom:8px">
+            <textarea id="cp-vod-notes" class="cp-input" placeholder="Notes pour ton coach (optionnel)" rows="3" style="width:100%;resize:vertical;font-family:inherit;font-size:0.85rem;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--txt);margin-bottom:8px"></textarea>
+            <button class="btn-primary" onclick="cpSubmitVod()" style="width:100%">🎬 Soumettre la VOD</button>
+            <div id="cp-vod-submit-msg" class="cp-msg" style="margin-top:8px"></div>
+          </div>
+          <h3 class="cp-sub-title" style="margin-top:24px">Mes soumissions</h3>
+          <div id="cp-vods-list"><p class="ch-empty">Chargement...</p></div>
+        </div>
+
         <!-- MON PLAN — tous -->
         <div id="cp-mon-plan" class="ch-panel">
           <h2 class="ch-section-title">Plan d'entraînement</h2>
@@ -1285,6 +1303,7 @@
           <button class="cp-modal-tab" data-ptab="cp-pt-feedback">&#128172; Feedback</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-messages">&#9993; Messages</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-progress">&#128200; Progression</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-vods">&#127909; VODs</button>
         </div>
         <div id="cp-pt-stats"    class="cp-modal-panel active"><div id="cp-pt-bm"></div></div>
         <div id="cp-pt-plan"     class="cp-modal-panel"></div>
@@ -1299,6 +1318,9 @@
         <div id="cp-pt-progress" class="cp-modal-panel">
           <div class="history-chart-wrap" style="height:180px;margin-bottom:12px"><canvas id="cp-player-chart"></canvas></div>
           <div id="cp-pt-progress-table"></div>
+        </div>
+        <div id="cp-pt-vods" class="cp-modal-panel">
+          <div id="cp-pt-vods-list"><p class="ch-empty">Chargement...</p></div>
         </div>
       </div>
     </div>
