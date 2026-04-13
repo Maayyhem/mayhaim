@@ -794,23 +794,47 @@ function spawn_micro_drill() {
 }
 
 // Free play only
+const GRIDSHOT_COLS=5, GRIDSHOT_ROWS=5;
+
+function _gridspotXY(col, row) {
+  // Retourne la position de base d'une cellule de la grille
+  const bx = -(GRIDSHOT_COLS-1)*2.1/2 + col*2.1;
+  const by = 0.5 + row*1.3;
+  return { x: bx+rand(-0.35,0.35), y: by+rand(-0.25,0.25) };
+}
+
 function spawn_gridshot() {
+  // Initialisation — spawn les 25 cibles sur toute la grille
   if(!G.running) return;
   G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
   G.targets=[];
-  const d=DIFF[G.diff], r=d.gR, cols=5, rows=5;
-  for(let row=0;row<rows;row++) for(let col=0;col<cols;col++) {
-    const bx=-(cols-1)*2.1/2+col*2.1, by=0.5+row*1.3;
-    const x=bx+rand(-0.35,0.35), y=by+rand(-0.25,0.25);
+  const r=DIFF[G.diff].gR;
+  for(let row=0;row<GRIDSHOT_ROWS;row++) for(let col=0;col<GRIDSHOT_COLS;col++) {
+    const {x,y}=_gridspotXY(col,row);
     const mesh=mkSphere(x,y,-11.5,r,M.t2);
+    mesh.scale.setScalar(0.01);
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
-      // dynamic drift — chaque cible oscille lentement
-      baseX:x, baseY:y,
-      driftAmp: rand(0.18,0.38),
-      driftFreq: rand(0.6,1.2),
-      driftPhase: rand(0, Math.PI*2)
+      baseX:x,baseY:y,
+      driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
+      scaleIn:true,scaleProgress:0
     });
   }
+}
+
+function _respawnOneGridshot() {
+  // Fait réapparaître UNE cible à une position aléatoire de la grille (style Aimlabs)
+  if(!G.running) return;
+  const r=DIFF[G.diff].gR;
+  const col=Math.floor(Math.random()*GRIDSHOT_COLS);
+  const row=Math.floor(Math.random()*GRIDSHOT_ROWS);
+  const {x,y}=_gridspotXY(col,row);
+  const mesh=mkSphere(x,y,-11.5,r,M.t2);
+  mesh.scale.setScalar(0.01);
+  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
+    baseX:x,baseY:y,
+    driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
+    scaleIn:true,scaleProgress:0
+  });
 }
 
 function updateGridshot(dt) {
@@ -818,6 +842,16 @@ function updateGridshot(dt) {
   const t0=Date.now()/1000;
   G.targets.forEach(t=>{
     if(!t.alive) return;
+    // Pop-in animation
+    if(t.scaleIn) {
+      t.scaleProgress = Math.min(1, (t.scaleProgress||0) + dt*10);
+      const s = t.scaleProgress < 0.7
+        ? t.scaleProgress/0.7
+        : 1 + 0.12*Math.sin((t.scaleProgress-0.7)/0.3*Math.PI);
+      t.mesh.scale.setScalar(s);
+      if(t.scaleProgress>=1) { t.mesh.scale.setScalar(1); t.scaleIn=false; }
+    }
+    // Oscillation douce
     const ox = t.driftAmp * Math.sin(t.driftFreq * t0 + t.driftPhase);
     const oy = t.driftAmp * 0.5 * Math.cos(t.driftFreq * t0 * 0.7 + t.driftPhase+1);
     t.mesh.position.x = t.baseX + ox;
@@ -1280,7 +1314,7 @@ function hitTarget(t) {
   anim(); updateHUD();
 
   // Respawn for specific modes
-  if(G.mode==='gridshot'&&G.targets.filter(t=>t.alive).length<=4) setTimeout(()=>spawn_gridshot(),150);
+  if(G.mode==='gridshot') setTimeout(()=>_respawnOneGridshot(),60);
   else if(G.mode==='speedflick') setTimeout(()=>spawn_speedflick(),80);
   else if(G.mode==='ctrlsphere_clk') setTimeout(()=>spawn_ctrlsphere_clk(),50);
   else if(G.mode==='pokeball_frenzy') setTimeout(()=>spawn_pokeball_frenzy(),60);
