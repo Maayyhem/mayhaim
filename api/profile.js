@@ -162,30 +162,20 @@ module.exports = async function handler(req, res) {
         if (taken.length > 0) return res.status(409).json({ error: 'Ce pseudo est déjà pris' });
       }
 
-      // Build update selectively
-      const newUsername    = username     !== undefined ? String(username).trim() : null;
-      const newRank        = current_rank !== undefined ? (current_rank || null)  : null;
-      const newObjective   = objective    !== undefined ? (objective    || null)  : undefined;
+      // Lire les valeurs actuelles puis appliquer les changements
+      const current = await sql`SELECT username, current_rank, objective FROM users WHERE id = ${decoded.id}`;
+      if (!current.length) return res.status(404).json({ error: 'Utilisateur introuvable' });
 
-      let updated;
-      if (newObjective !== undefined) {
-        updated = await sql`
-          UPDATE users SET
-            username     = CASE WHEN ${newUsername}     IS NOT NULL THEN ${newUsername}   ELSE username     END,
-            current_rank = CASE WHEN ${newRank}         IS NOT NULL THEN ${newRank}       ELSE current_rank END,
-            objective    = ${newObjective}
-          WHERE id = ${decoded.id}
-          RETURNING id, email, username, role, current_rank, peak_elo, objective
-        `;
-      } else {
-        updated = await sql`
-          UPDATE users SET
-            username     = CASE WHEN ${newUsername} IS NOT NULL THEN ${newUsername} ELSE username     END,
-            current_rank = CASE WHEN ${newRank}     IS NOT NULL THEN ${newRank}     ELSE current_rank END
-          WHERE id = ${decoded.id}
-          RETURNING id, email, username, role, current_rank, peak_elo, objective
-        `;
-      }
+      const finalUsername = username     !== undefined ? String(username).trim()  : current[0].username;
+      const finalRank     = current_rank !== undefined ? (current_rank || null)   : current[0].current_rank;
+      const finalObj      = objective    !== undefined ? (objective    || null)   : current[0].objective;
+
+      const updated = await sql`
+        UPDATE users
+        SET username = ${finalUsername}, current_rank = ${finalRank}, objective = ${finalObj}
+        WHERE id = ${decoded.id}
+        RETURNING id, email, username, role, current_rank, peak_elo, objective
+      `;
       return res.status(200).json({ success: true, user: updated[0] });
     }
 

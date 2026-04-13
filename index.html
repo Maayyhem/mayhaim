@@ -405,24 +405,25 @@
         <!-- ══ HUB FREE PLAY (remplace free-play-screen) ══ -->
         <div id="hub-freeplay" class="ch-panel">
           <div class="hub-fp-bar">
-            <label>Durée: <select id="opt-duration"><option value="30">30s</option><option value="45">45s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
-            <label>Difficulté: <select id="opt-diff"><option value="easy">Easier</option><option value="medium" selected>Medium</option><option value="hard">Harder</option></select></label>
+            <label>Durée : <select id="opt-duration"><option value="30">30s</option><option value="45">45s</option><option value="60" selected>60s</option><option value="90">90s</option></select></label>
+            <label>Difficulté : <select id="opt-diff"><option value="easy">Facile</option><option value="medium" selected>Normal</option><option value="hard">Difficile</option></select></label>
           </div>
+          <div style="font-size:0.72rem;color:var(--dim);margin-bottom:12px;padding:0 2px">Clique sur un mode pour lancer la partie. Ajuste la durée et la difficulté ci-dessus.</div>
           <div class="mode-grid">
-            <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">🎯</div><h3>Pasu Reload</h3><p>Click timing dynamique. Cibles diagonales.</p><span class="mode-tag">Click</span></button>
-            <button class="mode-card" data-mode="gridshot"><div class="mode-icon">⚡</div><h3>Gridshot</h3><p>Grille de spheres. Speed pure.</p><span class="mode-tag">Speed</span></button>
-            <button class="mode-card" data-mode="whisphere"><div class="mode-icon">🔄</div><h3>Whisphere</h3><p>Control tracking smooth.</p><span class="mode-tag">Tracking</span></button>
-            <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">💥</div><h3>Pokeball Frenzy</h3><p>Flick speed. Switch rapide.</p><span class="mode-tag">Flick</span></button>
-            <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">🌤️</div><h3>Air Angelic</h3><p>Control tracking fingertip.</p><span class="mode-tag">Control</span></button>
-            <button class="mode-card" data-mode="speedflick"><div class="mode-icon">🚀</div><h3>Speed Flick</h3><p>1 cible random partout dans le FOV.</p><span class="mode-tag">Flick</span></button>
-            <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">↑</div><h3>Leaptrack</h3><p>Tracking avec sauts brusques. Wrist control.</p><span class="mode-tag">Tracking</span></button>
-            <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon">⚡</div><h3>VoxTS Switch</h3><p>Switch targets dynamique. Benchmark standard.</p><span class="mode-tag">Flick</span></button>
-            <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">✚</div><h3>Crosshair Drill</h3><p>Cibles a hauteur de tete. Placement pur.</p><span class="mode-tag">Cours</span></button>
-            <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">◎</div><h3>Deadzone Drill</h3><p>Tracking smooth avec deadzone.</p><span class="mode-tag">Cours</span></button>
-            <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Burst Drill</h3><p>Clusters de cibles. Burst transfers.</p><span class="mode-tag">Cours</span></button>
-            <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">↔</div><h3>Strafe Drill</h3><p>Tracking horizontal pur. Simule un joueur qui strafe.</p><span class="mode-tag">Cours</span></button>
-            <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">🖱️</div><h3>Reaction Drill</h3><p>Cibles ephemeres. Clique avant qu'elles disparaissent.</p><span class="mode-tag">Cours</span></button>
-            <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro Precision</h3><p>Cibles minuscules aux angles cles. Precision absolue.</p><span class="mode-tag">Cours</span></button>
+            <button class="mode-card" data-mode="gridshot"><div class="mode-icon">⚡</div><h3>Gridshot</h3><p>Clique sur des sphères qui apparaissent en grille. Mode idéal pour débuter.</p><span class="mode-tag">Vitesse</span></button>
+            <button class="mode-card" data-mode="speedflick"><div class="mode-icon">🚀</div><h3>Flick rapide</h3><p>Une cible apparaît n'importe où — déplace ta mire le plus vite possible dessus.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">💥</div><h3>Cibles fuyantes</h3><p>Des cibles apparaissent et disparaissent rapidement. Clique avant qu'elles s'effacent.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">🎯</div><h3>Clique précis</h3><p>Enchaîne des clics sur des cibles diagonales. Travaille la précision du poignet.</p><span class="mode-tag">Précision</span></button>
+            <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon">🔀</div><h3>Switch de cibles</h3><p>Plusieurs cibles actives en même temps — passe de l'une à l'autre sans perdre le rythme.</p><span class="mode-tag">Switch</span></button>
+            <button class="mode-card" data-mode="whisphere"><div class="mode-icon">🔄</div><h3>Tracking doux</h3><p>Garde ta mire sur une cible qui se déplace lentement et régulièrement.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">🌤️</div><h3>Tracking aérien</h3><p>Suit une cible qui se déplace en l'air avec des changements de trajectoire.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">↑</div><h3>Tracking saccadé</h3><p>La cible fait des sauts brusques — réajuste ta mire à chaque déplacement.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">✚</div><h3>Placement mire</h3><p>Entraîne-toi à garder ta mire à hauteur de tête, là où les ennemis apparaissent.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">🖱️</div><h3>Réactivité</h3><p>Des cibles apparaissent très brièvement — clique le plus vite possible avant qu'elles disparaissent.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">↔</div><h3>Tracking latéral</h3><p>Suit une cible qui se déplace horizontalement, comme un ennemi qui strafe.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro précision</h3><p>Des cibles très petites aux angles clés. Pour progresser sur les duels serrés.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Rafales</h3><p>Des groupes de cibles proches apparaissent ensemble — nettoie-les rapidement.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">◎</div><h3>Zone morte</h3><p>Tracking avec une zone d'inertie — entraîne-toi à lisser tes mouvements de souris.</p><span class="mode-tag">Drill</span></button>
           </div>
         </div>
 

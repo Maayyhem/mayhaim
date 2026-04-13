@@ -4457,14 +4457,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initCoaching();
   meInit();
 
-  // Patch endGame (défini dans game3d.js chargé après) pour injecter le bouton retour + heatmap
-  if (typeof window.endGame === 'function') {
-    const _origEndGame = window.endGame;
-    window.endGame = function() {
-      _origEndGame.apply(this, arguments);
-      _updateCoachingReturnBtn();
-      _renderHeatmap();
-      _bmHandleGameEnd();
-    };
-  }
+  // Les hooks endGame (_updateCoachingReturnBtn, _renderHeatmap, _bmHandleGameEnd)
+  // sont appelés directement depuis game3d.js#endGame()
 });

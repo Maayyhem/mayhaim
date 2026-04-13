@@ -1513,6 +1513,11 @@ function endGame() {
   if(replayBtn) replayBtn.style.display = G.trailLog.length > 5 ? '' : 'none';
 
   showScreen('results-screen');
+
+  // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
+  if (typeof _updateCoachingReturnBtn === 'function') _updateCoachingReturnBtn();
+  if (typeof _renderHeatmap === 'function') _renderHeatmap();
+  if (typeof _bmHandleGameEnd === 'function') _bmHandleGameEnd();
 }
 
 function showScreen(id) {
