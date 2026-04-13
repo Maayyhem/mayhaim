@@ -1277,7 +1277,8 @@ function shoot() {
         updateHUD(); return;
       }
     }
-    G.clickLog.push({x:0.5,y:0.5,hit:false,t:Date.now()-G.startTime}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
+    { const mp=_missPos(); G.clickLog.push({x:mp.x,y:mp.y,hit:false,t:Date.now()-G.startTime}); }
+    G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
   }
 
   // Click modes
@@ -1308,7 +1309,25 @@ function shoot() {
       hitTarget(tgt); return;
     }
   }
-  G.clickLog.push({x:0.5,y:0.5,hit:false}); G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
+  { const mp=_missPos(); G.clickLog.push({x:mp.x,y:mp.y,hit:false}); }
+  G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
+}
+
+function _missPos() {
+  // Retourne la position 2D projetée de la cible vivante la plus proche du centre
+  // → montre "où était la cible quand tu as raté" sur la heatmap
+  const alive = G.targets.filter(t => t.alive);
+  if (!alive.length) return {x:0.5, y:0.5};
+  let best = null, bestDist = Infinity;
+  for (const t of alive) {
+    try {
+      const sp = t.mesh.position.clone().project(camera);
+      const dx = sp.x, dy = sp.y; // distance au centre (NDC 0,0)
+      const d = dx*dx + dy*dy;
+      if (d < bestDist) { bestDist = d; best = {x:(sp.x+1)/2, y:(1-sp.y)/2}; }
+    } catch(e) {}
+  }
+  return best || {x:0.5, y:0.5};
 }
 
 function hitTarget(t) {

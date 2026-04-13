@@ -71,9 +71,9 @@ function cpInit() {
   const isCoach   = coachingUserRole === 'coach' || isAdmin;
   const isStudent = coachingUserRole === 'student';
 
-  // Afficher/masquer les onglets selon le rôle
+  // Afficher/masquer les onglets selon le rôle (admin voit aussi les onglets student)
   document.querySelectorAll('.cp-student-tab').forEach(el => {
-    el.style.display = isStudent ? '' : 'none';
+    el.style.display = (isStudent || isAdmin) ? '' : 'none';
   });
 
   // Section admin
