@@ -1489,10 +1489,18 @@ async function loadCoachBenchmarkOverview() {
         return `<div class="bm-coach-card">
           <div class="bm-coach-name">${san(row.username)}</div>
           <div class="bm-coach-rank" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}44">
-            ${rank.emoji} ${rank.name}
+            ${rank.name}
           </div>
-          <div class="bm-coach-emojis">${scenarios.map(s => BENCHMARK_RANKS[s.tier]?.emoji || '').join(' ')}</div>
-          <div class="bm-coach-date" style="color:var(--dim);font-size:0.75rem">${row.day}</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+            ${scenarios.map(s => {
+              const sr = BENCHMARK_RANKS[s.tier] || BENCHMARK_RANKS[0];
+              return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:0.78rem">
+                <span style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" title="${san(s.label)}">${san(s.label)}</span>
+                <span style="color:${sr.color};font-weight:700;white-space:nowrap">${sr.name}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="color:var(--dim);font-size:0.72rem;margin-top:10px;border-top:1px solid var(--border);padding-top:6px">${row.day}</div>
         </div>`;
       }).join('')}
     </div>`;
