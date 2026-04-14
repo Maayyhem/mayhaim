@@ -21,8 +21,16 @@ async function ensureRiotColumns(sql) {
 async function fetchHenrik(path) {
   const key = process.env.HENRIK_API_KEY;
   const headers = key ? { 'Authorization': key } : {};
-  const res = await fetch(`https://api.henrikdev.tech${path}`, { headers, signal: AbortSignal.timeout(8000) });
-  return { status: res.status, data: await res.json() };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`https://api.henrikdev.tech${path}`, { headers, signal: controller.signal });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    return { status: res.status, data };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function setCors(req, res) {
@@ -318,12 +326,15 @@ module.exports = async function handler(req, res) {
 
       try {
         const acc = await fetchHenrik(`/valorant/v1/account/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
-        if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable' });
+        if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
         if (acc.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
-        if (acc.status !== 200 || !acc.data?.data?.puuid) return res.status(502).json({ error: 'API Riot indisponible, réessaie plus tard' });
+        if (acc.status !== 200 || !acc.data?.data?.puuid) {
+          const msg = acc.data?.errors?.[0]?.message || acc.data?.message || `Erreur ${acc.status}`;
+          return res.status(502).json({ error: `Henrik API: ${msg}` });
+        }
 
         const puuid  = acc.data.data.puuid;
-        const region = acc.data.data.region || 'eu';
+        const region = (acc.data.data.region || 'eu').toLowerCase();
         const name   = acc.data.data.name;
         const tag    = acc.data.data.tag;
 
@@ -344,7 +355,8 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp, region } });
       } catch(err) {
         console.error('link-riot error:', err);
-        return res.status(502).json({ error: 'API Riot indisponible, réessaie plus tard' });
+        const msg = err.name === 'AbortError' ? 'Timeout — Henrik API trop lente, réessaie' : 'API Riot indisponible, réessaie plus tard';
+        return res.status(502).json({ error: msg });
       }
     }
 

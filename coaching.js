@@ -3484,6 +3484,7 @@ function trackerRender(data, el) {
     </div>`;
   }).join('');
 
+  el.classList.add('tracker-loaded');
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 14px;flex-wrap:wrap">
       <div style="font-size:1rem;font-weight:700">${san(data.account.gamename)}<span style="color:var(--dim);font-weight:400">#${san(data.account.tagline)}</span></div>
@@ -3537,9 +3538,20 @@ async function renderProfile() {
   if (nameEl   && u?.username) nameEl.textContent   = u.username;
   if (roleEl) roleEl.textContent = u?.role === 'coach' ? '🎓 Coach' : u?.role === 'admin' ? '⚙️ Admin' : '🎮 Joueur';
 
-  // Afficher la section tracker si compte Riot lié
-  const trackerSection = document.getElementById('pf-tracker-section');
-  if (trackerSection) trackerSection.style.display = u?.riot_gamename ? '' : 'none';
+  // Tracker section : toujours visible, contenu selon si Riot lié ou non
+  const trackerContent = document.getElementById('pf-tracker-content');
+  const trackerRefresh = document.getElementById('pf-tracker-refresh-btn');
+  if (trackerContent && !u?.riot_gamename) {
+    trackerContent.innerHTML = `<div style="text-align:center;padding:18px 0">
+      <div style="font-size:2rem;margin-bottom:8px">🎮</div>
+      <p style="color:var(--dim);font-size:0.85rem;margin-bottom:12px">Lie ton compte Riot pour voir tes stats Valorant</p>
+      <button class="btn-primary" style="font-size:0.85rem;padding:9px 24px" onclick="coachingSwitchTab('hub-settings')">⚙️ Lier mon compte Riot</button>
+    </div>`;
+    if (trackerRefresh) trackerRefresh.style.display = 'none';
+  } else if (trackerContent && u?.riot_gamename && !trackerContent.querySelector('.tracker-loaded')) {
+    trackerContent.innerHTML = `<button class="btn-primary" style="width:100%;margin-top:8px" onclick="trackerLoad()">Charger mes stats Valorant (${san(u.riot_gamename)}#${san(u.riot_tagline)})</button>`;
+    if (trackerRefresh) trackerRefresh.style.display = '';
+  }
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();
