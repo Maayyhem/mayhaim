@@ -3559,7 +3559,7 @@ function trackerRender(data, el) {
   const s = data.stats;
   const wrColor = s.win_rate >= 50 ? '#2dbe73' : '#ff4655';
   const kdaColor = s.kda >= 1.5 ? '#2dbe73' : s.kda >= 1 ? '#f0c43f' : '#ff4655';
-  const hsColor  = s.avg_hs_pct >= 25 ? '#2dbe73' : s.avg_hs_pct >= 15 ? '#f0c43f' : 'var(--dim)';
+  const hsColor  = s.avg_hs_pct == null ? 'var(--dim)' : s.avg_hs_pct >= 25 ? '#2dbe73' : s.avg_hs_pct >= 15 ? '#f0c43f' : 'var(--dim)';
   const rankColor = _riotTierColor(data.account.rank);
 
   const agentsHtml = (data.top_agents || []).map(a => {
@@ -3610,7 +3610,7 @@ function trackerRender(data, el) {
         <div style="font-size:0.7rem;color:var(--dim)">ACS moy.</div>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 6px">
-        <div style="font-size:1.3rem;font-weight:800;color:${hsColor}">${s.avg_hs_pct}%</div>
+        <div style="font-size:1.3rem;font-weight:800;color:${hsColor}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</div>
         <div style="font-size:0.7rem;color:var(--dim)">HS%</div>
       </div>
     </div>

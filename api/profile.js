@@ -33,6 +33,64 @@ async function fetchHenrik(path) {
   }
 }
 
+// ── Official Riot Games API ────────────────────────────────────────────
+const TIER_MAP = {
+  0:'Unranked', 3:'Iron 1', 4:'Iron 2', 5:'Iron 3',
+  6:'Bronze 1', 7:'Bronze 2', 8:'Bronze 3',
+  9:'Silver 1', 10:'Silver 2', 11:'Silver 3',
+  12:'Gold 1', 13:'Gold 2', 14:'Gold 3',
+  15:'Platinum 1', 16:'Platinum 2', 17:'Platinum 3',
+  18:'Diamond 1', 19:'Diamond 2', 20:'Diamond 3',
+  21:'Ascendant 1', 22:'Ascendant 2', 23:'Ascendant 3',
+  24:'Immortal 1', 25:'Immortal 2', 26:'Immortal 3', 27:'Radiant'
+};
+const MAP_NAMES = {
+  'Ascent':'Ascent','Duality':'Bind','Triad':'Haven','Bonsai':'Split',
+  'Canyon':'Fracture','Foxtrot':'Breeze','Port':'Icebox','Pitt':'Pearl',
+  'Jam':'Lotus','Juliett':'Sunset','Infinity':'Abyss'
+};
+function getMapName(id) { const k = (id || '').split('/').pop(); return MAP_NAMES[k] || k || 'Unknown'; }
+
+let _agentCache = null;
+async function getAgentNames(shard) {
+  if (_agentCache) return _agentCache;
+  try {
+    const r = await fetchRiot('/val/content/v1/contents?locale=en-US', shard);
+    if (r.status === 200 && r.data?.characters) {
+      _agentCache = {};
+      for (const c of r.data.characters) _agentCache[c.id.toLowerCase()] = c.name;
+    }
+  } catch {}
+  return _agentCache || {};
+}
+
+async function fetchRiot(path, routing) {
+  const key = process.env.RIOT_API_KEY;
+  if (!key) return { status: 401, data: { message: 'RIOT_API_KEY non configuré' } };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`https://${routing}.api.riotgames.com${path}`, {
+      headers: { 'X-Riot-Token': key },
+      signal: controller.signal
+    });
+    let data; try { data = await res.json(); } catch { data = {}; }
+    return { status: res.status, data };
+  } finally { clearTimeout(timer); }
+}
+
+async function riotGetRankFromMatches(puuid, shard) {
+  try {
+    const mlR = await fetchRiot(`/val/match/v1/matchlists/by-puuid/${puuid}`, shard);
+    if (mlR.status !== 200) return null;
+    const comp = (mlR.data.history || []).find(m => m.queueId === 'competitive');
+    if (!comp) return null;
+    const mr = await fetchRiot(`/val/match/v1/matches/${comp.matchId}`, shard);
+    const me = (mr.data?.players || []).find(p => p.puuid === puuid);
+    return me?.competitiveTier ? (TIER_MAP[me.competitiveTier] || null) : null;
+  } catch { return null; }
+}
+
 function setCors(req, res) {
   const o = req.headers.origin || '';
   const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
@@ -118,94 +176,137 @@ module.exports = async function handler(req, res) {
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
       const rows = await sql`
-        SELECT riot_gamename, riot_tagline, riot_region, riot_rank, riot_lp
+        SELECT riot_gamename, riot_tagline, riot_region, riot_rank, riot_lp, riot_puuid
         FROM users WHERE id = ${decoded.id}
       `;
       if (!rows.length || !rows[0].riot_gamename) {
         return res.status(400).json({ error: 'Aucun compte Riot lié' });
       }
-      const { riot_gamename: name, riot_tagline: tag, riot_region: region, riot_rank: rank, riot_lp: lp } = rows[0];
+      const { riot_gamename: name, riot_tagline: tag, riot_region: shard, riot_rank: rank, riot_lp: lp, riot_puuid: puuid } = rows[0];
 
+      // ── Official Riot API path ───────────────────────────────────────
+      if (process.env.RIOT_API_KEY) {
+        try {
+          if (!puuid) return res.status(400).json({ error: 'Relie ton compte à nouveau pour activer le tracker' });
+          const mlR = await fetchRiot(`/val/match/v1/matchlists/by-puuid/${puuid}`, shard || 'eu');
+          if (mlR.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+          if (mlR.status !== 200) return res.status(502).json({ error: `Riot API: ${mlR.data?.status?.message || mlR.status}` });
+
+          const compIds = (mlR.data.history || []).filter(m => m.queueId === 'competitive').slice(0, 10).map(m => m.matchId);
+          if (compIds.length === 0) {
+            return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, stats: { matches_analyzed: 0, wins: 0, losses: 0, win_rate: 0, kda: 0, avg_acs: 0, avg_hs_pct: 0, avg_damage: 0 }, top_agents: [], top_maps: [], recent_matches: [] });
+          }
+
+          const matchResults = await Promise.all(compIds.map(id => fetchRiot(`/val/match/v1/matches/${id}`, shard || 'eu')));
+          const agentNames = await getAgentNames(shard || 'eu');
+
+          let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0, totalScore = 0, totalRounds = 0;
+          const agentMap = {}, mapMap = {}, recent = [];
+
+          for (const mr of matchResults) {
+            if (mr.status !== 200 || !mr.data?.players) continue;
+            const me = mr.data.players.find(p => p.puuid === puuid);
+            if (!me) continue;
+
+            const myTeamId = (me.teamId || '').toLowerCase();
+            const teams = {};
+            for (const t of mr.data.teams || []) teams[(t.teamId || '').toLowerCase()] = t;
+            const won = teams[myTeamId]?.won ?? false;
+            const myR = teams[myTeamId]?.roundsWon ?? 0;
+            const oppId = myTeamId === 'red' ? 'blue' : 'red';
+            const oppR = teams[oppId]?.roundsWon ?? 0;
+            const rTotal = myR + oppR;
+
+            if (won) wins++; else losses++;
+            const st = me.stats || {};
+            totalKills += st.kills || 0; totalDeaths += st.deaths || 0; totalAssists += st.assists || 0;
+            totalScore += st.score || 0; totalRounds += rTotal;
+
+            const agentId = (me.characterId || '').toLowerCase();
+            const agent = agentNames[agentId] || 'Unknown';
+            const map = getMapName(mr.data.metadata?.mapId);
+            if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0 };
+            agentMap[agent].games++; if (won) agentMap[agent].wins++;
+            if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
+            mapMap[map].games++; if (won) mapMap[map].wins++;
+
+            const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
+            recent.push({
+              map, agent, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
+              kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0,
+              acs, hs_pct: null,
+              date: mr.data.metadata?.gameStartMillis ? new Date(mr.data.metadata.gameStartMillis).toISOString() : null
+            });
+          }
+
+          const n = wins + losses;
+          return res.status(200).json({
+            account: { gamename: name, tagline: tag, rank, lp },
+            stats: {
+              matches_analyzed: n, wins, losses,
+              win_rate: n > 0 ? Math.round(wins / n * 100) : 0,
+              kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills,
+              avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0,
+              avg_hs_pct: null, avg_damage: null,
+            },
+            top_agents: Object.entries(agentMap).map(([agent, d]) => ({ agent, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+            top_maps:   Object.entries(mapMap).map(([map, d])     => ({ map,   ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+            recent_matches: recent,
+          });
+        } catch(err) {
+          return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
+        }
+      }
+
+      // ── Henrik API fallback ──────────────────────────────────────────
       try {
         const result = await fetchHenrik(
-          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+          `/valorant/v3/matches/${shard}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
         );
         if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
-        if (result.status !== 200) return res.status(502).json({ error: 'API Riot indisponible' });
+        if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status}) — configure RIOT_API_KEY` });
 
         const matches = result.data.data || [];
-        let wins = 0, losses = 0;
-        let totalKills = 0, totalDeaths = 0, totalAssists = 0;
+        let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
         let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
-        const agentMap = {}, mapMap = {};
-        const recent = [];
+        const agentMap = {}, mapMap = {}, recent = [];
 
         for (const m of matches) {
           const me = (m.players?.all_players || []).find(
             p => p.name?.toLowerCase() === name.toLowerCase() && p.tag?.toLowerCase() === tag.toLowerCase()
           );
           if (!me) continue;
-
-          const myTeam  = (me.team || '').toLowerCase();
-          const won     = m.teams?.[myTeam]?.has_won ?? false;
-          const rBlue   = m.teams?.blue?.rounds_won ?? 0;
-          const rRed    = m.teams?.red?.rounds_won  ?? 0;
-          const rTotal  = rBlue + rRed;
+          const myTeam = (me.team || '').toLowerCase();
+          const won = m.teams?.[myTeam]?.has_won ?? false;
+          const rBlue = m.teams?.blue?.rounds_won ?? 0, rRed = m.teams?.red?.rounds_won ?? 0;
+          const rTotal = rBlue + rRed;
           if (won) wins++; else losses++;
-
           const st = me.stats || {};
-          totalKills   += st.kills     || 0;
-          totalDeaths  += st.deaths    || 0;
-          totalAssists += st.assists   || 0;
-          totalHS      += st.headshots || 0;
-          const shots   = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
-          totalShots   += shots;
-          totalScore   += st.score     || 0;
-          totalRounds  += rTotal;
-          totalDamage  += me.damage_made || 0;
-
-          const agent = me.character || 'Unknown';
-          const map   = m.metadata?.map || 'Unknown';
+          totalKills += st.kills || 0; totalDeaths += st.deaths || 0; totalAssists += st.assists || 0;
+          totalHS += st.headshots || 0;
+          const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
+          totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
+          const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
           if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0 };
           agentMap[agent].games++; if (won) agentMap[agent].wins++;
           if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
-          mapMap[map].games++;   if (won) mapMap[map].wins++;
-
-          const acs   = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
-          const hsPct = shots  > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
-          const myR   = myTeam === 'blue' ? rBlue : rRed;
-          const oppR  = myTeam === 'blue' ? rRed  : rBlue;
-          recent.push({
-            map, agent,
-            result: won ? 'WIN' : 'LOSS',
-            score: `${myR}-${oppR}`,
-            kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0,
-            acs, hs_pct: hsPct,
-            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null
-          });
+          mapMap[map].games++; if (won) mapMap[map].wins++;
+          const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
+          const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
+          const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
+          recent.push({ map, agent, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
         }
 
         const n = wins + losses;
         return res.status(200).json({
           account: { gamename: name, tagline: tag, rank, lp },
-          stats: {
-            matches_analyzed: n,
-            wins, losses,
-            win_rate: n > 0 ? Math.round(wins / n * 100) : 0,
-            kda: totalDeaths > 0
-              ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2))
-              : totalKills,
-            avg_acs:    totalRounds > 0 ? Math.round(totalScore  / totalRounds) : 0,
-            avg_hs_pct: totalShots  > 0 ? Math.round(totalHS     / totalShots * 100) : 0,
-            avg_damage: n > 0           ? Math.round(totalDamage / n) : 0,
-          },
+          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: n > 0 ? Math.round(totalDamage / n) : 0 },
           top_agents: Object.entries(agentMap).map(([agent, d]) => ({ agent, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
           top_maps:   Object.entries(mapMap).map(([map, d])     => ({ map,   ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
           recent_matches: recent,
         });
       } catch(err) {
-        console.error('tracker error:', err);
-        return res.status(502).json({ error: 'API Riot indisponible' });
+        return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
     }
 
@@ -324,6 +425,44 @@ module.exports = async function handler(req, res) {
       }
       const [gameName, tagLine] = [parts[0].trim(), parts[1].trim()];
 
+      // ── Official Riot API ──────────────────────────────────────────
+      if (process.env.RIOT_API_KEY) {
+        try {
+          // 1. Account lookup (try all routing clusters)
+          let account = null;
+          for (const cluster of ['europe', 'americas', 'asia']) {
+            const r = await fetchRiot(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`, cluster);
+            if (r.status === 200 && r.data?.puuid) { account = r.data; break; }
+            if (r.status === 404) break;
+          }
+          if (!account) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
+
+          const { puuid, gameName: name, tagLine: tag } = account;
+
+          // 2. Find shard (where the player's matches are)
+          let shard = 'eu';
+          for (const s of ['eu', 'na', 'ap', 'br', 'latam', 'kr']) {
+            const r = await fetchRiot(`/val/match/v1/matchlists/by-puuid/${puuid}`, s);
+            if (r.status === 200) { shard = s; break; }
+          }
+
+          // 3. Get rank from most recent competitive match
+          const rank = await riotGetRankFromMatches(puuid, shard);
+
+          await sql`
+            UPDATE users SET
+              riot_gamename = ${name}, riot_tagline = ${tag}, riot_puuid = ${puuid},
+              riot_rank = ${rank}, riot_lp = NULL, riot_region = ${shard},
+              riot_rank_synced_at = NOW()
+            WHERE id = ${decoded.id}
+          `;
+          return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp: null, region: shard } });
+        } catch(err) {
+          return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
+        }
+      }
+
+      // ── Henrik API fallback ────────────────────────────────────────
       try {
         const acc = await fetchHenrik(`/valorant/v1/account/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
         if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
@@ -332,33 +471,19 @@ module.exports = async function handler(req, res) {
           const msg = acc.data?.errors?.[0]?.message || acc.data?.message || `Erreur ${acc.status}`;
           return res.status(502).json({ error: `Henrik API: ${msg}`, detail: JSON.stringify(acc.data).slice(0, 300) });
         }
-
-        const puuid  = acc.data.data.puuid;
+        const puuid = acc.data.data.puuid;
         const region = (acc.data.data.region || 'eu').toLowerCase();
-        const name   = acc.data.data.name;
-        const tag    = acc.data.data.tag;
-
+        const name = acc.data.data.name, tag = acc.data.data.tag;
         const mmr = await fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
         let rank = null, lp = null;
         if (mmr.status === 200 && mmr.data?.data?.current_data) {
           rank = mmr.data.data.current_data.currenttierpatched || null;
           lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
         }
-
-        await sql`
-          UPDATE users SET
-            riot_gamename = ${name}, riot_tagline = ${tag}, riot_puuid = ${puuid},
-            riot_rank = ${rank}, riot_lp = ${lp}, riot_region = ${region},
-            riot_rank_synced_at = NOW()
-          WHERE id = ${decoded.id}
-        `;
+        await sql`UPDATE users SET riot_gamename=${name}, riot_tagline=${tag}, riot_puuid=${puuid}, riot_rank=${rank}, riot_lp=${lp}, riot_region=${region}, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
         return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp, region } });
       } catch(err) {
-        console.error('link-riot error:', err);
-        const msg = err.name === 'AbortError'
-          ? 'Timeout — Henrik API trop lente, réessaie'
-          : `Erreur réseau: ${err.message || err}`;
-        return res.status(502).json({ error: msg });
+        return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
       }
     }
 
@@ -367,11 +492,21 @@ module.exports = async function handler(req, res) {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
-      const rows = await sql`SELECT riot_gamename, riot_tagline, riot_region FROM users WHERE id = ${decoded.id}`;
+      const rows = await sql`SELECT riot_gamename, riot_tagline, riot_region, riot_puuid FROM users WHERE id = ${decoded.id}`;
       if (!rows.length || !rows[0].riot_gamename) {
         return res.status(400).json({ error: 'Aucun compte Riot lié' });
       }
-      const { riot_gamename, riot_tagline, riot_region } = rows[0];
+      const { riot_gamename, riot_tagline, riot_region, riot_puuid } = rows[0];
+
+      if (process.env.RIOT_API_KEY) {
+        try {
+          const rank = riot_puuid ? await riotGetRankFromMatches(riot_puuid, riot_region || 'eu') : null;
+          await sql`UPDATE users SET riot_rank=${rank}, riot_lp=NULL, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
+          return res.status(200).json({ success: true, riot: { gamename: riot_gamename, tagline: riot_tagline, rank, lp: null } });
+        } catch(err) {
+          return res.status(502).json({ error: `Erreur réseau: ${err.message}` });
+        }
+      }
 
       try {
         const mmr = await fetchHenrik(`/valorant/v2/mmr/${riot_region}/${encodeURIComponent(riot_gamename)}/${encodeURIComponent(riot_tagline)}`);
@@ -381,14 +516,10 @@ module.exports = async function handler(req, res) {
           rank = mmr.data.data.current_data.currenttierpatched || null;
           lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
         }
-        await sql`
-          UPDATE users SET riot_rank = ${rank}, riot_lp = ${lp}, riot_rank_synced_at = NOW()
-          WHERE id = ${decoded.id}
-        `;
+        await sql`UPDATE users SET riot_rank=${rank}, riot_lp=${lp}, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
         return res.status(200).json({ success: true, riot: { gamename: riot_gamename, tagline: riot_tagline, rank, lp } });
       } catch(err) {
-        console.error('sync-riot error:', err);
-        return res.status(502).json({ error: 'API Riot indisponible' });
+        return res.status(502).json({ error: `Erreur réseau: ${err.message}` });
       }
     }
 
