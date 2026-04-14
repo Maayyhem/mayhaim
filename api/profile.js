@@ -3,6 +3,28 @@ const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 
+let _riotColReady = false;
+async function ensureRiotColumns(sql) {
+  if (_riotColReady) return;
+  try {
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_gamename TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_tagline TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_puuid TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_rank TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_lp INTEGER`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_region TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_rank_synced_at TIMESTAMPTZ`;
+  } catch(e) {}
+  _riotColReady = true;
+}
+
+async function fetchHenrik(path) {
+  const key = process.env.HENRIK_API_KEY;
+  const headers = key ? { 'Authorization': key } : {};
+  const res = await fetch(`https://api.henrikdev.tech${path}`, { headers, signal: AbortSignal.timeout(8000) });
+  return { status: res.status, data: await res.json() };
+}
+
 function setCors(req, res) {
   const o = req.headers.origin || '';
   const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
@@ -31,6 +53,8 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const sql = neon(process.env.DATABASE_URL);
+
+  await ensureRiotColumns(sql);
 
   // Auto-create notifications table
   await sql`CREATE TABLE IF NOT EXISTS notifications (
@@ -85,7 +109,9 @@ module.exports = async function handler(req, res) {
     if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
     const result = await sql`
-      SELECT id, email, username, role, mfa_enabled, current_rank, peak_elo, objective FROM users WHERE id = ${decoded.id}
+      SELECT id, email, username, role, mfa_enabled, current_rank, peak_elo, objective,
+             riot_gamename, riot_tagline, riot_rank, riot_lp, riot_region, riot_rank_synced_at
+      FROM users WHERE id = ${decoded.id}
     `;
     if (result.length === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
     return res.status(200).json({ user: result[0] });
@@ -177,6 +203,94 @@ module.exports = async function handler(req, res) {
         RETURNING id, email, username, role, current_rank, peak_elo, objective
       `;
       return res.status(200).json({ success: true, user: updated[0] });
+    }
+
+    // ── Lier compte Riot ─────────────────────────────────────────────
+    if (action === 'link-riot') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+
+      const { riot_id } = req.body || {};
+      if (!riot_id) return res.status(400).json({ error: 'Riot ID requis (ex: Pseudo#EUW)' });
+
+      const parts = riot_id.trim().split('#');
+      if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+        return res.status(400).json({ error: 'Format invalide — utilise Pseudo#TAG' });
+      }
+      const [gameName, tagLine] = [parts[0].trim(), parts[1].trim()];
+
+      try {
+        const acc = await fetchHenrik(`/valorant/v1/account/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+        if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable' });
+        if (acc.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (acc.status !== 200 || !acc.data?.data?.puuid) return res.status(502).json({ error: 'API Riot indisponible, réessaie plus tard' });
+
+        const puuid  = acc.data.data.puuid;
+        const region = acc.data.data.region || 'eu';
+        const name   = acc.data.data.name;
+        const tag    = acc.data.data.tag;
+
+        const mmr = await fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+        let rank = null, lp = null;
+        if (mmr.status === 200 && mmr.data?.data?.current_data) {
+          rank = mmr.data.data.current_data.currenttierpatched || null;
+          lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
+        }
+
+        await sql`
+          UPDATE users SET
+            riot_gamename = ${name}, riot_tagline = ${tag}, riot_puuid = ${puuid},
+            riot_rank = ${rank}, riot_lp = ${lp}, riot_region = ${region},
+            riot_rank_synced_at = NOW()
+          WHERE id = ${decoded.id}
+        `;
+        return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp, region } });
+      } catch(err) {
+        console.error('link-riot error:', err);
+        return res.status(502).json({ error: 'API Riot indisponible, réessaie plus tard' });
+      }
+    }
+
+    // ── Synchroniser le rang Riot ─────────────────────────────────────
+    if (action === 'sync-riot') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+
+      const rows = await sql`SELECT riot_gamename, riot_tagline, riot_region FROM users WHERE id = ${decoded.id}`;
+      if (!rows.length || !rows[0].riot_gamename) {
+        return res.status(400).json({ error: 'Aucun compte Riot lié' });
+      }
+      const { riot_gamename, riot_tagline, riot_region } = rows[0];
+
+      try {
+        const mmr = await fetchHenrik(`/valorant/v2/mmr/${riot_region}/${encodeURIComponent(riot_gamename)}/${encodeURIComponent(riot_tagline)}`);
+        if (mmr.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        let rank = null, lp = null;
+        if (mmr.status === 200 && mmr.data?.data?.current_data) {
+          rank = mmr.data.data.current_data.currenttierpatched || null;
+          lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
+        }
+        await sql`
+          UPDATE users SET riot_rank = ${rank}, riot_lp = ${lp}, riot_rank_synced_at = NOW()
+          WHERE id = ${decoded.id}
+        `;
+        return res.status(200).json({ success: true, riot: { gamename: riot_gamename, tagline: riot_tagline, rank, lp } });
+      } catch(err) {
+        console.error('sync-riot error:', err);
+        return res.status(502).json({ error: 'API Riot indisponible' });
+      }
+    }
+
+    // ── Délier compte Riot ────────────────────────────────────────────
+    if (action === 'unlink-riot') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      await sql`
+        UPDATE users SET riot_gamename=NULL, riot_tagline=NULL, riot_puuid=NULL,
+          riot_rank=NULL, riot_lp=NULL, riot_region=NULL, riot_rank_synced_at=NULL
+        WHERE id = ${decoded.id}
+      `;
+      return res.status(200).json({ success: true });
     }
 
     // Marquer une notification lue

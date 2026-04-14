@@ -867,7 +867,7 @@ function coachingSwitchTab(tabId) {
   }
   if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
-  if (tabId === 'hub-settings') settMfaRefresh();
+  if (tabId === 'hub-settings') { settMfaRefresh(); settRiotRefresh(); }
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
   if (tabId === 'ch-messages') initMessagesTab();
@@ -4458,6 +4458,118 @@ function cpGenerateWarmup() {
 
 // ============ BOOT ============
 // ============ SETTINGS — MFA ============
+
+// ============ RIOT ACCOUNT ============
+
+const _RIOT_TIER_COLORS = {
+  Iron:'#9e9e9e', Bronze:'#a0693a', Silver:'#c0c0c0', Gold:'#f0c43f',
+  Platinum:'#22c4c4', Diamond:'#7b5edd', Ascendant:'#2ab86f', Immortal:'#e44e6d', Radiant:'#f9e27c'
+};
+
+function _riotTierColor(rank) {
+  if (!rank) return 'var(--dim)';
+  const tier = rank.split(' ')[0];
+  return _RIOT_TIER_COLORS[tier] || 'var(--dim)';
+}
+
+function settRiotRender(user) {
+  const statusEl  = document.getElementById('sett-riot-status');
+  const formEl    = document.getElementById('sett-riot-link-form');
+  if (!statusEl) return;
+
+  if (!user?.riot_gamename) {
+    statusEl.innerHTML = `<p style="color:var(--dim);font-size:0.82rem;margin:0 0 8px">Aucun compte lié — entre ton Riot ID ci-dessous.</p>`;
+    if (formEl) formEl.style.display = 'block';
+    return;
+  }
+
+  if (formEl) formEl.style.display = 'none';
+  const color    = _riotTierColor(user.riot_rank);
+  const rankText = user.riot_rank ? `${user.riot_rank} — ${user.riot_lp ?? '?'} LP` : 'Placement / Non classé';
+  const syncDate = user.riot_rank_synced_at
+    ? new Date(user.riot_rank_synced_at).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+    : '—';
+  statusEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.95rem">${san(user.riot_gamename)}<span style="color:var(--dim);font-weight:400">#${san(user.riot_tagline)}</span></div>
+        <div style="font-size:1rem;font-weight:800;color:${color};margin-top:2px">${rankText}</div>
+        <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Sync le ${syncDate}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" style="flex:1;font-size:0.82rem" onclick="settRiotSync()">🔄 Synchroniser</button>
+      <button class="btn-secondary" style="font-size:0.82rem;padding:8px 14px" onclick="settRiotUnlink()">Délier</button>
+    </div>
+    <div id="sett-riot-msg" class="cp-msg" style="margin-top:6px"></div>`;
+}
+
+async function settRiotRefresh() {
+  if (!coachingToken) return;
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const data = await res.json();
+    if (data.user) {
+      coachingUser = { ...coachingUser, ...data.user };
+      settRiotRender(coachingUser);
+    }
+  } catch(e) {}
+}
+
+async function settRiotLink() {
+  const input = document.getElementById('sett-riot-id');
+  const msg   = document.getElementById('sett-riot-msg');
+  if (!input || !msg) return;
+  const riot_id = input.value.trim();
+  if (!riot_id) { msg.textContent = 'Entre ton Riot ID'; msg.style.color = '#ff4655'; msg.style.display = 'block'; return; }
+  msg.textContent = 'Recherche en cours…'; msg.style.color = 'var(--dim)'; msg.style.display = 'block';
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'link-riot', riot_id })
+    });
+    const data = await res.json();
+    if (!res.ok) { msg.textContent = data.error; msg.style.color = '#ff4655'; return; }
+    coachingUser = { ...coachingUser, riot_gamename: data.riot.gamename, riot_tagline: data.riot.tagline, riot_rank: data.riot.rank, riot_lp: data.riot.lp, riot_region: data.riot.region, riot_rank_synced_at: new Date().toISOString() };
+    settRiotRender(coachingUser);
+  } catch(e) {
+    msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655';
+  }
+}
+
+async function settRiotSync() {
+  const msg = document.getElementById('sett-riot-msg');
+  if (msg) { msg.textContent = 'Synchronisation…'; msg.style.color = 'var(--dim)'; msg.style.display = 'block'; }
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'sync-riot' })
+    });
+    const data = await res.json();
+    if (!res.ok) { if (msg) { msg.textContent = data.error; msg.style.color = '#ff4655'; } return; }
+    coachingUser = { ...coachingUser, riot_rank: data.riot.rank, riot_lp: data.riot.lp, riot_rank_synced_at: new Date().toISOString() };
+    settRiotRender(coachingUser);
+  } catch(e) {
+    if (msg) { msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655'; }
+  }
+}
+
+async function settRiotUnlink() {
+  if (!confirm('Délier le compte Riot ?')) return;
+  try {
+    await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'unlink-riot' })
+    });
+    coachingUser = { ...coachingUser, riot_gamename: null, riot_tagline: null, riot_rank: null, riot_lp: null, riot_region: null, riot_rank_synced_at: null };
+    settRiotRender(coachingUser);
+    const formEl = document.getElementById('sett-riot-link-form');
+    if (formEl) formEl.style.display = 'block';
+  } catch(e) {}
+}
 
 function settMfaRefresh() {
   const enabled = coachingUser?.mfa_enabled;
