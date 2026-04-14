@@ -17,11 +17,8 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try {
-    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
-    if (!decoded.mfa_verified) return null;
-    return decoded;
-  } catch { return null; }
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
+  catch { return null; }
 }
 
 let _tablesReady = false;
