@@ -867,7 +867,8 @@ function coachingSwitchTab(tabId) {
   }
   if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
-  if (tabId === 'hub-settings') { settMfaRefresh(); settRiotRefresh(); }
+  if (tabId === 'hub-settings') settMfaRefresh();
+  if (tabId === 'ch-tracker')   trackerTabLoad();
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
   if (tabId === 'ch-messages') initMessagesTab();
@@ -3428,28 +3429,131 @@ function _renderAiCoach(a, generatedAt, weekLabel, weekStart, daysLeft) {
 
 // ============ VALORANT TRACKER ============
 
-async function trackerLoad() {
-  const el = document.getElementById('pf-tracker-content');
-  const btn = document.getElementById('pf-tracker-refresh-btn');
-  if (!el) return;
-  el.innerHTML = `<p style="color:var(--dim);font-size:0.85rem;text-align:center;padding:16px 0">Chargement des stats…</p>`;
-  if (btn) btn.disabled = true;
+function trackerTabLoad() {
+  const main = document.getElementById('trk-main');
+  if (!main) return;
+  if (!coachingUser?.riot_gamename) {
+    main.innerHTML = `
+      <div style="text-align:center;padding:32px 0 24px">
+        <div style="font-size:3rem;margin-bottom:12px">🎮</div>
+        <h3 style="margin-bottom:8px">Lie ton compte Riot Games</h3>
+        <p style="color:var(--dim);font-size:0.85rem;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto">Entre ton Riot ID pour accéder à tes stats Valorant (Win Rate, KDA, ACS, dernières parties…)</p>
+        <div style="max-width:360px;margin:0 auto">
+          <input id="trk-riot-input" type="text" class="cp-input" placeholder="Pseudo#TAG  (ex: TenZ#NA1)" style="width:100%;margin-bottom:10px;box-sizing:border-box;font-size:1rem;padding:12px">
+          <button class="btn-primary" style="width:100%;padding:12px;font-size:0.95rem" onclick="trackerLinkRiot()">Lier mon compte Riot</button>
+          <div id="trk-link-msg" class="cp-msg" style="margin-top:10px;text-align:center"></div>
+        </div>
+      </div>`;
+  } else {
+    _trackerShowAccount();
+  }
+}
+
+function _trackerShowAccount() {
+  const main = document.getElementById('trk-main');
+  if (!main) return;
+  const u = coachingUser;
+  const rankColor = _riotTierColor(u.riot_rank);
+  const syncDate  = u.riot_rank_synced_at
+    ? new Date(u.riot_rank_synced_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    : null;
+  main.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:1.2rem;font-weight:800">${san(u.riot_gamename)}<span style="color:var(--dim);font-weight:400">#${san(u.riot_tagline)}</span></div>
+        ${u.riot_rank
+          ? `<div style="color:${rankColor};font-weight:700;font-size:1rem;margin-top:4px">${san(u.riot_rank)} · ${u.riot_lp ?? '?'} LP</div>`
+          : `<div style="color:var(--dim);font-size:0.82rem;margin-top:4px">Rang non synchronisé</div>`}
+        ${syncDate ? `<div style="color:var(--dim);font-size:0.7rem;margin-top:2px">Sync ${syncDate}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-outline" style="font-size:0.8rem;padding:7px 14px" onclick="trackerSyncRank(this)">🔄 Sync rang</button>
+        <button class="btn-secondary" style="font-size:0.8rem;padding:7px 14px" onclick="trackerUnlink()">Délier</button>
+      </div>
+    </div>
+    <div id="trk-stats-wrap">
+      <button class="btn-primary" style="width:100%;padding:12px;font-size:0.95rem" onclick="trackerLoadStats(this)">📊 Charger mes stats (10 dernières ranked)</button>
+    </div>
+    <div id="trk-msg" class="cp-msg" style="margin-top:8px;text-align:center"></div>`;
+}
+
+async function trackerLinkRiot() {
+  const input = document.getElementById('trk-riot-input');
+  const msg   = document.getElementById('trk-link-msg');
+  if (!input) return;
+  const riot_id = input.value.trim();
+  if (!riot_id) { if(msg){msg.textContent='Entre ton Riot ID';msg.style.color='#ff4655';msg.style.display='block';} return; }
+  if (msg) { msg.textContent = 'Recherche en cours…'; msg.style.color = 'var(--dim)'; msg.style.display = 'block'; }
   try {
-    const res  = await fetch(`${API_BASE}/profile?action=tracker`, {
-      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${coachingToken}`},
+      body: JSON.stringify({ action:'link-riot', riot_id })
     });
     const data = await res.json();
     if (!res.ok) {
-      el.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">${san(data.error)}</p>`;
+      if(msg){msg.textContent=data.error;msg.style.color='#ff4655';}
       return;
     }
-    trackerRender(data, el);
+    coachingUser = { ...coachingUser, riot_gamename:data.riot.gamename, riot_tagline:data.riot.tagline,
+      riot_rank:data.riot.rank, riot_lp:data.riot.lp, riot_region:data.riot.region, riot_rank_synced_at:new Date().toISOString() };
+    _trackerShowAccount();
   } catch(e) {
-    el.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">Erreur réseau</p>`;
-  } finally {
-    if (btn) btn.disabled = false;
+    if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';}
   }
 }
+
+async function trackerSyncRank(btn) {
+  const msg = document.getElementById('trk-msg');
+  if (btn) btn.disabled = true;
+  if (msg) { msg.textContent='Synchronisation…'; msg.style.color='var(--dim)'; msg.style.display='block'; }
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${coachingToken}`},
+      body: JSON.stringify({ action:'sync-riot' })
+    });
+    const data = await res.json();
+    if (!res.ok) { if(msg){msg.textContent=data.error;msg.style.color='#ff4655';} }
+    else {
+      coachingUser = { ...coachingUser, riot_rank:data.riot.rank, riot_lp:data.riot.lp, riot_rank_synced_at:new Date().toISOString() };
+      _trackerShowAccount();
+    }
+  } catch(e) { if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';} }
+  finally { if(btn) btn.disabled=false; }
+}
+
+async function trackerUnlink() {
+  if (!confirm('Délier le compte Riot ?')) return;
+  await fetch(`${API_BASE}/profile`, {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${coachingToken}`},
+    body: JSON.stringify({ action:'unlink-riot' })
+  }).catch(()=>{});
+  coachingUser = { ...coachingUser, riot_gamename:null, riot_tagline:null, riot_rank:null, riot_lp:null, riot_region:null, riot_rank_synced_at:null };
+  trackerTabLoad();
+}
+
+async function trackerLoadStats(btn) {
+  const wrap = document.getElementById('trk-stats-wrap');
+  const msg  = document.getElementById('trk-msg');
+  if (!wrap) return;
+  if (btn) btn.disabled = true;
+  wrap.innerHTML = `<p style="color:var(--dim);font-size:0.85rem;text-align:center;padding:20px 0">Chargement des stats…</p>`;
+  try {
+    const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
+    const data = await res.json();
+    if (!res.ok) {
+      wrap.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">${san(data.error)}${data.detail ? `<br><span style="font-size:0.7rem;opacity:.6">${san(data.detail)}</span>` : ''}</p>
+        <button class="btn-primary" style="width:100%;margin-top:8px" onclick="trackerLoadStats(this)">Réessayer</button>`;
+      return;
+    }
+    trackerRender(data, wrap);
+  } catch(e) {
+    wrap.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">Erreur réseau</p>
+      <button class="btn-primary" style="width:100%;margin-top:8px" onclick="trackerLoadStats(this)">Réessayer</button>`;
+  }
+}
+
+// Alias pour rétrocompatibilité (appelé depuis renderProfile si existant)
+function trackerLoad() { trackerLoadStats(); }
 
 function trackerRender(data, el) {
   const s = data.stats;
@@ -3537,21 +3641,6 @@ async function renderProfile() {
   if (avatarEl && u?.username) avatarEl.textContent = u.username[0].toUpperCase();
   if (nameEl   && u?.username) nameEl.textContent   = u.username;
   if (roleEl) roleEl.textContent = u?.role === 'coach' ? '🎓 Coach' : u?.role === 'admin' ? '⚙️ Admin' : '🎮 Joueur';
-
-  // Tracker section : toujours visible, contenu selon si Riot lié ou non
-  const trackerContent = document.getElementById('pf-tracker-content');
-  const trackerRefresh = document.getElementById('pf-tracker-refresh-btn');
-  if (trackerContent && !u?.riot_gamename) {
-    trackerContent.innerHTML = `<div style="text-align:center;padding:18px 0">
-      <div style="font-size:2rem;margin-bottom:8px">🎮</div>
-      <p style="color:var(--dim);font-size:0.85rem;margin-bottom:12px">Lie ton compte Riot pour voir tes stats Valorant</p>
-      <button class="btn-primary" style="font-size:0.85rem;padding:9px 24px" onclick="coachingSwitchTab('hub-settings')">⚙️ Lier mon compte Riot</button>
-    </div>`;
-    if (trackerRefresh) trackerRefresh.style.display = 'none';
-  } else if (trackerContent && u?.riot_gamename && !trackerContent.querySelector('.tracker-loaded')) {
-    trackerContent.innerHTML = `<button class="btn-primary" style="width:100%;margin-top:8px" onclick="trackerLoad()">Charger mes stats Valorant (${san(u.riot_gamename)}#${san(u.riot_tagline)})</button>`;
-    if (trackerRefresh) trackerRefresh.style.display = '';
-  }
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();
@@ -4576,7 +4665,7 @@ function cpGenerateWarmup() {
 // ============ BOOT ============
 // ============ SETTINGS — MFA ============
 
-// ============ RIOT ACCOUNT ============
+// ============ RIOT TIER COLORS (partagé tracker + profil) ============
 
 const _RIOT_TIER_COLORS = {
   Iron:'#9e9e9e', Bronze:'#a0693a', Silver:'#c0c0c0', Gold:'#f0c43f',
@@ -4587,105 +4676,6 @@ function _riotTierColor(rank) {
   if (!rank) return 'var(--dim)';
   const tier = rank.split(' ')[0];
   return _RIOT_TIER_COLORS[tier] || 'var(--dim)';
-}
-
-function settRiotRender(user) {
-  const statusEl  = document.getElementById('sett-riot-status');
-  const formEl    = document.getElementById('sett-riot-link-form');
-  if (!statusEl) return;
-
-  if (!user?.riot_gamename) {
-    statusEl.innerHTML = `<p style="color:var(--dim);font-size:0.82rem;margin:0 0 8px">Aucun compte lié — entre ton Riot ID ci-dessous.</p>`;
-    if (formEl) formEl.style.display = 'block';
-    return;
-  }
-
-  if (formEl) formEl.style.display = 'none';
-  const color    = _riotTierColor(user.riot_rank);
-  const rankText = user.riot_rank ? `${user.riot_rank} — ${user.riot_lp ?? '?'} LP` : 'Placement / Non classé';
-  const syncDate = user.riot_rank_synced_at
-    ? new Date(user.riot_rank_synced_at).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
-    : '—';
-  statusEl.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:0.95rem">${san(user.riot_gamename)}<span style="color:var(--dim);font-weight:400">#${san(user.riot_tagline)}</span></div>
-        <div style="font-size:1rem;font-weight:800;color:${color};margin-top:2px">${rankText}</div>
-        <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Sync le ${syncDate}</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn-primary" style="flex:1;font-size:0.82rem" onclick="settRiotSync()">🔄 Synchroniser</button>
-      <button class="btn-secondary" style="font-size:0.82rem;padding:8px 14px" onclick="settRiotUnlink()">Délier</button>
-    </div>
-    <div id="sett-riot-msg" class="cp-msg" style="margin-top:6px"></div>`;
-}
-
-async function settRiotRefresh() {
-  if (!coachingToken) return;
-  try {
-    const res  = await fetch(`${API_BASE}/profile`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
-    const data = await res.json();
-    if (data.user) {
-      coachingUser = { ...coachingUser, ...data.user };
-      settRiotRender(coachingUser);
-    }
-  } catch(e) {}
-}
-
-async function settRiotLink() {
-  const input = document.getElementById('sett-riot-id');
-  const msg   = document.getElementById('sett-riot-msg');
-  if (!input || !msg) return;
-  const riot_id = input.value.trim();
-  if (!riot_id) { msg.textContent = 'Entre ton Riot ID'; msg.style.color = '#ff4655'; msg.style.display = 'block'; return; }
-  msg.textContent = 'Recherche en cours…'; msg.style.color = 'var(--dim)'; msg.style.display = 'block';
-  try {
-    const res  = await fetch(`${API_BASE}/profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-      body: JSON.stringify({ action: 'link-riot', riot_id })
-    });
-    const data = await res.json();
-    if (!res.ok) { msg.textContent = data.error; msg.style.color = '#ff4655'; return; }
-    coachingUser = { ...coachingUser, riot_gamename: data.riot.gamename, riot_tagline: data.riot.tagline, riot_rank: data.riot.rank, riot_lp: data.riot.lp, riot_region: data.riot.region, riot_rank_synced_at: new Date().toISOString() };
-    settRiotRender(coachingUser);
-  } catch(e) {
-    msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655';
-  }
-}
-
-async function settRiotSync() {
-  const msg = document.getElementById('sett-riot-msg');
-  if (msg) { msg.textContent = 'Synchronisation…'; msg.style.color = 'var(--dim)'; msg.style.display = 'block'; }
-  try {
-    const res  = await fetch(`${API_BASE}/profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-      body: JSON.stringify({ action: 'sync-riot' })
-    });
-    const data = await res.json();
-    if (!res.ok) { if (msg) { msg.textContent = data.error; msg.style.color = '#ff4655'; } return; }
-    coachingUser = { ...coachingUser, riot_rank: data.riot.rank, riot_lp: data.riot.lp, riot_rank_synced_at: new Date().toISOString() };
-    settRiotRender(coachingUser);
-  } catch(e) {
-    if (msg) { msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655'; }
-  }
-}
-
-async function settRiotUnlink() {
-  if (!confirm('Délier le compte Riot ?')) return;
-  try {
-    await fetch(`${API_BASE}/profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-      body: JSON.stringify({ action: 'unlink-riot' })
-    });
-    coachingUser = { ...coachingUser, riot_gamename: null, riot_tagline: null, riot_rank: null, riot_lp: null, riot_region: null, riot_rank_synced_at: null };
-    settRiotRender(coachingUser);
-    const formEl = document.getElementById('sett-riot-link-form');
-    if (formEl) formEl.style.display = 'block';
-  } catch(e) {}
 }
 
 function settMfaRefresh() {

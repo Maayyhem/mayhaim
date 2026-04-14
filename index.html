@@ -240,6 +240,9 @@
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-profile">
             <span class="ch-nav-icon">👤</span> Mon Profil
           </button>
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-tracker">
+            <span class="ch-nav-icon">🎮</span> Tracker Valorant
+          </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
             <span class="ch-nav-icon">⚡</span> Voltaic Benchmark
           </button>
@@ -544,17 +547,6 @@
         <div class="sett-row">
           <span class="sett-row-label">FOV <span id="opt-fov-val" style="color:var(--accent);font-weight:700">103</span>°</span>
           <input type="range" id="opt-fov" min="70" max="120" value="103" step="1" class="sett-range" style="width:140px">
-        </div>
-      </div>
-
-      <!-- Riot Games -->
-      <div class="sett-card">
-        <div class="sett-card-title">⚔️ Compte Riot Games</div>
-        <div id="sett-riot-status"></div>
-        <div id="sett-riot-link-form" style="margin-top:12px">
-          <input id="sett-riot-id" type="text" class="cp-input" placeholder="Pseudo#TAG  (ex: TenZ#NA1)" style="width:100%;margin-bottom:8px;box-sizing:border-box">
-          <button class="btn-primary" style="width:100%;font-size:0.85rem" onclick="settRiotLink()">Lier le compte</button>
-          <div id="sett-riot-msg" class="cp-msg" style="margin-top:6px"></div>
         </div>
       </div>
 
@@ -1375,16 +1367,13 @@
               <div id="pf-mode-breakdown" class="pf-mode-list"></div>
             </div>
 
-          <!-- Valorant Tracker -->
-          <div class="pf-section" id="pf-tracker-section">
-            <div class="pf-section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <span>🎮 Tracker Valorant</span>
-              <button class="btn-outline" style="font-size:0.75rem;padding:5px 14px;display:none" onclick="trackerLoad()" id="pf-tracker-refresh-btn">🔄 Rafraîchir</button>
-            </div>
-            <div id="pf-tracker-content"></div>
           </div>
+        </div>
 
-          </div>
+        <!-- TRACKER VALORANT -->
+        <div id="ch-tracker" class="ch-panel">
+          <h2 class="ch-section-title">🎮 Tracker Valorant</h2>
+          <div id="trk-main"></div>
         </div>
 
         <div id="ch-historique" class="ch-panel">

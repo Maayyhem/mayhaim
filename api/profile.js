@@ -330,7 +330,7 @@ module.exports = async function handler(req, res) {
         if (acc.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         if (acc.status !== 200 || !acc.data?.data?.puuid) {
           const msg = acc.data?.errors?.[0]?.message || acc.data?.message || `Erreur ${acc.status}`;
-          return res.status(502).json({ error: `Henrik API: ${msg}` });
+          return res.status(502).json({ error: `Henrik API: ${msg}`, detail: JSON.stringify(acc.data).slice(0, 300) });
         }
 
         const puuid  = acc.data.data.puuid;
