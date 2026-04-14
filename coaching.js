@@ -3426,6 +3426,107 @@ function _renderAiCoach(a, generatedAt, weekLabel, weekStart, daysLeft) {
 
 // ============ PROFILE ============
 
+// ============ VALORANT TRACKER ============
+
+async function trackerLoad() {
+  const el = document.getElementById('pf-tracker-content');
+  const btn = document.getElementById('pf-tracker-refresh-btn');
+  if (!el) return;
+  el.innerHTML = `<p style="color:var(--dim);font-size:0.85rem;text-align:center;padding:16px 0">Chargement des stats…</p>`;
+  if (btn) btn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/profile?action=tracker`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      el.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">${san(data.error)}</p>`;
+      return;
+    }
+    trackerRender(data, el);
+  } catch(e) {
+    el.innerHTML = `<p style="color:#ff4655;font-size:0.85rem;text-align:center;padding:12px 0">Erreur réseau</p>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function trackerRender(data, el) {
+  const s = data.stats;
+  const wrColor = s.win_rate >= 50 ? '#2dbe73' : '#ff4655';
+  const kdaColor = s.kda >= 1.5 ? '#2dbe73' : s.kda >= 1 ? '#f0c43f' : '#ff4655';
+  const hsColor  = s.avg_hs_pct >= 25 ? '#2dbe73' : s.avg_hs_pct >= 15 ? '#f0c43f' : 'var(--dim)';
+  const rankColor = _riotTierColor(data.account.rank);
+
+  const agentsHtml = (data.top_agents || []).map(a => {
+    const wr = a.games > 0 ? Math.round(a.wins / a.games * 100) : 0;
+    const c  = wr >= 50 ? '#2dbe73' : '#ff4655';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.82rem">
+      <span style="font-weight:600">${san(a.agent)}</span>
+      <span style="color:var(--dim)">${a.games} partie${a.games>1?'s':''}</span>
+      <span style="color:${c};font-weight:700">${wr}% WR</span>
+    </div>`;
+  }).join('');
+
+  const matchesHtml = (data.recent_matches || []).map(m => {
+    const rc = m.result === 'WIN' ? '#2dbe73' : '#ff4655';
+    const kc = m.deaths > 0 ? (m.kills/m.deaths >= 1.5 ? '#2dbe73' : m.kills/m.deaths >= 1 ? '#f0c43f' : '#ff4655') : '#2dbe73';
+    const dateStr = m.date ? new Date(m.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
+    return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
+      <div>
+        <div style="font-weight:700">${san(m.map)}</div>
+        <div style="color:var(--dim);font-size:0.72rem">${san(m.agent)} · ${dateStr}</div>
+      </div>
+      <span style="color:${rc};font-weight:800;font-size:0.85rem">${m.result}</span>
+      <span style="color:var(--dim)">${m.score}</span>
+      <span style="color:${kc};font-weight:600">${m.kills}/${m.deaths}/${m.assists}</span>
+      <span style="color:var(--accent);font-weight:600">${m.acs} ACS</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 14px;flex-wrap:wrap">
+      <div style="font-size:1rem;font-weight:700">${san(data.account.gamename)}<span style="color:var(--dim);font-weight:400">#${san(data.account.tagline)}</span></div>
+      ${data.account.rank ? `<span style="background:${rankColor}22;color:${rankColor};border:1px solid ${rankColor}55;padding:3px 12px;border-radius:20px;font-weight:800;font-size:0.82rem">${san(data.account.rank)} · ${data.account.lp ?? '?'} LP</span>` : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;text-align:center">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 6px">
+        <div style="font-size:1.3rem;font-weight:800;color:${wrColor}">${s.win_rate}%</div>
+        <div style="font-size:0.7rem;color:var(--dim)">Win Rate</div>
+        <div style="font-size:0.7rem;color:var(--dim)">${s.wins}V ${s.losses}D</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 6px">
+        <div style="font-size:1.3rem;font-weight:800;color:${kdaColor}">${s.kda}</div>
+        <div style="font-size:0.7rem;color:var(--dim)">K/D/A</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 6px">
+        <div style="font-size:1.3rem;font-weight:800;color:var(--accent)">${s.avg_acs}</div>
+        <div style="font-size:0.7rem;color:var(--dim)">ACS moy.</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 6px">
+        <div style="font-size:1.3rem;font-weight:800;color:${hsColor}">${s.avg_hs_pct}%</div>
+        <div style="font-size:0.7rem;color:var(--dim)">HS%</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:0.75rem;color:var(--dim);font-weight:700;margin-bottom:6px;text-transform:uppercase">Top Agents</div>
+        ${agentsHtml || '<p style="color:var(--dim);font-size:0.8rem">Aucune donnée</p>'}
+      </div>
+      <div>
+        <div style="font-size:0.75rem;color:var(--dim);font-weight:700;margin-bottom:6px;text-transform:uppercase">Top Maps</div>
+        ${(data.top_maps||[]).map(m=>{const wr=m.games>0?Math.round(m.wins/m.games*100):0;const c=wr>=50?'#2dbe73':'#ff4655';return`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.82rem"><span style="font-weight:600">${san(m.map)}</span><span style="color:var(--dim)">${m.games}p</span><span style="color:${c};font-weight:700">${wr}%</span></div>`;}).join('')}
+      </div>
+    </div>
+
+    <div style="font-size:0.75rem;color:var(--dim);font-weight:700;margin-bottom:6px;text-transform:uppercase">Dernières parties (${s.matches_analyzed} analysées)</div>
+    ${matchesHtml || '<p style="color:var(--dim);font-size:0.8rem">Aucune partie trouvée</p>'}
+    <p style="color:var(--dim);font-size:0.7rem;margin-top:8px;text-align:right">Via Henrik Dev API · Données non-officielles</p>
+  `;
+}
+
 async function renderProfile() {
   // Immediate render from cached user data
   const u = typeof coachingUser !== 'undefined' ? coachingUser : null;
@@ -3435,6 +3536,10 @@ async function renderProfile() {
   if (avatarEl && u?.username) avatarEl.textContent = u.username[0].toUpperCase();
   if (nameEl   && u?.username) nameEl.textContent   = u.username;
   if (roleEl) roleEl.textContent = u?.role === 'coach' ? '🎓 Coach' : u?.role === 'admin' ? '⚙️ Admin' : '🎮 Joueur';
+
+  // Afficher la section tracker si compte Riot lié
+  const trackerSection = document.getElementById('pf-tracker-section');
+  if (trackerSection) trackerSection.style.display = u?.riot_gamename ? '' : 'none';
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();

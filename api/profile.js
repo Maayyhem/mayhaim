@@ -104,6 +104,103 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ notifications: rows, unread });
     }
 
+    // ── Tracker Valorant ──────────────────────────────────────────────
+    if (action === 'tracker') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+
+      const rows = await sql`
+        SELECT riot_gamename, riot_tagline, riot_region, riot_rank, riot_lp
+        FROM users WHERE id = ${decoded.id}
+      `;
+      if (!rows.length || !rows[0].riot_gamename) {
+        return res.status(400).json({ error: 'Aucun compte Riot lié' });
+      }
+      const { riot_gamename: name, riot_tagline: tag, riot_region: region, riot_rank: rank, riot_lp: lp } = rows[0];
+
+      try {
+        const result = await fetchHenrik(
+          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+        );
+        if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (result.status !== 200) return res.status(502).json({ error: 'API Riot indisponible' });
+
+        const matches = result.data.data || [];
+        let wins = 0, losses = 0;
+        let totalKills = 0, totalDeaths = 0, totalAssists = 0;
+        let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
+        const agentMap = {}, mapMap = {};
+        const recent = [];
+
+        for (const m of matches) {
+          const me = (m.players?.all_players || []).find(
+            p => p.name?.toLowerCase() === name.toLowerCase() && p.tag?.toLowerCase() === tag.toLowerCase()
+          );
+          if (!me) continue;
+
+          const myTeam  = (me.team || '').toLowerCase();
+          const won     = m.teams?.[myTeam]?.has_won ?? false;
+          const rBlue   = m.teams?.blue?.rounds_won ?? 0;
+          const rRed    = m.teams?.red?.rounds_won  ?? 0;
+          const rTotal  = rBlue + rRed;
+          if (won) wins++; else losses++;
+
+          const st = me.stats || {};
+          totalKills   += st.kills     || 0;
+          totalDeaths  += st.deaths    || 0;
+          totalAssists += st.assists   || 0;
+          totalHS      += st.headshots || 0;
+          const shots   = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
+          totalShots   += shots;
+          totalScore   += st.score     || 0;
+          totalRounds  += rTotal;
+          totalDamage  += me.damage_made || 0;
+
+          const agent = me.character || 'Unknown';
+          const map   = m.metadata?.map || 'Unknown';
+          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0 };
+          agentMap[agent].games++; if (won) agentMap[agent].wins++;
+          if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
+          mapMap[map].games++;   if (won) mapMap[map].wins++;
+
+          const acs   = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
+          const hsPct = shots  > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
+          const myR   = myTeam === 'blue' ? rBlue : rRed;
+          const oppR  = myTeam === 'blue' ? rRed  : rBlue;
+          recent.push({
+            map, agent,
+            result: won ? 'WIN' : 'LOSS',
+            score: `${myR}-${oppR}`,
+            kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0,
+            acs, hs_pct: hsPct,
+            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null
+          });
+        }
+
+        const n = wins + losses;
+        return res.status(200).json({
+          account: { gamename: name, tagline: tag, rank, lp },
+          stats: {
+            matches_analyzed: n,
+            wins, losses,
+            win_rate: n > 0 ? Math.round(wins / n * 100) : 0,
+            kda: totalDeaths > 0
+              ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2))
+              : totalKills,
+            avg_acs:    totalRounds > 0 ? Math.round(totalScore  / totalRounds) : 0,
+            avg_hs_pct: totalShots  > 0 ? Math.round(totalHS     / totalShots * 100) : 0,
+            avg_damage: n > 0           ? Math.round(totalDamage / n) : 0,
+          },
+          top_agents: Object.entries(agentMap).map(([agent, d]) => ({ agent, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+          top_maps:   Object.entries(mapMap).map(([map, d])     => ({ map,   ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+          recent_matches: recent,
+        });
+      } catch(err) {
+        console.error('tracker error:', err);
+        return res.status(502).json({ error: 'API Riot indisponible' });
+      }
+    }
+
     // Profil normal — full token uniquement
     const decoded = verifyToken(req, false);
     if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
