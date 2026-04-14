@@ -9,15 +9,133 @@ function setCors(req, res) {
   res.setHeader('Access-Control-Allow-Origin', (o===a||/^https:\/\/mayhaim[^.]*\.vercel\.app$/.test(o))?o:a);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+}
+
+let _discordColReady = false;
+async function ensureDiscordColumn(sql) {
+  if (_discordColReady) return;
+  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id TEXT UNIQUE`; } catch(e) {}
+  _discordColReady = true;
 }
 
 module.exports = async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action } = req.query || {};
+  const SITE_URL = process.env.SITE_URL || 'https://mayhaim.vercel.app';
+
+  // ── Discord: redirect vers la page d'autorisation ──────────────────
+  if (req.method === 'GET' && action === 'discord') {
+    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) {
+      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent('Discord non configuré')}`);
+      return res.status(302).end();
+    }
+    const params = new URLSearchParams({
+      client_id: process.env.DISCORD_CLIENT_ID,
+      redirect_uri: process.env.DISCORD_REDIRECT_URI,
+      response_type: 'code',
+      scope: 'identify email',
+    });
+    res.setHeader('Location', `https://discord.com/api/oauth2/authorize?${params}`);
+    return res.status(302).end();
+  }
+
+  // ── Discord: callback après autorisation ───────────────────────────
+  if (req.method === 'GET' && action === 'discord-callback') {
+    const { code, error } = req.query;
+    if (error || !code) {
+      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent(error || 'Accès refusé')}`);
+      return res.status(302).end();
+    }
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      await ensureDiscordColumn(sql);
+
+      // Échange du code contre un access token Discord
+      const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: process.env.DISCORD_CLIENT_ID,
+          client_secret: process.env.DISCORD_CLIENT_SECRET,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: process.env.DISCORD_REDIRECT_URI,
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) throw new Error('Token Discord invalide');
+
+      // Récupération du profil Discord
+      const discordRes = await fetch('https://discord.com/api/users/@me', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const discordUser = await discordRes.json();
+
+      const discordId    = String(discordUser.id);
+      const discordEmail = discordUser.email || null;
+      const rawName      = discordUser.global_name || discordUser.username || '';
+      const discordName  = rawName.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 20) || `user${discordId.slice(-6)}`;
+
+      let user = null;
+
+      // 1. Compte existant lié par discord_id
+      const byId = await sql`
+        SELECT id, email, username, role, current_rank, peak_elo, objective
+        FROM users WHERE discord_id = ${discordId}
+      `;
+      if (byId.length > 0) user = byId[0];
+
+      // 2. Compte existant par email → on le lie
+      if (!user && discordEmail) {
+        const byEmail = await sql`
+          SELECT id, email, username, role, current_rank, peak_elo, objective
+          FROM users WHERE email = ${discordEmail}
+        `;
+        if (byEmail.length > 0) {
+          user = byEmail[0];
+          await sql`UPDATE users SET discord_id = ${discordId} WHERE id = ${user.id}`;
+        }
+      }
+
+      // 3. Création d'un nouveau compte
+      if (!user) {
+        let username = discordName.length >= 3 ? discordName : `user${discordId.slice(-6)}`;
+        const taken = await sql`SELECT id FROM users WHERE username = ${username}`;
+        if (taken.length > 0) username = `${username.slice(0, 15)}_${discordId.slice(-4)}`;
+
+        const email    = discordEmail || `discord_${discordId}@mayhaim.local`;
+        const randomPw = await bcrypt.hash(`${discordId}_${Date.now()}_${Math.random()}`, 10);
+
+        const inserted = await sql`
+          INSERT INTO users (email, username, password_hash, role, current_rank, discord_id)
+          VALUES (${email}, ${username}, ${randomPw}, 'student', 'Non défini', ${discordId})
+          RETURNING id, email, username, role, current_rank, peak_elo, objective
+        `;
+        user = inserted[0];
+      }
+
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.setHeader('Location', `${SITE_URL}?discord_token=${encodeURIComponent(token)}`);
+      return res.status(302).end();
+
+    } catch (err) {
+      console.error('Discord callback error:', err);
+      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent('Erreur de connexion Discord')}`);
+      return res.status(302).end();
+    }
+  }
+
+  // ── Toutes les autres routes nécessitent POST ──────────────────────
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   const sql = neon(process.env.DATABASE_URL);
 
   try {

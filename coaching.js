@@ -4570,6 +4570,23 @@ async function settMfaDisableConfirm() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Discord OAuth callback : token ou erreur passés en query param
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _discordToken = _urlParams.get('discord_token');
+  const _discordError = _urlParams.get('discord_error');
+  if (_discordToken) {
+    coachingToken = _discordToken;
+    localStorage.setItem('ch_token', _discordToken);
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (_discordError) {
+    window.history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => {
+      const errEl = document.getElementById('auth-login-error');
+      if (errEl) { errEl.textContent = decodeURIComponent(_discordError); errEl.style.display = 'block'; }
+    }, 50);
+  }
+
   initGlobalAuth();
   initCoaching();
   meInit();
