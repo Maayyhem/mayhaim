@@ -355,7 +355,9 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp, region } });
       } catch(err) {
         console.error('link-riot error:', err);
-        const msg = err.name === 'AbortError' ? 'Timeout — Henrik API trop lente, réessaie' : 'API Riot indisponible, réessaie plus tard';
+        const msg = err.name === 'AbortError'
+          ? 'Timeout — Henrik API trop lente, réessaie'
+          : `Erreur réseau: ${err.message || err}`;
         return res.status(502).json({ error: msg });
       }
     }
