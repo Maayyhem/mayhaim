@@ -415,6 +415,7 @@ function applyRoomTheme() {
 
 // ---- STATE ----
 const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false, recoilY:0, autoFireTimer:null, swayPhase:0 };
+window._G = G; // expose for coaching.js hooks (const is not on window)
 
 // ---- THREE.JS ----
 let scene, camera, renderer, clock, roomGroup, targetsGroup;
@@ -1403,7 +1404,7 @@ function gameLoop() {
 
 function updateHUD() { const t=G.hits+G.misses,a=t>0?Math.round(G.hits/t*100):100; $('#hud-score').textContent=G.score.toLocaleString(); $('#hud-combo').textContent='x'+G.combo; $('#hud-acc').textContent=a+'%'; }
 
-function startTimer() { G.timeLeft=G.duration;$('#hud-timer').textContent=G.timeLeft;$('#hud-timer').classList.remove('urgent');G.timerInterval=setInterval(()=>{G.timeLeft--;$('#hud-timer').textContent=G.timeLeft;if(G.timeLeft<=10)$('#hud-timer').classList.add('urgent');if(G.timeLeft<=0)endGame();},1000); }
+function startTimer() { clearInterval(G.timerInterval); G.timeLeft=G.duration;$('#hud-timer').textContent=G.timeLeft;$('#hud-timer').classList.remove('urgent');G.timerInterval=setInterval(()=>{G.timeLeft--;$('#hud-timer').textContent=G.timeLeft;if(G.timeLeft<=10)$('#hud-timer').classList.add('urgent');if(G.timeLeft<=0)endGame();},1000); }
 
 // ---- SPAWN MAP ----
 const SPAWN_MAP = {
@@ -1489,6 +1490,7 @@ function doSpawn() {
 }
 
 function endGame() {
+  if (!G.running) return; // guard against double-calls (stale interval, resume race)
   G.running=false; clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer=null;
   if(G.autoFireTimer){ clearInterval(G.autoFireTimer); G.autoFireTimer=null; }
   if(document.exitPointerLock) document.exitPointerLock();
@@ -2015,6 +2017,7 @@ function resumeGame() {
     G.running = true;
 
     // Restart timer
+    clearInterval(G.timerInterval);
     G.timerInterval = setInterval(() => {
       G.timeLeft--;
       $('#hud-timer').textContent = G.timeLeft;

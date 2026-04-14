@@ -1318,7 +1318,7 @@ function _bmLaunchScenario(idx) {
 function _bmHandleGameEnd() {
   if (!_bmActive) return;
   const sc = BENCHMARK_SCENARIOS[_bmIdx];
-  const score = window.G?.score || 0;
+  const score = window._G?.score || 0;
   const tier = _getScoreTier(score, sc.thresholds);
   _bmResults.push({ mode: sc.mode, label: sc.label, type: sc.type, score, tier, tierName: BENCHMARK_RANKS[tier].name });
 
