@@ -867,6 +867,7 @@ function coachingSwitchTab(tabId) {
   }
   if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
+  if (tabId === 'hub-settings') settMfaRefresh();
   if (tabId === 'ch-admin') adminLoad();
   if (tabId === 'ch-daily') loadDailyChallenge();
   if (tabId === 'ch-messages') initMessagesTab();
@@ -4456,6 +4457,118 @@ function cpGenerateWarmup() {
 }
 
 // ============ BOOT ============
+// ============ SETTINGS — MFA ============
+
+function settMfaRefresh() {
+  const enabled = coachingUser?.mfa_enabled;
+  const status  = document.getElementById('sett-mfa-status');
+  const btn     = document.getElementById('sett-mfa-toggle-btn');
+  if (status) {
+    status.textContent   = enabled ? 'Activé' : 'Désactivé';
+    status.style.background = enabled ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)';
+    status.style.color      = enabled ? '#4ade80' : 'var(--dim)';
+    status.style.border     = enabled ? '1px solid rgba(74,222,128,0.3)' : '1px solid var(--border)';
+  }
+  if (btn) btn.textContent = enabled ? '🔓 Désactiver le MFA' : '🔐 Activer le MFA';
+  // Masquer les deux sous-formulaires
+  const ew = document.getElementById('sett-mfa-enable-wrap');
+  const dw = document.getElementById('sett-mfa-disable-wrap');
+  if (ew) ew.style.display = 'none';
+  if (dw) dw.style.display = 'none';
+}
+
+async function settMfaToggle() {
+  const enabled = coachingUser?.mfa_enabled;
+  const ew = document.getElementById('sett-mfa-enable-wrap');
+  const dw = document.getElementById('sett-mfa-disable-wrap');
+
+  if (enabled) {
+    // Afficher le formulaire de désactivation
+    if (ew) ew.style.display = 'none';
+    if (dw) dw.style.display = dw.style.display === 'none' ? '' : 'none';
+    return;
+  }
+
+  // Activation — charger le QR code
+  if (ew) {
+    if (ew.style.display !== 'none') { ew.style.display = 'none'; return; }
+    const msg = document.getElementById('sett-mfa-msg');
+    if (msg) { msg.textContent = 'Chargement...'; msg.style.display = 'block'; msg.style.color = 'var(--dim)'; }
+    try {
+      const res  = await fetch(`${API_BASE}/profile?action=mfa-setup`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+      const data = await res.json();
+      if (data.error) { if (msg) { msg.textContent = data.error; msg.style.color = '#ff4655'; } return; }
+      const qr  = document.getElementById('sett-mfa-qr');
+      const sec = document.getElementById('sett-mfa-secret');
+      if (qr)  qr.src = data.qr_url;
+      if (sec) sec.textContent = data.secret;
+      if (msg) msg.style.display = 'none';
+      ew.style.display = '';
+      document.getElementById('sett-mfa-code')?.focus();
+    } catch(e) {
+      if (msg) { msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655'; msg.style.display = 'block'; }
+    }
+  }
+}
+
+async function settMfaConfirm() {
+  const code = document.getElementById('sett-mfa-code')?.value?.replace(/\s/g, '');
+  const msg  = document.getElementById('sett-mfa-msg');
+  if (!code || code.length < 6) {
+    if (msg) { msg.textContent = 'Code requis (6 chiffres)'; msg.style.color = '#ff4655'; msg.style.display = 'block'; }
+    return;
+  }
+  if (msg) { msg.textContent = 'Vérification...'; msg.style.color = 'var(--dim)'; msg.style.display = 'block'; }
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'mfa-enable', code })
+    });
+    const data = await res.json();
+    if (data.error) {
+      if (msg) { msg.textContent = data.error; msg.style.color = '#ff4655'; }
+      return;
+    }
+    // Mise à jour token + user
+    if (data.token) { coachingToken = data.token; localStorage.setItem('ch_token', data.token); }
+    coachingUser = { ...coachingUser, mfa_enabled: true };
+    if (msg) { msg.textContent = '✓ MFA activé avec succès !'; msg.style.color = '#4ade80'; }
+    setTimeout(settMfaRefresh, 1200);
+  } catch(e) {
+    if (msg) { msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655'; }
+  }
+}
+
+async function settMfaDisableConfirm() {
+  const code = document.getElementById('sett-mfa-disable-code')?.value?.replace(/\s/g, '');
+  const msg  = document.getElementById('sett-mfa-disable-msg');
+  if (!code || code.length < 6) {
+    if (msg) { msg.textContent = 'Code requis (6 chiffres)'; msg.style.color = '#ff4655'; msg.style.display = 'block'; }
+    return;
+  }
+  if (msg) { msg.textContent = 'Vérification...'; msg.style.color = 'var(--dim)'; msg.style.display = 'block'; }
+  try {
+    const res  = await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'mfa-disable', code })
+    });
+    const data = await res.json();
+    if (data.error) {
+      if (msg) { msg.textContent = data.error; msg.style.color = '#ff4655'; }
+      return;
+    }
+    coachingUser = { ...coachingUser, mfa_enabled: false };
+    if (msg) { msg.textContent = '✓ MFA désactivé.'; msg.style.color = '#4ade80'; }
+    const inp = document.getElementById('sett-mfa-disable-code');
+    if (inp) inp.value = '';
+    setTimeout(settMfaRefresh, 1200);
+  } catch(e) {
+    if (msg) { msg.textContent = 'Erreur réseau'; msg.style.color = '#ff4655'; }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initGlobalAuth();
   initCoaching();

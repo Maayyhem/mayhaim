@@ -543,6 +543,37 @@
         </div>
       </div>
 
+      <!-- Sécurité -->
+      <div class="sett-card">
+        <div class="sett-card-title">🔐 Sécurité</div>
+        <div class="sett-row">
+          <div>
+            <span class="sett-row-label">Double authentification (MFA)</span>
+            <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Application comme Google Authenticator ou Authy</div>
+          </div>
+          <span id="sett-mfa-status" style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:12px"></span>
+        </div>
+        <div id="sett-mfa-enable-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <p style="font-size:0.8rem;color:var(--dim);margin-bottom:10px">Scanne ce QR code avec ton application d'authentification, puis entre le code à 6 chiffres.</p>
+          <div style="text-align:center;margin-bottom:12px">
+            <img id="sett-mfa-qr" src="" alt="QR" style="width:160px;height:160px;border-radius:8px;background:#fff;padding:6px">
+          </div>
+          <code id="sett-mfa-secret" style="display:block;text-align:center;font-size:0.72rem;background:var(--bg);border:1px solid var(--border);padding:5px 10px;border-radius:6px;color:var(--accent);letter-spacing:0.1em;word-break:break-all;margin-bottom:10px"></code>
+          <input id="sett-mfa-code" type="text" class="cp-input" placeholder="Code à 6 chiffres" maxlength="7" inputmode="numeric" style="text-align:center;letter-spacing:0.2em;font-size:1.1rem;width:100%;margin-bottom:8px">
+          <button class="btn-primary" style="width:100%" onclick="settMfaConfirm()">✓ Activer le MFA</button>
+          <div id="sett-mfa-msg" class="cp-msg" style="margin-top:6px"></div>
+        </div>
+        <div id="sett-mfa-disable-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <p style="font-size:0.8rem;color:var(--dim);margin-bottom:10px">Entre ton code TOTP actuel pour désactiver le MFA.</p>
+          <input id="sett-mfa-disable-code" type="text" class="cp-input" placeholder="Code à 6 chiffres" maxlength="7" inputmode="numeric" style="text-align:center;letter-spacing:0.2em;font-size:1.1rem;width:100%;margin-bottom:8px">
+          <button class="btn-secondary" style="width:100%" onclick="settMfaDisableConfirm()">Désactiver le MFA</button>
+          <div id="sett-mfa-disable-msg" class="cp-msg" style="margin-top:6px"></div>
+        </div>
+        <div style="margin-top:12px">
+          <button id="sett-mfa-toggle-btn" class="btn-secondary" style="font-size:0.82rem;width:100%" onclick="settMfaToggle()">Chargement...</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- ─── COLONNE DROITE : Crosshair ────────────────── -->
