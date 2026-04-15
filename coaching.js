@@ -1319,13 +1319,10 @@ function dtLaunch(key, tier) {
   const vd = window._viscData;
   if (vd) vd.setTier(tier);
   window._coachLaunchSource = { tab: 'ch-daily-training' };
-  coachingSwitchTab('hub-home');
-  setTimeout(() => {
-    if (window._G) window._G.benchmarkMode = true;
-    const btn = document.querySelector(`.mode-card[data-mode="${key}"]`);
-    if (btn) btn.click();
-    else if (typeof startGame === 'function') startGame(key);
-  }, 120);
+  // NE PAS passer par .mode-card.click() — ce listener force G.benchmarkMode=false
+  // On appelle startGame directement avec benchmarkMode=true déjà positionné
+  if (window._G) window._G.benchmarkMode = true;
+  if (typeof startGame === 'function') startGame(key);
 }
 
 const WARMUP_ROUTINES = [
