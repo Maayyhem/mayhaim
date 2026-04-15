@@ -2002,15 +2002,16 @@ function resumeGame() {
   paused = false;
   $('#pause-menu').classList.add('hidden');
   G.timeLeft = pauseTimeLeft;
+  G.running = false;
 
-  // Re-lock pointer with a small delay, then restart timers
-  const c = $('#game-canvas');
-  c.addEventListener('click', function resumeLock() {
-    c.removeEventListener('click', resumeLock);
+  const btn = $('#click-to-start');
+  btn.classList.remove('hidden');
+
+  function doResume() {
+    btn.removeEventListener('click', doResume);
+    btn.classList.add('hidden');
     lockPointer();
     G.running = true;
-
-    // Restart timer
     clearInterval(G.timerInterval);
     G.timerInterval = setInterval(() => {
       G.timeLeft--;
@@ -2018,15 +2019,10 @@ function resumeGame() {
       if (G.timeLeft <= 5) $('#hud-timer').classList.add('urgent');
       if (G.timeLeft <= 0) endGame();
     }, 1000);
-
-    // Restart spawn timer
     const iv = INTERVAL_MODES[G.mode];
     if (iv) G.spawnTimer = setInterval(() => { const f = SPAWN_MAP[G.mode]; if(f) f(); }, iv);
-  });
-
-  // Show click-to-start prompt
-  $('#click-to-start').classList.remove('hidden');
-  G.running = false; // pause until click
+  }
+  btn.addEventListener('click', doResume);
 }
 
 function quitToMenu() {
