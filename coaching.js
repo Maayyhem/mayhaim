@@ -1521,47 +1521,207 @@ function initWarmupPanel() {
     startBtn.addEventListener('click', () => running ? stopEye() : startEye());
   }
 
-  // ── Box Breathing ─────────────────────────────────────────────────────
+  // ── Timer buttons (20-20-20 / palming) ─────────────────────────────────
+  ['wu-far-btn', 'wu-palm-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      const dur = parseInt(btn.dataset.dur);
+      let t = dur;
+      btn.disabled = true;
+      btn.textContent = t + ' s…';
+      const iv = setInterval(() => {
+        t--;
+        btn.textContent = t > 0 ? t + ' s…' : '✓ Fait';
+        if (t <= 0) {
+          clearInterval(iv);
+          btn.disabled = false;
+          btn.classList.add('wu-done');
+        }
+      }, 1000);
+    });
+  });
+
+  // ── Saccades ────────────────────────────────────────────────────────────
+  const saccBtn = document.getElementById('wu-sacc-btn');
+  const saccBox = document.getElementById('wu-saccade-box');
+  const saccStatus = document.getElementById('wu-sacc-status');
+  if (saccBtn && saccBox && !saccBtn.dataset.bound) {
+    saccBtn.dataset.bound = '1';
+    // Corner positions [top%, left%] for the 4 dots
+    const CORNERS = [
+      { top: '15%', left: '10%' }, { top: '15%', right: '10%' },
+      { bottom: '15%', right: '10%' }, { bottom: '15%', left: '10%' }
+    ];
+    const dots = [0,1,2,3].map(i => {
+      const el = document.getElementById('wu-sacc-' + i);
+      if (el) { Object.assign(el.style, CORNERS[i]); }
+      return el;
+    });
+    const SEQUENCES = [[0,2,1,3],[3,1,2,0],[0,3,1,2]]; // 3 series
+    saccBtn.addEventListener('click', () => {
+      if (saccBtn.disabled) return;
+      saccBtn.disabled = true;
+      saccBtn.textContent = '…';
+      dots.forEach(d => d && d.classList.remove('active'));
+      let s = 0, step = 0;
+      function next() {
+        if (s >= SEQUENCES.length) {
+          dots.forEach(d => d && d.classList.remove('active'));
+          saccStatus.textContent = '✓ Terminé !';
+          saccBtn.textContent = '✓ Fait';
+          saccBtn.classList.add('wu-done');
+          saccBtn.disabled = false;
+          return;
+        }
+        const seq = SEQUENCES[s];
+        const idx = seq[step];
+        dots.forEach(d => d && d.classList.remove('active'));
+        dots[idx] && dots[idx].classList.add('active');
+        saccStatus.textContent = `Série ${s+1}/3 — point ${step+1}/4`;
+        step++;
+        if (step >= seq.length) { s++; step = 0; }
+        setTimeout(next, 750);
+      }
+      next();
+    });
+  }
+
+  // ── Box Breathing (avec comptage de cycles) ──────────────────────────────
   const breathBtn    = document.getElementById('wu-breath-start');
   const breathCircle = document.getElementById('wu-breath-circle');
   const breathText   = document.getElementById('wu-breath-text');
+  const breathCycles = document.getElementById('wu-breath-cycles');
 
   if (breathBtn && !breathBtn.dataset.bound) {
     breathBtn.dataset.bound = '1';
-    let timer = null, breathRunning = false, phaseIdx = 0;
+    let timer = null, breathRunning = false, phaseIdx = 0, cycleCount = 0;
+    const TOTAL_CYCLES = 4;
 
     const PHASES = [
-      { text: 'Inspire',  scale: 1.5, color: '#4ade80', dur: 4000 },
-      { text: 'Retiens',  scale: 1.5, color: '#60a5fa', dur: 4000 },
-      { text: 'Expire',   scale: 1.0, color: '#f87171', dur: 4000 },
-      { text: 'Retiens',  scale: 1.0, color: '#a78bfa', dur: 4000 },
+      { text: 'Inspire',  scale: 1.45, color: '#60a5fa', dur: 4000 },
+      { text: 'Retiens',  scale: 1.45, color: '#e8c56d', dur: 4000 },
+      { text: 'Expire',   scale: 1.0,  color: '#4ade80', dur: 4000 },
+      { text: 'Retiens',  scale: 1.0,  color: '#a78bfa', dur: 4000 },
     ];
 
     function runPhase(idx) {
       if (!breathRunning) return;
+      if (idx === 0 && cycleCount > 0 && breathCycles)
+        breathCycles.textContent = cycleCount + ' / ' + TOTAL_CYCLES + ' cycles';
+      if (cycleCount >= TOTAL_CYCLES) { stopBreath(true); return; }
       const p = PHASES[idx];
-      breathText.textContent             = p.text;
-      breathCircle.style.transform       = `scale(${p.scale})`;
-      breathCircle.style.borderColor     = p.color;
-      breathText.style.color             = p.color;
-      timer = setTimeout(() => runPhase((idx + 1) % PHASES.length), p.dur);
+      breathText.textContent         = p.text;
+      breathCircle.style.transform   = `scale(${p.scale})`;
+      breathCircle.style.borderColor = p.color;
+      breathText.style.color         = p.color;
+      timer = setTimeout(() => {
+        const next = (idx + 1) % PHASES.length;
+        if (next === 0) cycleCount++;
+        runPhase(next);
+      }, p.dur);
     }
     function startBreath() {
-      breathRunning = true;
+      breathRunning = true; cycleCount = 0; phaseIdx = 0;
+      if (breathCycles) breathCycles.textContent = '0 / ' + TOTAL_CYCLES + ' cycles';
       breathBtn.textContent = '⏹ Stop';
       runPhase(0);
     }
-    function stopBreath() {
+    function stopBreath(done) {
       breathRunning = false;
       clearTimeout(timer);
-      breathBtn.textContent          = '▶ Box Breathing';
-      breathCircle.style.transform   = 'scale(1)';
-      breathCircle.style.borderColor = 'var(--accent)';
-      breathText.textContent         = 'Inspire';
-      breathText.style.color         = 'var(--txt)';
+      if (done) {
+        breathBtn.textContent = '✓ Fait';
+        breathBtn.classList.add('wu-done');
+        if (breathCycles) breathCycles.textContent = TOTAL_CYCLES + ' / ' + TOTAL_CYCLES + ' cycles ✓';
+        breathCircle.style.borderColor = '#4ade80';
+        breathText.textContent = '✓';
+        breathText.style.color = '#4ade80';
+      } else {
+        breathBtn.textContent          = '▶ Box Breathing';
+        breathCircle.style.transform   = 'scale(1)';
+        breathCircle.style.borderColor = 'var(--accent)';
+        breathText.textContent         = 'Inspire';
+        breathText.style.color         = 'var(--txt)';
+        if (breathCycles) breathCycles.textContent = '0 / ' + TOTAL_CYCLES + ' cycles';
+      }
     }
-    breathBtn.addEventListener('click', () => breathRunning ? stopBreath() : startBreath());
+    breathBtn.addEventListener('click', () => breathRunning ? stopBreath(false) : startBreath());
   }
+
+  // ── Intention du jour ────────────────────────────────────────────────────
+  (function() {
+    const ta = document.getElementById('wu-intention');
+    const prev = document.getElementById('wu-prev-intention');
+    if (!ta) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem('wu_intention'));
+      if (!saved) return;
+      const today = new Date().toLocaleDateString('fr-FR');
+      if (saved.date === today) {
+        ta.value = saved.text;
+      } else if (saved.text && prev) {
+        prev.textContent = `Hier : « ${saved.text.slice(0,60)}${saved.text.length>60?'…':''} »`;
+      }
+    } catch {}
+  })();
+
+  // ── Anti-tilt reminders ──────────────────────────────────────────────────
+  wuRenderTiltList();
+  const tiltInput = document.getElementById('wu-tilt-input');
+  if (tiltInput && !tiltInput.dataset.bound) {
+    tiltInput.dataset.bound = '1';
+    tiltInput.addEventListener('keydown', e => { if (e.key === 'Enter') wuAddTiltReminder(); });
+  }
+}
+
+function wuSaveIntention() {
+  const ta = document.getElementById('wu-intention');
+  const ok = document.getElementById('wu-intention-ok');
+  if (!ta || !ta.value.trim()) return;
+  localStorage.setItem('wu_intention', JSON.stringify({
+    date: new Date().toLocaleDateString('fr-FR'), text: ta.value.trim()
+  }));
+  if (ok) { ok.style.display = ''; setTimeout(() => ok.style.display = 'none', 2000); }
+}
+
+function wuGetTiltReminders() {
+  try { return JSON.parse(localStorage.getItem('wu_tilt_reminders')) || []; } catch { return []; }
+}
+function wuSaveTiltReminders(list) {
+  localStorage.setItem('wu_tilt_reminders', JSON.stringify(list));
+}
+function wuRenderTiltList() {
+  const el = document.getElementById('wu-tilt-list');
+  if (!el) return;
+  const list = wuGetTiltReminders();
+  if (!list.length) {
+    el.innerHTML = '<div class="wu-tilt-empty">Aucun rappel — ajoute ce que tu veux te dire quand tu tilt.</div>';
+    return;
+  }
+  el.innerHTML = list.map((r, i) => `
+    <div class="wu-tilt-item">
+      <span class="wu-tilt-bullet">→</span>
+      <span class="wu-tilt-text">${san(r)}</span>
+      <button class="wu-tilt-del" onclick="wuDeleteTiltReminder(${i})" title="Supprimer">×</button>
+    </div>`).join('');
+}
+function wuAddTiltReminder() {
+  const inp = document.getElementById('wu-tilt-input');
+  if (!inp || !inp.value.trim()) return;
+  const list = wuGetTiltReminders();
+  list.push(inp.value.trim());
+  wuSaveTiltReminders(list);
+  inp.value = '';
+  wuRenderTiltList();
+}
+function wuDeleteTiltReminder(idx) {
+  const list = wuGetTiltReminders();
+  list.splice(idx, 1);
+  wuSaveTiltReminders(list);
+  wuRenderTiltList();
 }
 
 // ============ ADMIN: STUDENTS ============

@@ -933,37 +933,105 @@
               </div>
             </div>
 
+            <!-- ══ 02 VISUEL ══ -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">02</span>
                 <div>
                   <div class="warmup-phase-title">👁️ Visuel — 5 min</div>
-                  <div class="warmup-phase-sub">Réveiller les yeux et la coordination oeil-main</div>
+                  <div class="warmup-phase-sub">Réveiller les yeux et la coordination œil-main</div>
                 </div>
               </div>
               <div class="warmup-steps">
-                <div class="warmup-step"><strong>Focus switch :</strong> Alterne le regard entre un objet proche (doigts) et lointain (mur) x15. Active la mise au point rapide.</div>
-                <div class="warmup-step"><strong>Tracking visuel :</strong> Suis lentement les bords de ton écran avec les yeux dans les 4 coins. Pas de mouvement de tête.</div>
-                <div class="warmup-step"><strong>Saccades :</strong> Regarde rapidement 4 points fixes sur l'écran (coins) en ordre aléatoire x20. Améliore la réactivité visuelle.</div>
-                <div class="warmup-step"><strong>Repos :</strong> Ferme les yeux 30s. Respire profondément. L'écran est lumineux — tes yeux ont besoin de cette pause.</div>
-                <div class="warmup-tip">💡 La fatigue visuelle est la cause #1 de baisse de performance invisible. Tes yeux travaillent autant que ta main.</div>
+
+                <!-- 20-20-20 -->
+                <div class="warmup-step wu-row">
+                  <div><strong>Règle 20-20-20</strong> — Fixe un point à +5 m (fenêtre, mur lointain) pendant 20 secondes sans cligner. Relâche la tension d'accommodation accumulée sur l'écran.</div>
+                  <button class="wu-action-btn" id="wu-far-btn" data-dur="20">▶ 20 s</button>
+                </div>
+
+                <!-- Smooth pursuit -->
+                <div class="warmup-step">
+                  <strong>Smooth pursuit</strong> — Suis le point avec les yeux uniquement, tête immobile. Vitesse :
+                  <select id="wu-eye-speed" class="wu-select" style="margin-left:6px">
+                    <option value="slow">Lent</option>
+                    <option value="medium" selected>Moyen</option>
+                    <option value="fast">Rapide</option>
+                  </select>
+                </div>
+                <canvas id="wu-eye-canvas" class="wu-canvas"></canvas>
+                <div class="wu-row" style="margin-top:6px">
+                  <button id="wu-eye-start" class="wu-action-btn">▶ Démarrer</button>
+                  <span id="wu-eye-timer" class="wu-timer">0:30</span>
+                </div>
+
+                <!-- Saccades -->
+                <div class="warmup-step" style="margin-top:10px">
+                  <strong>Saccades</strong> — Fixe chaque point dans l'ordre affiché. Mouvement d'yeux rapide et sec, tête parfaitement fixe. 3 séries automatiques.
+                </div>
+                <div id="wu-saccade-box" class="wu-saccade-box">
+                  <div class="wu-sacc-dot" id="wu-sacc-0"></div>
+                  <div class="wu-sacc-dot" id="wu-sacc-1"></div>
+                  <div class="wu-sacc-dot" id="wu-sacc-2"></div>
+                  <div class="wu-sacc-dot" id="wu-sacc-3"></div>
+                  <div id="wu-sacc-status" class="wu-sacc-status">Prêt</div>
+                  <button id="wu-sacc-btn" class="wu-action-btn wu-sacc-launch">▶ Lancer</button>
+                </div>
+
+                <!-- Palming -->
+                <div class="warmup-step wu-row" style="margin-top:4px">
+                  <div><strong>Palming</strong> — Ferme les yeux, pose les paumes chaudes dessus. 30 s de noir total. Décompresse les muscles oculaires.</div>
+                  <button class="wu-action-btn" id="wu-palm-btn" data-dur="30">▶ 30 s</button>
+                </div>
+
               </div>
+              <div class="warmup-tip">💡 La fatigue oculaire est la cause #1 de baisse de performance invisible. Tes yeux travaillent autant que ta main.</div>
             </div>
 
+            <!-- ══ 03 MENTAL ══ -->
             <div class="warmup-phase">
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">03</span>
                 <div>
                   <div class="warmup-phase-title">🧠 Mental — 3 min</div>
-                  <div class="warmup-phase-sub">Mettre le cerveau en mode performance</div>
+                  <div class="warmup-phase-sub">Réinitialiser le système nerveux, ancrer l'intention</div>
                 </div>
               </div>
               <div class="warmup-steps">
-                <div class="warmup-step"><strong>Respiration box :</strong> Inspire 4s → retiens 4s → expire 4s → retiens 4s. Répète 4 fois. Réduit le cortisol et stabilise le rythme cardiaque.</div>
-                <div class="warmup-step"><strong>Intention :</strong> Définis 1 objectif concret pour la session (ex : "améliorer mon tracking sur Whisphere" ou "ne pas tilt si je meurs vite").</div>
-                <div class="warmup-step"><strong>Déconnexion :</strong> Ferme tes autres onglets, coupe les notifications. La concentration se construit avant le premier clic.</div>
-                <div class="warmup-tip">💡 Les pros ne jouent jamais "juste pour voir". Chaque session a un but. Le mental, c'est 40% de la performance.</div>
+
+                <!-- Box breathing -->
+                <div class="warmup-step"><strong>Box breathing</strong> — 4 cycles de 4 s. Réduit le cortisol et stabilise le rythme cardiaque en moins de 2 minutes. Ne pas skipper.</div>
+                <div class="wu-breathing-wrap">
+                  <div id="wu-breath-circle" class="wu-breath-circle">
+                    <span id="wu-breath-text">Inspire</span>
+                  </div>
+                  <div id="wu-breath-cycles" class="wu-breath-cycle-count">0 / 4 cycles</div>
+                  <button id="wu-breath-start" class="wu-action-btn" style="margin-top:8px">▶ Box Breathing</button>
+                </div>
+
+                <!-- Intention -->
+                <div class="warmup-step" style="margin-top:16px">
+                  <strong>Intention du jour</strong> — Une phrase précise et actionnable. Pas "bien jouer" — "garder mon crosshair au niveau de la tête sur chaque angle" ou "ne pas forcer les duels en pistol".
+                </div>
+                <textarea id="wu-intention" class="wu-intention-input" placeholder="Aujourd'hui je travaille sur : ..."></textarea>
+                <div class="wu-row" style="margin-top:6px;gap:10px">
+                  <button onclick="wuSaveIntention()" class="wu-action-btn" style="padding:5px 14px;font-size:0.75rem">💾 Sauvegarder</button>
+                  <span id="wu-intention-ok" style="display:none;color:#4ade80;font-size:0.75rem;font-weight:600">✓ Sauvegardé</span>
+                  <span id="wu-prev-intention" class="wu-prev-intention"></span>
+                </div>
+
+                <!-- Anti-tilt reminders -->
+                <div class="warmup-step" style="margin-top:16px">
+                  <strong>Rappels anti-tilt</strong> — Ce que tu t'es promis de te dire quand ça se passe mal. Relis-les maintenant.
+                </div>
+                <div id="wu-tilt-list" class="wu-tilt-list"></div>
+                <div class="wu-row" style="gap:6px;margin-top:6px">
+                  <input id="wu-tilt-input" class="wu-tilt-input" placeholder="Ex : si je meurs vite c'est de l'info, pas un signe de noob…">
+                  <button onclick="wuAddTiltReminder()" class="wu-action-btn" style="padding:5px 12px;font-size:0.75rem;flex-shrink:0">+ Ajouter</button>
+                </div>
+
               </div>
+              <div class="warmup-tip">💡 Les joueurs qui écrivent leur intention avant de jouer progressent 2× plus vite. Le cerveau prend l'écrit au sérieux.</div>
             </div>
 
             <div class="warmup-phase">
