@@ -457,7 +457,7 @@ const M = {
   tDim: new THREE.MeshStandardMaterial({color:0x333333,emissive:0x222222,emissiveIntensity:0.08}),
 };
 
-function clearScene() { while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); while(targetsGroup.children.length) targetsGroup.remove(targetsGroup.children[0]); scene.fog=null; applyRoomTheme(); setupRoomLights(); }
+function clearScene() { while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); while(targetsGroup.children.length) targetsGroup.remove(targetsGroup.children[0]); if(G._gridDots){G._gridDots.forEach(m=>roomGroup.remove(m));G._gridDots=[];} scene.fog=null; applyRoomTheme(); setupRoomLights(); }
 
 function setupRoomLights() {
   scene.children.filter(c=>c.isLight).forEach(l=>scene.remove(l));
@@ -794,34 +794,58 @@ function spawn_micro_drill() {
   G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
 }
 
-// Free play only — grille 3×3 fixe, toutes les 9 boules toujours présentes
-const GRIDSHOT_COLS=3, GRIDSHOT_ROWS=3;
+// Free play only — grille 3×3 fixe, 3 boules actives sur 9 cases
+const GRIDSHOT_COLS=3, GRIDSHOT_ROWS=3, GRIDSHOT_ACTIVE=3;
+
+// Positions exactes des 9 cases (fixes, pas d'offset)
+function _gridPos(col, row) {
+  return { x:(col-1)*3.2, y:0.9+row*1.55 };  // -3.2/0/3.2 × 0.9/2.45/4.0
+}
 
 function _mkGridTarget(col, row, r) {
-  const bx = (col - 1) * 3.2;   // -3.2 / 0 / 3.2
-  const by = 0.9 + row * 1.55;  //  0.9 / 2.45 / 4.0
-  const mesh = mkSphere(bx, by, -11.5, r, M.t2);
+  const {x,y} = _gridPos(col, row);
+  const mesh = mkSphere(x, y, -11.5, r, M.t2);
   mesh.scale.setScalar(0.01);
   return { mesh, alive:true, radius:r, spawnTime:Date.now(),
-    _cell:`${col},${row}`, baseX:bx, baseY:by,
+    _cell:`${col},${row}`, baseX:x, baseY:y,
     scaleIn:true, scaleProgress:0 };
 }
 
 function spawn_gridshot() {
   if(!G.running) return;
+  // Nettoyer
   G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
   G.targets=[];
-  const r = DIFF[G.diff].gR;
-  for(let ro=0;ro<GRIDSHOT_ROWS;ro++)
-    for(let co=0;co<GRIDSHOT_COLS;co++)
-      G.targets.push(_mkGridTarget(co, ro, r));
+  // Indicateurs de grille (très discrets) pour visualiser les 9 cases
+  if(!G._gridDots) G._gridDots=[];
+  G._gridDots.forEach(m=>roomGroup.remove(m)); G._gridDots=[];
+  const rDot = DIFF[G.diff].gR * 0.22;
+  for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) {
+    const {x,y}=_gridPos(co,ro);
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(rDot,8,6),
+      new THREE.MeshBasicMaterial({color:0x444444,transparent:true,opacity:0.35}));
+    dot.position.set(x,y,-11.5); roomGroup.add(dot); G._gridDots.push(dot);
+  }
+  // 3 boules actives aléatoires
+  const r=DIFF[G.diff].gR;
+  const cells=[];
+  for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) cells.push([co,ro]);
+  for(let i=cells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]];}
+  cells.slice(0,GRIDSHOT_ACTIVE).forEach(([co,ro])=>G.targets.push(_mkGridTarget(co,ro,r)));
 }
 
-function _respawnGridshotCell(cell) {
-  // Réapparition à la même case après un hit
+function _respawnGridshotCell() {
+  // Réapparition dans une case libre aléatoire
   if(!G.running) return;
-  const [col,row] = cell.split(',').map(Number);
-  G.targets.push(_mkGridTarget(col, row, DIFF[G.diff].gR));
+  const r=DIFF[G.diff].gR;
+  const occupied=new Set(G.targets.filter(t=>t.alive).map(t=>t._cell));
+  const free=[];
+  for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) {
+    const k=`${co},${ro}`; if(!occupied.has(k)) free.push([co,ro]);
+  }
+  if(!free.length) return;
+  const [col,row]=free[Math.floor(Math.random()*free.length)];
+  G.targets.push(_mkGridTarget(col,row,r));
 }
 
 function updateGridshot(dt) {
@@ -1316,7 +1340,7 @@ function hitTarget(t) {
   anim(); updateHUD();
 
   // Respawn for specific modes
-  if(G.mode==='gridshot') { const cell=t._cell; setTimeout(()=>_respawnGridshotCell(cell),60); }
+  if(G.mode==='gridshot') setTimeout(()=>_respawnGridshotCell(),60);
   else if(G.mode==='speedflick') setTimeout(()=>spawn_speedflick(),80);
   else if(G.mode==='ctrlsphere_clk') setTimeout(()=>spawn_ctrlsphere_clk(),50);
   else if(G.mode==='pokeball_frenzy') setTimeout(()=>spawn_pokeball_frenzy(),60);
