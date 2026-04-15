@@ -233,6 +233,16 @@ function isScenarioUnlocked(key, tier) {
 }
 function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
 
+// Toast visuel pour feedback "scénario verrouillé"
+function _showLockToast(msg) {
+  const el = document.createElement('div');
+  el.textContent = '🔒 ' + msg;
+  el.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(255,70,85,0.95);color:#fff;padding:14px 24px;border-radius:10px;z-index:9999;font-size:0.92rem;font-weight:600;box-shadow:0 8px 30px rgba(255,70,85,0.4);max-width:90vw;text-align:center;animation:lockToastIn .25s ease-out';
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; }, 2400);
+  setTimeout(()=>el.remove(), 2800);
+}
+
 const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
   xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
   xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
@@ -1456,6 +1466,13 @@ const INTERVAL_MODES = {
 };
 
 function startGame(mode) {
+  // Safety: prevent launching a benchmark scenario that's locked at the current tier
+  if (G.benchmarkMode && SCENARIOS[mode]?.th && !isScenarioUnlocked(mode, currentTier)) {
+    const prevTier = currentTier === 'hard' ? 'Medium' : 'Easier';
+    const curLbl = currentTier === 'hard' ? 'Hard' : currentTier === 'medium' ? 'Medium' : 'Easier';
+    _showLockToast(`Scénario verrouillé en ${curLbl}. Complète au moins 1 thread en ${prevTier} d'abord.`);
+    return;
+  }
   G.mode=mode;
   if(G.benchmarkMode) { G.diff=currentTier==='easier'?'easy':currentTier==='hard'?'hard':'medium'; G.duration=60; }
   else { G.diff=$('#opt-diff').value; G.duration=parseInt($('#opt-duration').value); }
@@ -1911,9 +1928,10 @@ function renderBenchmark() {
           return `<span class="bsc-chip${active?' active':''} tier-${t}" data-key="${key}" data-tier="${t}" title="${t} · ${thT}/${mtT} threads">${lbl}<sub>${thT}</sub></span>`;
         }).join('');
 
-        const row=document.createElement('div'); row.className='bench-scenario';
+        const rowLocked = !isScenarioUnlocked(key, currentTier);
+        const row=document.createElement('div'); row.className='bench-scenario' + (rowLocked ? ' bench-scenario-locked' : '');
         row.innerHTML=`
-          <span class="bench-scenario-name">${getLabel(key)}</span>
+          <span class="bench-scenario-name">${rowLocked?'🔒 ':''}${getLabel(key)}</span>
           <span class="bsc-chips">${tierChipsHtml}</span>
           <span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span>
           <div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div>
