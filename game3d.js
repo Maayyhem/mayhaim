@@ -1476,7 +1476,9 @@ function startGame(mode) {
 
   const sc=SCENARIOS[mode];
   $('#hud-mode').textContent = sc ? sc.label : mode;
-  $('#hud-diff').textContent = G.benchmarkMode?'Benchmark':G.diff;
+  $('#hud-diff').textContent = G.benchmarkMode
+    ? (window._coachLaunchSource?.tab==='ch-daily-training' ? 'Daily' : 'Benchmark')
+    : G.diff;
   $('#hud-score').textContent='0'; $('#hud-combo').textContent='x0'; $('#hud-acc').textContent='100%';
   $('#kill-feed').innerHTML='';
 
@@ -1561,12 +1563,24 @@ function endGame() {
     const benchScore = getBenchmarkScore();
     saveBest(G.mode, benchScore);
     const threads = calcThreads(G.mode, benchScore);
-    rk.textContent = threads+'/8 Threads';
+    const mt = getMaxThreads();
+    rk.textContent = threads+'/'+mt+' Threads';
     rk.style.color = RANK_COLORS[Math.min(threads,7)]; rk.style.borderColor = RANK_COLORS[Math.min(threads,7)];
     tw.classList.remove('hidden');
-    $('#r-threads').textContent = threads+'/8';
-    $('#btn-menu').textContent='Benchmark';
-    $('#btn-menu').onclick=()=>{showScreen('benchmark-screen');renderBenchmark();};
+    $('#r-threads').textContent = threads+'/'+mt;
+    // Return destination depends on launch source
+    const _src = window._coachLaunchSource;
+    if (_src && _src.tab === 'ch-daily-training') {
+      $('#btn-menu').textContent = '🗓️ Daily Training';
+      $('#btn-menu').onclick = () => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('coaching-screen')?.classList.add('active');
+        if (typeof coachingSwitchTab === 'function') coachingSwitchTab('ch-daily-training');
+      };
+    } else {
+      $('#btn-menu').textContent = 'Benchmark';
+      $('#btn-menu').onclick = () => { showScreen('benchmark-screen'); renderBenchmark(); };
+    }
   } else {
     const r=calcRankFromThreads(Math.round(G.score/100));
     rk.textContent=r.label; rk.style.color=r.color; rk.style.borderColor=r.color;

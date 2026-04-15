@@ -1263,18 +1263,24 @@ function dailyTrainingLoad() {
   el.innerHTML = `
     <h2 class="ch-section-title">🗓️ Daily Training</h2>
     <div class="dt-date">${dateStr}</div>
-    <p class="dt-desc">5 exercices recommandés pour aujourd'hui — entraîne-toi à la difficulté suggérée pour progresser&nbsp;!</p>
+    <p class="dt-desc">5 exercices du jour — complète les threads du tier recommandé pour progresser&nbsp;!</p>
     <div class="dt-list">
       ${picks.map(key => {
         const sc = vd.SCENARIOS[key];
 
-        // Recommended tier: highest unlocked where not yet maxed
+        // Recommended tier: follow Viscose progression logic
+        // Move to next tier only when current tier is fully maxed (8/8 or 6/6)
+        const eT  = vd.calcThreadsFor(key, vd.getBestFor(key,'easier'), 'easier');
+        const eMt = vd.maxThreadsFor('easier'); // 8
+        const mT  = vd.calcThreadsFor(key, vd.getBestFor(key,'medium'), 'medium');
+        const mMt = vd.maxThreadsFor('medium'); // 8
         let recTier = 'easier';
-        const eT = vd.calcThreadsFor(key, vd.getBestFor(key,'easier'), 'easier');
-        const mT = vd.calcThreadsFor(key, vd.getBestFor(key,'medium'), 'medium');
-        const hT = vd.calcThreadsFor(key, vd.getBestFor(key,'hard'), 'hard');
-        if (eT >= 8 && vd.isScenarioUnlocked(key,'medium')) recTier = 'medium';
-        if (mT >= 8 && vd.isScenarioUnlocked(key,'hard'))   recTier = 'hard';
+        if (eT >= eMt) recTier = 'medium';
+        if (eT >= eMt && mT >= mMt) recTier = 'hard';
+
+        // If the recommended tier is locked (shouldn't normally happen given above logic,
+        // but guard against edge cases like missing thH/thE), fallback
+        if (!vd.isScenarioUnlocked(key, recTier)) recTier = 'easier';
 
         const best    = vd.getBestFor(key, recTier);
         const threads = vd.calcThreadsFor(key, best, recTier);
@@ -1286,7 +1292,14 @@ function dailyTrainingLoad() {
                       : recTier === 'hard'   ? (sc.labelH || sc.label) : sc.label;
         const cat = _DT_CAT_LABELS[sc.cat] || sc.cat;
 
-        return `<div class="dt-exercise">
+        // Lock check: Medium/Hard need at least 1 thread on prev tier
+        const locked = !vd.isScenarioUnlocked(key, recTier);
+        const prevTierLbl = recTier === 'hard' ? 'Medium' : 'Easier';
+        const launchBtn = locked
+          ? `<span class="dt-locked-badge" title="Faire au moins 1 session en ${prevTierLbl} pour débloquer">🔒 Verrouillé</span>`
+          : `<button class="dt-launch-btn" onclick="dtLaunch('${key}','${recTier}')">▶ Lancer</button>`;
+
+        return `<div class="dt-exercise${locked?' dt-exercise-locked':''}">
           <div class="dt-ex-header">
             <div class="dt-ex-name">${san(label)}</div>
             <span class="dt-ex-tier" style="color:${color};border-color:${color}40;background:${color}15">${tierLbl}</span>
@@ -1296,7 +1309,7 @@ function dailyTrainingLoad() {
             <div class="dt-ex-bar"><div class="dt-ex-fill" style="width:${pct}%;background:${color}"></div></div>
             <span class="dt-ex-threads">${threads}/${mt}</span>
           </div>
-          <button class="dt-launch-btn" onclick="dtLaunch('${key}','${recTier}')">▶ Lancer</button>
+          ${launchBtn}
         </div>`;
       }).join('')}
     </div>`;
@@ -3890,11 +3903,12 @@ async function sendMessage() {
 window._coachLaunchSource = null;
 
 const _COACH_LAUNCH_LABELS = {
-  'ch-warmup':   '🔥 Continuer le Warmup',
-  'ch-scenarios':'🎯 Retour aux Scénarios',
-  'ch-cours':    '📚 Retour au Cours',
-  'ch-daily':    '⚡ Retour au Daily',
-  'ch-dashboard':'🏠 Retour au Dashboard'
+  'ch-warmup':        '🔥 Continuer le Warmup',
+  'ch-scenarios':     '🎯 Retour aux Scénarios',
+  'ch-cours':         '📚 Retour au Cours',
+  'ch-daily':         '⚡ Retour au Daily',
+  'ch-daily-training':'🗓️ Retour au Daily Training',
+  'ch-dashboard':     '🏠 Retour au Dashboard'
 };
 
 function _setCoachLaunchSource(tab) {
