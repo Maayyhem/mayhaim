@@ -794,60 +794,51 @@ function spawn_micro_drill() {
   G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
 }
 
-// Free play only
-const GRIDSHOT_COLS=5, GRIDSHOT_ROWS=5;
+// Free play only — 3×3 grid, 3 boules actives à la fois
+const GRIDSHOT_COLS=3, GRIDSHOT_ROWS=3, GRIDSHOT_ACTIVE=3;
 
 function _gridspotXY(col, row) {
-  // Retourne la position de base d'une cellule de la grille
-  const bx = -(GRIDSHOT_COLS-1)*2.1/2 + col*2.1;
-  const by = 0.5 + row*1.3;
-  return { x: bx+rand(-0.35,0.35), y: by+rand(-0.25,0.25) };
+  const bx = (col - 1) * 3.2;          // cols: -3.2 / 0 / 3.2
+  const by = 0.9 + row * 1.55;         // rows: 0.9 / 2.45 / 4.0
+  return { x: bx+rand(-0.2,0.2), y: by+rand(-0.15,0.15) };
+}
+
+function _mkGridTarget(col, row, r) {
+  const {x,y} = _gridspotXY(col, row);
+  const mesh = mkSphere(x,y,-11.5,r,M.t2);
+  mesh.scale.setScalar(0.01);
+  return { mesh, alive:true, radius:r, spawnTime:Date.now(),
+    _cell:`${col},${row}`, baseX:x, baseY:y,
+    driftAmp:rand(0.12,0.25), driftFreq:rand(0.5,0.9), driftPhase:rand(0,Math.PI*2),
+    scaleIn:true, scaleProgress:0 };
 }
 
 function spawn_gridshot() {
-  // Initialisation — spawn les 25 cibles sur toute la grille
+  // Initialisation — 3 boules aléatoires parmi les 9 cases
   if(!G.running) return;
   G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
   G.targets=[];
-  const r=DIFF[G.diff].gR;
-  for(let row=0;row<GRIDSHOT_ROWS;row++) for(let col=0;col<GRIDSHOT_COLS;col++) {
-    const {x,y}=_gridspotXY(col,row);
-    const mesh=mkSphere(x,y,-11.5,r,M.t2);
-    mesh.scale.setScalar(0.01);
-    G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
-      _cell:`${col},${row}`,
-      baseX:x,baseY:y,
-      driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
-      scaleIn:true,scaleProgress:0
-    });
-  }
+  const r = DIFF[G.diff].gR;
+  // Toutes les cases
+  const allCells=[];
+  for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) allCells.push([co,ro]);
+  // Mélanger et prendre GRIDSHOT_ACTIVE cases
+  for(let i=allCells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[allCells[i],allCells[j]]=[allCells[j],allCells[i]];}
+  allCells.slice(0,GRIDSHOT_ACTIVE).forEach(([co,ro])=>{ G.targets.push(_mkGridTarget(co,ro,r)); });
 }
 
 function _respawnOneGridshot() {
-  // Fait réapparaître UNE cible dans une cellule libre de la grille (style Aimlabs)
+  // Fait réapparaître UNE boule dans une case libre (maintient toujours GRIDSHOT_ACTIVE boules)
   if(!G.running) return;
-  const r=DIFF[G.diff].gR;
-
-  // Construire la liste des cellules déjà occupées par les cibles vivantes
-  const occupied=new Set(G.targets.filter(t=>t.alive).map(t=>t._cell));
-
-  // Choisir une cellule libre parmi les 25 ; si toutes occupées (impossible en pratique) → bail
+  const r = DIFF[G.diff].gR;
+  const occupied = new Set(G.targets.filter(t=>t.alive).map(t=>t._cell));
   const allCells=[];
   for(let ro=0;ro<GRIDSHOT_ROWS;ro++) for(let co=0;co<GRIDSHOT_COLS;co++) allCells.push(`${co},${ro}`);
-  const free=allCells.filter(c=>!occupied.has(c));
+  const free = allCells.filter(c=>!occupied.has(c));
   if(!free.length) return;
-
-  const chosen=free[Math.floor(Math.random()*free.length)];
-  const [col,row]=chosen.split(',').map(Number);
-  const {x,y}=_gridspotXY(col,row);
-  const mesh=mkSphere(x,y,-11.5,r,M.t2);
-  mesh.scale.setScalar(0.01);
-  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),
-    _cell:chosen,
-    baseX:x,baseY:y,
-    driftAmp:rand(0.18,0.36),driftFreq:rand(0.6,1.1),driftPhase:rand(0,Math.PI*2),
-    scaleIn:true,scaleProgress:0
-  });
+  const chosen = free[Math.floor(Math.random()*free.length)];
+  const [col,row] = chosen.split(',').map(Number);
+  G.targets.push(_mkGridTarget(col,row,r));
 }
 
 function updateGridshot(dt) {
