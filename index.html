@@ -243,8 +243,8 @@
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-tracker">
             <span class="ch-nav-icon">🎮</span> Tracker Valorant
           </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-benchmark">
-            <span class="ch-nav-icon">⚡</span> Voltaic Benchmark
+          <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily-training">
+            <span class="ch-nav-icon">🗓️</span> Daily Training
           </button>
           <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
             <span class="ch-nav-icon">📈</span> Historique
@@ -401,7 +401,7 @@
           <div class="ch-section-title">Accès rapide</div>
           <div class="hub-quick-grid" style="margin-bottom:28px">
             <button class="hub-quick-card" onclick="coachingSwitchTab('hub-freeplay')"><span>⚡</span> Free Play</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-benchmark')"><span>🏅</span> Voltaic Benchmark</button>
+            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-daily-training')"><span>🗓️</span> Daily Training</button>
             <button class="hub-quick-card" onclick="coachingSwitchTab('hub-viscose')"><span>📊</span> Viscose Benchmark</button>
             <button class="hub-quick-card" onclick="coachingSwitchTab('ch-daily')"><span>📅</span> Daily Challenge</button>
             <button class="hub-quick-card" onclick="coachingSwitchTab('ch-warmup')"><span>🔥</span> Échauffement</button>
@@ -705,11 +705,11 @@
         <div id="hub-viscose" class="ch-panel">
           <div class="hub-viscose-header">
             <h2 class="ch-section-title" style="margin:0;flex:1">📊 Viscose Benchmark</h2>
-            <select id="opt-tier" class="hub-viscose-tier" onchange="renderBenchmark()">
-              <option value="easier">Easier</option>
-              <option value="medium" selected>Medium</option>
-              <option value="hard">Hard</option>
-            </select>
+            <div class="bench-global-tiers">
+              <span class="bench-gtier-chip" data-tier="easier" onclick="setCurrentTier('easier')">Easier</span>
+              <span class="bench-gtier-chip active" data-tier="medium" onclick="setCurrentTier('medium')">Medium</span>
+              <span class="bench-gtier-chip" data-tier="hard" onclick="setCurrentTier('hard')">Hard</span>
+            </div>
           </div>
           <div class="bench-overall" style="margin-bottom:20px">
             <div class="bench-rank-big" id="bench-overall-rank">Unranked</div>
@@ -1395,16 +1395,9 @@
           <div id="pb-all-bests" style="margin-top:16px"></div>
         </div>
 
-        <!-- BENCHMARK -->
-        <div id="ch-benchmark" class="ch-panel">
-          <div id="bm-start-panel"></div>
-          <div id="bm-final-results" style="display:none"></div>
-          <div id="bm-history" style="margin-top:8px"></div>
-          <!-- Coach-only section: see all students' benchmarks -->
-          <div class="ch-coach-only" id="bm-coach-section" style="margin-top:24px;display:none">
-            <h3 class="ch-section-title" style="font-size:0.9rem;margin-bottom:12px">📊 Benchmarks de mes élèves</h3>
-            <div id="ch-coach-bm-list"></div>
-          </div>
+        <!-- DAILY TRAINING -->
+        <div id="ch-daily-training" class="ch-panel">
+          <div id="dt-content"></div>
         </div>
 
         <!-- LEADERBOARD -->

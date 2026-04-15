@@ -831,7 +831,7 @@ function coachingSwitchTab(tabId) {
     'hub-freeplay':'⚡ Free Play',
     'hub-settings':'⚙️ Paramètres',
     'hub-viscose':'📊 Viscose Benchmark',
-    'ch-dashboard':'Dashboard','ch-benchmark':'⚡ Benchmark','ch-daily':'📅 Daily Challenge',
+    'ch-dashboard':'Dashboard','ch-daily-training':'🗓️ Daily Training','ch-daily':'📅 Daily Challenge',
     'ch-historique':'📈 Historique','ch-leaderboard':'🏆 Classement','ch-achievements':'🏅 Succès',
     'ch-scenarios':'🎯 Scénarios','ch-agents':'🧠 Agents','ch-vods':'📹 VODs',
     'ch-cours':'📚 Cours','ch-warmup':'🔥 Échauffement','ch-students':'👥 Élèves',
@@ -865,7 +865,7 @@ function coachingSwitchTab(tabId) {
     }
     switchLbTab(_lbActiveTab || 'global');
   }
-  if (tabId === 'ch-benchmark') { renderBenchmarkTab(); loadCoachBenchmarkOverview(); }
+  if (tabId === 'ch-daily-training') dailyTrainingLoad();
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'hub-settings') settMfaRefresh();
   if (tabId === 'ch-tracker')   trackerTabLoad();
@@ -1225,303 +1225,94 @@ function coachingCloseVodModal() {
   if (modal) { modal.classList.remove('active'); document.getElementById('ch-vm-iframe').src = ''; }
 }
 
-// ============ VOLTAIC BENCHMARK ============
+// ============ DAILY TRAINING ============
 
-const BENCHMARK_SCENARIOS = [
-  { mode:'gridshot',      label:'Gridshot',      type:'🖱️ Clicking',  diff:'medium', dur:60,
-    thresholds:[2000,3500,5000,7000,9000,12000,15000,19000] },
-  { mode:'pasu_reload',   label:'Pasu Reload',   type:'🎯 Précision',  diff:'medium', dur:60,
-    thresholds:[1200,2200,3200,4500,6000,8000,10500,13500] },
-  { mode:'whisphere',     label:'Whisphere',     type:'🌊 Tracking',   diff:'medium', dur:60,
-    thresholds:[800,1600,2500,3600,5000,6800,9000,12000] },
-  { mode:'flicker_plaza', label:'Flicker Plaza', type:'⚡ Flicking',   diff:'medium', dur:60,
-    thresholds:[1000,2000,3200,4500,6200,8000,10000,13000] },
-  { mode:'vox_ts2',       label:'VoxTS2',        type:'🔀 Switching',  diff:'medium', dur:60,
-    thresholds:[600,1200,2000,3000,4200,5800,7500,10000] },
-  { mode:'speedflick',    label:'Speed Flick',   type:'🚀 Speed',      diff:'medium', dur:60,
-    thresholds:[900,1800,2900,4200,5800,7600,9800,12500] },
-];
+const _DT_CAT_LABELS = {
+  control_tracking:'Control Tracking', reactive_tracking:'Reactive Tracking',
+  flick_tech:'Flick Tech', click_timing:'Click Timing'
+};
+const _DT_TIER_COLOR = { easier:'#4ade80', medium:'#60a5fa', hard:'#f87171' };
 
-const BENCHMARK_RANKS = [
-  { name:'Pleb',        color:'#6b7280', bg:'rgba(107,114,128,0.15)', emoji:'😶' },
-  { name:'Iron',        color:'#8B9093', bg:'rgba(139,144,147,0.15)', emoji:'⬛' },
-  { name:'Bronze',      color:'#CD7F32', bg:'rgba(205,127,50,0.15)',  emoji:'🟤' },
-  { name:'Silver',      color:'#B0B5BB', bg:'rgba(176,181,187,0.15)', emoji:'⬜' },
-  { name:'Gold',        color:'#E4B549', bg:'rgba(228,181,73,0.15)',  emoji:'🟡' },
-  { name:'Platinum',    color:'#3DBAB0', bg:'rgba(61,186,176,0.15)', emoji:'🔵' },
-  { name:'Diamond',     color:'#4D9BE6', bg:'rgba(77,155,230,0.15)', emoji:'💎' },
-  { name:'Master',      color:'#E0495A', bg:'rgba(224,73,90,0.15)',  emoji:'🔴' },
-  { name:'Grandmaster', color:'#F4D35E', bg:'rgba(244,211,94,0.15)', emoji:'🌟' },
-];
+function dailyTrainingLoad() {
+  const el = document.getElementById('dt-content');
+  if (!el) return;
 
-let _bmActive = false;
-let _bmIdx = 0;
-let _bmResults = [];
-
-function _getScoreTier(score, thresholds) {
-  for (let i = thresholds.length - 1; i >= 0; i--) {
-    if (score >= thresholds[i]) return i + 1;
+  const vd = window._viscData;
+  if (!vd) {
+    el.innerHTML = '<p class="ch-empty">Chargement des données…</p>';
+    setTimeout(dailyTrainingLoad, 300);
+    return;
   }
-  return 0;
-}
 
-async function _bmSave(results) {
-  const rankIdx = _bmCalcRank(results);
-  const entry = {
-    date: new Date().toLocaleDateString('fr-FR'),
-    ts: Date.now(),
-    rankIdx,
-    rankName: BENCHMARK_RANKS[rankIdx].name,
-    scenarios: results
-  };
-  if (coachingToken) {
-    try {
-      await fetch(`${API_BASE}/coaching`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-        body: JSON.stringify({ action: 'save-benchmark', rank_idx: rankIdx, rank_name: entry.rankName, scenarios: results })
-      });
-    } catch {}
+  // All benchmark scenarios (th defined)
+  const allKeys = Object.keys(vd.SCENARIOS).filter(k => vd.SCENARIOS[k].th);
+  if (!allKeys.length) { el.innerHTML = '<p class="ch-empty">Aucun scénario disponible.</p>'; return; }
+
+  // Date-seeded daily rotation — 5 unique picks
+  const d = new Date();
+  const dayNum = Math.floor(d / 86400000); // days since epoch
+  const picks = [];
+  const used = new Set();
+  for (let i = 0; picks.length < 5 && i < allKeys.length * 2; i++) {
+    const key = allKeys[(dayNum * 7 + i * 3 + 13) % allKeys.length];
+    if (!used.has(key)) { used.add(key); picks.push(key); }
   }
-  return entry;
+
+  const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  el.innerHTML = `
+    <h2 class="ch-section-title">🗓️ Daily Training</h2>
+    <div class="dt-date">${dateStr}</div>
+    <p class="dt-desc">5 exercices recommandés pour aujourd'hui — entraîne-toi à la difficulté suggérée pour progresser&nbsp;!</p>
+    <div class="dt-list">
+      ${picks.map(key => {
+        const sc = vd.SCENARIOS[key];
+
+        // Recommended tier: highest unlocked where not yet maxed
+        let recTier = 'easier';
+        const eT = vd.calcThreadsFor(key, vd.getBestFor(key,'easier'), 'easier');
+        const mT = vd.calcThreadsFor(key, vd.getBestFor(key,'medium'), 'medium');
+        const hT = vd.calcThreadsFor(key, vd.getBestFor(key,'hard'), 'hard');
+        if (eT >= 8 && vd.isScenarioUnlocked(key,'medium')) recTier = 'medium';
+        if (mT >= 8 && vd.isScenarioUnlocked(key,'hard'))   recTier = 'hard';
+
+        const best    = vd.getBestFor(key, recTier);
+        const threads = vd.calcThreadsFor(key, best, recTier);
+        const mt      = vd.maxThreadsFor(recTier);
+        const pct     = Math.min(100, threads / mt * 100);
+        const color   = _DT_TIER_COLOR[recTier];
+        const tierLbl = recTier === 'easier' ? 'Easier' : recTier === 'medium' ? 'Medium' : 'Hard';
+        const label   = recTier === 'easier' ? (sc.labelE || sc.label)
+                      : recTier === 'hard'   ? (sc.labelH || sc.label) : sc.label;
+        const cat = _DT_CAT_LABELS[sc.cat] || sc.cat;
+
+        return `<div class="dt-exercise">
+          <div class="dt-ex-header">
+            <div class="dt-ex-name">${san(label)}</div>
+            <span class="dt-ex-tier" style="color:${color};border-color:${color}40;background:${color}15">${tierLbl}</span>
+          </div>
+          <div class="dt-ex-cat">${cat}</div>
+          <div class="dt-ex-progress">
+            <div class="dt-ex-bar"><div class="dt-ex-fill" style="width:${pct}%;background:${color}"></div></div>
+            <span class="dt-ex-threads">${threads}/${mt}</span>
+          </div>
+          <button class="dt-launch-btn" onclick="dtLaunch('${key}','${recTier}')">▶ Lancer</button>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
-function _bmCalcRank(results) {
-  if (!results.length) return 0;
-  const avg = results.reduce((s, r) => s + r.tier, 0) / results.length;
-  return Math.min(8, Math.round(avg));
-}
-
-function startBenchmark() {
-  _bmActive = true;
-  _bmIdx = 0;
-  _bmResults = [];
-  _bmLaunchScenario(0);
-}
-
-function _bmLaunchScenario(idx) {
-  if (idx >= BENCHMARK_SCENARIOS.length) { _bmFinish(); return; }
-  const sc = BENCHMARK_SCENARIOS[idx];
-  window._coachLaunchSource = { tab: 'ch-benchmark', isBenchmark: true, bmIdx: idx };
-  const durEl = document.getElementById('opt-duration');
-  const diffEl = document.getElementById('opt-diff');
-  if (durEl) durEl.value = sc.dur;
-  if (diffEl) diffEl.value = sc.diff;
-  
+function dtLaunch(key, tier) {
+  const vd = window._viscData;
+  if (vd) vd.setTier(tier);
+  window._coachLaunchSource = { tab: 'ch-daily-training' };
   coachingSwitchTab('hub-home');
   setTimeout(() => {
-    const modeBtn = document.querySelector(`.mode-card[data-mode="${sc.mode}"]`);
-    if (modeBtn) modeBtn.click();
-    else if (typeof startGame === 'function') startGame(sc.mode);
+    if (window._G) window._G.benchmarkMode = true;
+    const btn = document.querySelector(`.mode-card[data-mode="${key}"]`);
+    if (btn) btn.click();
+    else if (typeof startGame === 'function') startGame(key);
   }, 120);
-}
-
-function _bmHandleGameEnd() {
-  if (!_bmActive) return;
-  const sc = BENCHMARK_SCENARIOS[_bmIdx];
-  const score = window._G?.score || 0;
-  const tier = _getScoreTier(score, sc.thresholds);
-  _bmResults.push({ mode: sc.mode, label: sc.label, type: sc.type, score, tier, tierName: BENCHMARK_RANKS[tier].name });
-
-  // Show benchmark overlay on results screen
-  const overlay = document.getElementById('bm-results-overlay');
-  if (overlay) {
-    const rank = BENCHMARK_RANKS[tier];
-    const isLast = _bmIdx >= BENCHMARK_SCENARIOS.length - 1;
-    overlay.style.display = 'flex';
-    overlay.innerHTML = `
-      <div class="bm-overlay-inner">
-        <div class="bm-overlay-progress">${sc.label} — Scénario ${_bmIdx+1}/${BENCHMARK_SCENARIOS.length}</div>
-        <div class="bm-overlay-rank-badge" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}44">
-          ${rank.emoji} ${rank.name}
-        </div>
-        <div class="bm-overlay-score">${score.toLocaleString()} pts</div>
-        <div class="bm-overlay-next">${isLast ? '🏁 Calcul du rang final…' : `⏭️ Prochain scénario dans <span id="bm-countdown">3</span>s`}</div>
-      </div>`;
-    if (!isLast) {
-      let t = 3;
-      const cd = setInterval(() => {
-        t--;
-        const el = document.getElementById('bm-countdown');
-        if (el) el.textContent = t;
-        if (t <= 0) {
-          clearInterval(cd);
-          overlay.style.display = 'none';
-          _bmIdx++;
-          _bmLaunchScenario(_bmIdx);
-        }
-      }, 1000);
-    } else {
-      setTimeout(() => {
-        overlay.style.display = 'none';
-        _bmFinish();
-      }, 1500);
-    }
-  } else {
-    if (_bmIdx < BENCHMARK_SCENARIOS.length - 1) {
-      _bmIdx++;
-      setTimeout(() => _bmLaunchScenario(_bmIdx), 2000);
-    } else {
-      _bmFinish();
-    }
-  }
-}
-
-async function _bmFinish() {
-  _bmActive = false;
-  window._coachLaunchSource = null;
-  const entry = await _bmSave(_bmResults);
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('coaching-screen')?.classList.add('active');
-  coachingSwitchTab('ch-benchmark');
-  _renderBenchmarkFinalResults(entry);
-}
-
-function _renderBenchmarkFinalResults(entry) {
-  const el = document.getElementById('bm-final-results');
-  if (!el) return;
-  const rank = BENCHMARK_RANKS[entry.rankIdx];
-  el.style.display = 'block';
-  el.innerHTML = `
-    <div class="bm-final-header">
-      <div class="bm-final-title">Résultats du Benchmark</div>
-      <div class="bm-final-rank" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}55">
-        ${rank.emoji} ${rank.name}
-      </div>
-      <div class="bm-final-date">${entry.date}</div>
-    </div>
-    <div class="bm-scenario-results">
-      ${entry.scenarios.map(s => {
-        const r = BENCHMARK_RANKS[s.tier];
-        const sc = BENCHMARK_SCENARIOS.find(x => x.mode === s.mode);
-        const maxScore = sc ? sc.thresholds[sc.thresholds.length-1] : 10000;
-        const pct = Math.min(100, Math.round(s.score / maxScore * 100));
-        return `<div class="bm-sc-row">
-          <div class="bm-sc-info">
-            <span class="bm-sc-type">${s.type}</span>
-            <span class="bm-sc-label">${san(s.label)}</span>
-          </div>
-          <div class="bm-sc-bar-wrap">
-            <div class="bm-sc-bar"><div class="bm-sc-fill" style="width:${pct}%;background:${r.color}"></div></div>
-          </div>
-          <div class="bm-sc-rank" style="color:${r.color}">${r.emoji} ${r.name}</div>
-          <div class="bm-sc-score">${s.score.toLocaleString()}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-async function renderBenchmarkTab() {
-  const el = document.getElementById('bm-start-panel');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="bm-hero">
-      <div class="bm-hero-title">⚡ Voltaic Benchmark</div>
-      <p class="bm-hero-desc">6 scénarios enchaînés automatiquement · Chacun évalué sur un rang · Résultat global calculé</p>
-      <div class="bm-scenarios-list">
-        ${BENCHMARK_SCENARIOS.map((sc,i) => `
-          <div class="bm-sc-preview">
-            <span class="bm-sc-num">${i+1}</span>
-            <span class="bm-sc-ptype">${sc.type}</span>
-            <span class="bm-sc-pname">${sc.label}</span>
-            <span class="bm-sc-pdur">${sc.dur}s</span>
-          </div>`).join('')}
-      </div>
-      <button class="btn-primary bm-start-btn" onclick="startBenchmark()">🚀 Lancer le Benchmark</button>
-    </div>`;
-  // Load and render history
-  await _renderBenchmarkHistory();
-}
-
-async function _renderBenchmarkHistory() {
-  const el = document.getElementById('bm-history');
-  if (!el) return;
-  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
-  if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connectez-vous pour voir l\'historique.</p>'; return; }
-  try {
-    const r = await fetch(`${API_BASE}/coaching?view=benchmark-history`, {
-      headers: { 'Authorization': `Bearer ${coachingToken}` }
-    });
-    const { rows } = await r.json();
-    window._bmHistoryCache = rows || [];
-    if (!rows || rows.length === 0) {
-      el.innerHTML = '<p class="ch-empty">Aucun benchmark effectué encore.</p>';
-      return;
-    }
-    el.innerHTML = `
-      <h3 class="ch-section-title" style="font-size:0.9rem;margin:20px 0 12px">Historique</h3>
-      <div class="bm-history-list">
-        ${rows.map((e, i) => {
-          const rank = BENCHMARK_RANKS[e.rank_idx];
-          const scenarios = Array.isArray(e.scenarios) ? e.scenarios : [];
-          return `<div class="bm-history-row" onclick="_expandBmEntry(this,${i})">
-            <div class="bm-hist-rank" style="color:${rank.color}">${rank.emoji} ${rank.name}</div>
-            <div class="bm-hist-date">${e.day}</div>
-            <div class="bm-hist-scores">${scenarios.map(s => BENCHMARK_RANKS[s.tier]?.emoji || '').join(' ')}</div>
-            <div class="bm-hist-arrow">›</div>
-          </div>`;
-        }).join('')}
-      </div>`;
-  } catch(err) {
-    el.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>';
-  }
-}
-
-async function loadCoachBenchmarkOverview() {
-  const el = document.getElementById('ch-coach-bm-list');
-  if (!el) return;
-  el.innerHTML = '<p class="ch-empty">Chargement…</p>';
-  try {
-    const r = await fetch(`${API_BASE}/coaching?view=benchmark-all`, {
-      headers: { 'Authorization': `Bearer ${coachingToken}` }
-    });
-    const { rows } = await r.json();
-    if (!rows || rows.length === 0) {
-      el.innerHTML = '<p class="ch-empty">Aucun élève n\'a encore effectué de benchmark.</p>';
-      return;
-    }
-    el.innerHTML = `<div class="bm-coach-grid">
-      ${rows.map(row => {
-        const rank = BENCHMARK_RANKS[row.rank_idx] || BENCHMARK_RANKS[0];
-        const scenarios = Array.isArray(row.scenarios) ? row.scenarios : [];
-        return `<div class="bm-coach-card">
-          <div class="bm-coach-name">${san(row.username)}</div>
-          <div class="bm-coach-rank" style="color:${rank.color};background:${rank.bg};border-color:${rank.color}44">
-            ${rank.name}
-          </div>
-          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
-            ${scenarios.map(s => {
-              const sr = BENCHMARK_RANKS[s.tier] || BENCHMARK_RANKS[0];
-              return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:0.78rem">
-                <span style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" title="${san(s.label)}">${san(s.label)}</span>
-                <span style="color:${sr.color};font-weight:700;white-space:nowrap">${sr.name}</span>
-              </div>`;
-            }).join('')}
-          </div>
-          <div style="color:var(--dim);font-size:0.72rem;margin-top:10px;border-top:1px solid var(--border);padding-top:6px">${row.day}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  } catch {
-    el.innerHTML = '<p class="ch-empty">Erreur de chargement.</p>';
-  }
-}
-
-function _expandBmEntry(el, idx) {
-  const entry = window._bmHistoryCache && window._bmHistoryCache[idx];
-  if (!entry) return;
-  // Toggle detail view
-  let detail = el.nextElementSibling;
-  if (detail && detail.classList.contains('bm-hist-detail')) {
-    detail.remove(); return;
-  }
-  detail = document.createElement('div');
-  detail.className = 'bm-hist-detail';
-  detail.innerHTML = entry.scenarios.map(s => {
-    const r = BENCHMARK_RANKS[s.tier];
-    return `<div class="bm-hist-sc"><span>${s.type} ${san(s.label)}</span><span style="color:${r.color}">${r.emoji} ${r.name} — ${s.score.toLocaleString()}</span></div>`;
-  }).join('');
-  el.after(detail);
 }
 
 const WARMUP_ROUTINES = [
@@ -4810,6 +4601,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initCoaching();
   meInit();
 
-  // Les hooks endGame (_updateCoachingReturnBtn, _renderHeatmap, _bmHandleGameEnd)
+  // Les hooks endGame (_updateCoachingReturnBtn, _renderHeatmap)
   // sont appelés directement depuis game3d.js#endGame()
 });

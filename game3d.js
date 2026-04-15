@@ -206,6 +206,33 @@ function getBenchmarkScore() {
 }
 function getBest(key) { return loadBench()[key] || 0; }
 
+// ---- PER-TIER HELPERS (for per-scenario difficulty locking) ----
+function getThFor(key, tier) {
+  const s = SCENARIOS[key];
+  if (!s || !s.th) return null;
+  if (tier==='hard') return s.thH || s.th;
+  if (tier==='easier') return s.thE || s.th;
+  return s.th;
+}
+function maxThreadsFor(tier) { return tier === 'hard' ? 6 : 8; }
+function getBestFor(key, tier) {
+  try { return (JSON.parse(localStorage.getItem('visc_bench_'+tier)) || {})[key] || 0; } catch { return 0; }
+}
+function calcThreadsFor(key, score, tier) {
+  const th = getThFor(key, tier);
+  if (!th) return 0;
+  for (let i = th.length - 1; i >= 0; i--) { if (score >= th[i]) return i + 1; }
+  return 0;
+}
+function isScenarioUnlocked(key, tier) {
+  if (tier === 'easier') return true;
+  const prevTier = tier === 'hard' ? 'medium' : 'easier';
+  const best = getBestFor(key, prevTier);
+  const threads = calcThreadsFor(key, best, prevTier);
+  return threads >= maxThreadsFor(prevTier);
+}
+function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
+
 const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
   xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
   xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
@@ -1598,7 +1625,6 @@ function endGame() {
   // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
   if (typeof _updateCoachingReturnBtn === 'function') _updateCoachingReturnBtn();
   if (typeof _renderHeatmap === 'function') _renderHeatmap();
-  if (typeof _bmHandleGameEnd === 'function') _bmHandleGameEnd();
 }
 
 function showScreen(id) {
@@ -1822,9 +1848,9 @@ function renderBenchmark() {
   const rank=calcRankFromThreads(total);
   $('#bench-overall-rank').textContent=rank.label; $('#bench-overall-rank').style.color=rank.color;
   $('#bench-overall-threads').textContent=total+' / '+max+' Threads';
-  // Update tier selector
-  if($('#opt-tier')) $('#opt-tier').value=currentTier;
-  const tierLabel = currentTier==='hard'?'Hard':'Medium';
+
+  // Update global tier chips
+  document.querySelectorAll('.bench-gtier-chip').forEach(c=>c.classList.toggle('active',c.dataset.tier===currentTier));
 
   const container=$('#bench-categories'); container.innerHTML='';
   const cats=['control_tracking','reactive_tracking','flick_tech','click_timing'];
@@ -1856,9 +1882,27 @@ function renderBenchmark() {
         const mt=getMaxThreads();
         const wrap=document.createElement('div'); wrap.className='bench-scenario-wrap';
 
+        // Per-tier chips [E][M][H] with lock
+        const tierChipsHtml = ['easier','medium','hard'].map(t => {
+          const unlocked = isScenarioUnlocked(key, t);
+          const bestT = getBestFor(key, t);
+          const thT = calcThreadsFor(key, bestT, t);
+          const mtT = maxThreadsFor(t);
+          const lbl = t==='easier'?'E':t==='medium'?'M':'H';
+          if (!unlocked) {
+            const prev = t==='hard'?'medium':'easier';
+            const pTh = calcThreadsFor(key, getBestFor(key, prev), prev);
+            const pMt = maxThreadsFor(prev);
+            return `<span class="bsc-chip locked" title="Terminer ${prev} (${pTh}/${pMt}) pour débloquer">🔒</span>`;
+          }
+          const active = t === currentTier;
+          return `<span class="bsc-chip${active?' active':''} tier-${t}" data-key="${key}" data-tier="${t}" title="${t} · ${thT}/${mtT} threads">${lbl}<sub>${thT}</sub></span>`;
+        }).join('');
+
         const row=document.createElement('div'); row.className='bench-scenario';
         row.innerHTML=`
           <span class="bench-scenario-name">${getLabel(key)}</span>
+          <span class="bsc-chips">${tierChipsHtml}</span>
           <span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span>
           <div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div>
           <span class="bench-scenario-threads">${threads}/${mt} ${_deltaHtml}</span>
@@ -1872,14 +1916,23 @@ function renderBenchmark() {
           <tbody><tr>${thArr.map((v,i)=>`<td style="color:${RANK_COLORS[Math.min(i,7)]}">${v.toLocaleString()}</td>`).join('')}</tr></tbody>
         </table>`;
 
-        // Toggle thresholds on arrow click, start game on row click
         const toggle=row.querySelector('.bench-th-toggle');
         toggle.addEventListener('click', e=>{
           e.stopPropagation();
           const hidden=thTable.classList.toggle('hidden');
           toggle.textContent=hidden?'▼':'▲';
         });
-        row.addEventListener('click', ()=>{G.benchmarkMode=true;startGame(key);});
+        // Tier chip click: set tier + launch
+        row.querySelectorAll('.bsc-chip:not(.locked)').forEach(chip=>{
+          chip.addEventListener('click', e=>{
+            e.stopPropagation();
+            currentTier = chip.dataset.tier;
+            G.benchmarkMode = true;
+            startGame(chip.dataset.key);
+          });
+        });
+        // Row click: launch with current tier
+        row.addEventListener('click', ()=>{ G.benchmarkMode=true; startGame(key); });
 
         wrap.appendChild(row);
         wrap.appendChild(thTable);
@@ -1891,6 +1944,10 @@ function renderBenchmark() {
   });
   // Persist snapshot for next session's delta
   localStorage.setItem('visc_snap_'+currentTier, JSON.stringify(_newSnap));
+
+  // Expose for Daily Training in coaching.js
+  window._viscData = { SCENARIOS, getThFor, maxThreadsFor, getBestFor, calcThreadsFor, isScenarioUnlocked,
+    setTier:(t)=>{currentTier=t;}, getTier:()=>currentTier, getBest, calcThreads, renderBenchmark };
 }
 
 // ---- EVENTS ----
@@ -1917,7 +1974,9 @@ $('#btn-freeplay')?.addEventListener('click',()=>showScreen('free-play-screen'))
 $('#btn-freeplay-back')?.addEventListener('click',()=>showScreen('menu-screen'));
 $('#btn-settings-menu')?.addEventListener('click',()=>showScreen('settings-screen'));
 $('#btn-settings-back')?.addEventListener('click',()=>showScreen('menu-screen'));
-$('#opt-tier')?.addEventListener('change',e=>{currentTier=e.target.value;renderBenchmark();});
+// _viscData exposed in renderBenchmark() — also init here for early access
+window._viscData = { SCENARIOS, getThFor, maxThreadsFor, getBestFor, calcThreadsFor, isScenarioUnlocked,
+  setTier:(t)=>{currentTier=t;}, getTier:()=>currentTier, getBest, calcThreads, renderBenchmark };
 
 $('#opt-sens-mode').addEventListener('change',e=>{
   const mode=e.target.value;
