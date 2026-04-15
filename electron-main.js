@@ -10,6 +10,7 @@ const API_BASE = 'https://mayhaim.vercel.app';
 const DISCORD_OAUTH_PREFIX = API_BASE + '/api/login?action=discord';
 
 let mainWindow = null;
+let splashWindow = null;
 
 // Single instance — prevents duplicate windows if user launches again
 const gotLock = app.requestSingleInstanceLock();
@@ -24,6 +25,25 @@ if (!gotLock) {
   });
 }
 
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 460,
+    height: 340,
+    frame: false,
+    resizable: false,
+    movable: false,
+    transparent: false,
+    backgroundColor: '#0a0a0f',
+    alwaysOnTop: true,
+    center: true,
+    skipTaskbar: true,
+    icon: path.join(__dirname, 'build', 'icon.ico'),
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  splashWindow.loadFile(path.join(__dirname, 'build', 'splash.html'));
+  splashWindow.on('closed', () => { splashWindow = null; });
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1600,
@@ -31,6 +51,7 @@ function createMainWindow() {
     minWidth: 1280,
     minHeight: 720,
     title: 'MayhAim',
+    icon: path.join(__dirname, 'build', 'icon.ico'),
     backgroundColor: '#0a0a0f',
     autoHideMenuBar: true,
     show: false, // show when ready-to-show to avoid white flash
@@ -48,8 +69,16 @@ function createMainWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.focus();
+    // Small delay so the splash isn't too flashy on fast machines
+    const minSplashMs = 900;
+    const startedAt = global.__mayhaim_start || Date.now();
+    const elapsed = Date.now() - startedAt;
+    const wait = Math.max(0, minSplashMs - elapsed);
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+      mainWindow.show();
+      mainWindow.focus();
+    }, wait);
   });
 
   // Allow pointer lock without user prompt (required for FPS aim mode)
@@ -122,10 +151,14 @@ function createMainWindow() {
 Menu.setApplicationMenu(null);
 
 app.whenReady().then(() => {
+  global.__mayhaim_start = Date.now();
   // CSP: allow loading from local files + calls to Vercel API + Discord CDN
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({ responseHeaders: details.responseHeaders });
   });
+
+  // Splash first (shows immediately), then main in background
+  createSplashWindow();
   createMainWindow();
 
   app.on('activate', () => {

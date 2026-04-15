@@ -4,8 +4,26 @@
 // the Discord OAuth token handoff from the popup window.
 
 const { ipcRenderer } = require('electron');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const API_BASE = 'https://mayhaim.vercel.app';
+
+// ───── App metadata (exposed on window) ─────
+// Since contextIsolation is false, we can write directly on window before the
+// page scripts run. ui.js + About modal consume these values.
+try {
+  const pkg = require('./package.json');
+  window.MAYHAIM_VERSION = pkg.version || '0.0.0';
+  window.MAYHAIM_IS_ELECTRON = true;
+} catch { /* graceful fallback */ }
+
+try {
+  const clPath = path.join(__dirname, 'CHANGELOG.md');
+  if (fs.existsSync(clPath)) {
+    window.MAYHAIM_CHANGELOG = fs.readFileSync(clPath, 'utf8');
+  }
+} catch { /* optional */ }
 
 // ───── fetch override ─────
 // Transparent rewrite: any URL starting with "/api" gets prefixed by API_BASE.

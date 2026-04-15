@@ -234,13 +234,10 @@ function isScenarioUnlocked(key, tier) {
 function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
 
 // Toast visuel pour feedback "scénario verrouillé"
+// Delegates to the global toast system (ui.js). Kept as alias for existing callers.
 function _showLockToast(msg) {
-  const el = document.createElement('div');
-  el.textContent = '🔒 ' + msg;
-  el.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(255,70,85,0.95);color:#fff;padding:14px 24px;border-radius:10px;z-index:9999;font-size:0.92rem;font-weight:600;box-shadow:0 8px 30px rgba(255,70,85,0.4);max-width:90vw;text-align:center;animation:lockToastIn .25s ease-out';
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; }, 2400);
-  setTimeout(()=>el.remove(), 2800);
+  if (window.showToast) return window.showToast.lock(msg);
+  console.warn('Lock toast fallback:', msg);
 }
 
 const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
@@ -1300,6 +1297,7 @@ function shoot() {
         let pts=100*Math.min(1+G.combo*0.1,3);
         if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
         pts=Math.round(pts); G.score+=pts;
+        try { checkInRunTrophies(); } catch(e){}
         showHitmarker(); addPopup(pts);
         audioEngine.play(G.combo%5===0&&G.combo>0?'combo':'hit');
         // Switch to next immediately
@@ -1369,6 +1367,7 @@ function hitTarget(t) {
   let pts=100*Math.min(1+G.combo*0.1,3);
   if(rt<300) pts*=1.5; else if(rt<500) pts*=1.2;
   pts=Math.round(pts); G.score+=pts;
+  try { checkInRunTrophies(); } catch(e){}
   showHitmarker(); addPopup(pts);
   audioEngine.play(G.combo%5===0&&G.combo>0?'combo':'hit');
   t.alive=false;
@@ -1486,6 +1485,7 @@ function startGame(mode) {
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];G.clickLog=[];
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
   G.trailLog=[];G.startTime=Date.now();G._lastTrailSample=0;
+  G._trophies = {};
   G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
   skipFrames=3;
@@ -1651,6 +1651,26 @@ function endGame() {
   const replayBtn = $('#btn-replay');
   if(replayBtn) replayBtn.style.display = G.trailLog.length > 5 ? '' : 'none';
 
+  // ─── BATCH A: analytics (gauges, histogram, sparkline, run history) ───
+  try {
+    const scores = computeRunScores();
+    renderGauge('.res-gauge[data-gauge="precision"]',   scores.precision);
+    renderGauge('.res-gauge[data-gauge="speed"]',       scores.speed);
+    renderGauge('.res-gauge[data-gauge="consistency"]', scores.consistency);
+
+    // Persist run history (before sparkline so the current run shows)
+    const runEntry = {
+      score: G.score, acc, hits: G.hits, misses: G.misses,
+      avgR, bestCombo: G.bestCombo,
+      precision: scores.precision, speed: scores.speed, consistency: scores.consistency,
+      duration: G.duration, ts: Date.now()
+    };
+    saveRunHistoryEntry(G.mode, runEntry);
+
+    renderRunsSparkline(G.mode);
+    renderReactionHistogram();
+  } catch(e) { console.warn('[BATCH A] analytics failed', e); }
+
   showScreen('results-screen');
 
   // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
@@ -1709,6 +1729,270 @@ function saveCareer(score,accuracy) { const s=loadCareer(); s.best=Math.max(s.be
 function getModeLocalPB(mode) { return parseInt(localStorage.getItem('visc_pb_'+mode)||'0'); }
 function setModeLocalPB(mode, score) { if(score>getModeLocalPB(mode)) localStorage.setItem('visc_pb_'+mode, score); }
 function updateMenuStats() { const s=loadCareer(); $('#menu-best').textContent=s.best.toLocaleString(); $('#menu-acc').textContent=Math.round(s.acc)+'%'; $('#menu-games').textContent=s.games; }
+
+// ============================================================
+// BATCH A — POST-RUN ANALYTICS
+// Run history (last 20 per mode) + Precision/Speed/Consistency scoring
+// + reaction histogram + sparkline + in-run trophy toasts
+// ============================================================
+
+// ---- PER-MODE RUN HISTORY (last 20) ----
+const RUN_HISTORY_MAX = 20;
+function getRunHistory(mode) {
+  try { return JSON.parse(localStorage.getItem('visc_runs_'+mode)) || []; }
+  catch { return []; }
+}
+function saveRunHistoryEntry(mode, entry) {
+  const arr = getRunHistory(mode);
+  arr.push(entry);
+  while (arr.length > RUN_HISTORY_MAX) arr.shift();
+  try { localStorage.setItem('visc_runs_'+mode, JSON.stringify(arr)); } catch {}
+  return arr;
+}
+
+// ---- SCORE HELPERS ----
+function _mean(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function _stdev(arr) {
+  if (arr.length < 2) return 0;
+  const m = _mean(arr);
+  return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length);
+}
+function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/**
+ * Compute 3 Aim-Lab-style scores from the current run (0-100 each).
+ *   precision   — accuracy% for click, trackOnTarget%% for track.
+ *   speed       — how fast you engage: avgReaction 200ms→100, 800ms→0 (click only).
+ *                 For track: how quickly you reach on-target (we approximate via
+ *                 trackOnTarget ratio of the first 3 seconds vs whole run).
+ *   consistency — stability: low reaction stdev → high. stdev 30ms→100, 250ms→0.
+ *                 For track: mapped from trackOnTarget% directly (stable = high).
+ */
+function computeRunScores() {
+  const isTrack = (typeof isTrackMode === 'function') && isTrackMode(G.mode);
+  const total   = G.hits + G.misses;
+
+  let precision, speed, consistency;
+
+  if (isTrack) {
+    const onT = G.trackFrames > 0 ? G.trackOnTarget / G.trackFrames : 0;
+    precision   = Math.round(onT * 100);
+    // Speed for track is less meaningful — use onT scaled between 40-95 bands.
+    speed       = Math.round(_clamp((onT - 0.3) / 0.6 * 100, 0, 100));
+    // Consistency: how close to constant on-target. We approximate via onT itself
+    // (high onT => you weren't losing tracking) with a gentler curve.
+    consistency = Math.round(_clamp(onT * 110 - 10, 0, 100));
+  } else {
+    const acc = total > 0 ? G.hits / total : 0;
+    precision = Math.round(acc * 100);
+
+    const rt = G.reactionTimes.slice();
+    const avg = _mean(rt);
+    if (avg > 0) {
+      // 200ms → 100, 800ms → 0
+      speed = Math.round(_clamp((800 - avg) / 6, 0, 100));
+    } else {
+      speed = 0;
+    }
+
+    if (rt.length >= 3) {
+      const sd = _stdev(rt);
+      // 30ms stdev → 100, 250ms stdev → 0
+      consistency = Math.round(_clamp((250 - sd) / 2.2, 0, 100));
+    } else {
+      consistency = precision; // not enough data — mirror precision
+    }
+  }
+
+  return { precision, speed, consistency };
+}
+
+// ---- GAUGE RENDER ----
+function _gaugeTier(pct) {
+  if (pct >= 85) return 'elite';
+  if (pct >= 65) return 'high';
+  if (pct >= 40) return 'mid';
+  return 'low';
+}
+function renderGauge(rootSelector, pct) {
+  const el = document.querySelector(rootSelector);
+  if (!el) return;
+  const p = _clamp(pct|0, 0, 100);
+  el.setAttribute('data-tier', _gaugeTier(p));
+  const fg = el.querySelector('.res-gauge-fg');
+  const valEl = el.querySelector('.res-gauge-val');
+  const C = 326.72; // 2π·52
+  const finalOffset = C * (1 - p/100);
+
+  if (fg) {
+    // Fallback: set final value immediately so the gauge is correct even if
+    // RAF is paused (hidden tab). The CSS transition still plays when visible.
+    fg.style.strokeDashoffset = C;
+    requestAnimationFrame(() => { fg.style.strokeDashoffset = finalOffset; });
+    setTimeout(() => { fg.style.strokeDashoffset = finalOffset; }, 1000);
+  }
+  if (valEl) {
+    // Animated count-up, with synchronous fallback if RAF never fires.
+    const dur = 700;
+    const t0 = performance.now();
+    const from = parseInt(valEl.textContent) || 0;
+    let done = false;
+    const step = (now) => {
+      if (done) return;
+      const k = _clamp((now - t0) / dur, 0, 1);
+      const ease = 1 - Math.pow(1 - k, 3);
+      valEl.textContent = Math.round(from + (p - from) * ease);
+      if (k < 1) requestAnimationFrame(step);
+      else done = true;
+    };
+    requestAnimationFrame(step);
+    setTimeout(() => { if (!done) { valEl.textContent = p; done = true; } }, 1000);
+  }
+}
+
+// ---- REACTION TIME HISTOGRAM (Chart.js) ----
+let _resHistChart = null;
+let _resSparkChart = null;
+function renderReactionHistogram() {
+  const card = document.getElementById('res-hist-card');
+  const canvas = document.getElementById('res-reaction-hist');
+  const statsEl = document.getElementById('res-hist-stats');
+  if (!card || !canvas) return;
+  const rt = (G.reactionTimes || []).filter(v => v > 0 && v < 2000);
+  if (rt.length < 3 || typeof Chart === 'undefined') {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+
+  // Buckets: 100ms wide, 150..850
+  const edges = [150,250,350,450,550,650,750,850];
+  const labels = edges.slice(0, -1).map((e,i)=> `${e}-${edges[i+1]}`);
+  const buckets = new Array(edges.length-1).fill(0);
+  rt.forEach(v => {
+    for (let i=0; i<edges.length-1; i++) {
+      if (v >= edges[i] && v < edges[i+1]) { buckets[i]++; break; }
+    }
+  });
+
+  const avg = Math.round(_mean(rt));
+  const median = (() => {
+    const s = rt.slice().sort((a,b)=>a-b);
+    const m = Math.floor(s.length/2);
+    return s.length % 2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+  })();
+  const best = Math.min(...rt);
+  const sd = Math.round(_stdev(rt));
+
+  if (statsEl) {
+    statsEl.innerHTML =
+      `<span>Moy <b>${avg}ms</b></span>` +
+      `<span>Médiane <b>${median}ms</b></span>` +
+      `<span>Best <b>${best}ms</b></span>` +
+      `<span>σ <b>${sd}ms</b></span>`;
+  }
+
+  if (_resHistChart) { _resHistChart.destroy(); _resHistChart = null; }
+  const ctx = canvas.getContext('2d');
+  const css = getComputedStyle(document.documentElement);
+  const accent = css.getPropertyValue('--accent').trim() || '#ff4655';
+  const dim    = css.getPropertyValue('--dim').trim()    || '#8b949e';
+  const border = css.getPropertyValue('--border').trim() || '#30363d';
+
+  _resHistChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: buckets,
+        backgroundColor: buckets.map(() => accent + 'cc'),
+        borderColor: accent,
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: true } },
+      scales: {
+        x: { ticks: { color: dim, font: { size: 9 } }, grid: { display: false } },
+        y: { ticks: { color: dim, font: { size: 9 } }, grid: { color: border }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderRunsSparkline(mode) {
+  const wrap = document.getElementById('res-sparkline-wrap');
+  const canvas = document.getElementById('res-runs-spark');
+  if (!wrap || !canvas) return;
+  const hist = getRunHistory(mode);
+  if (hist.length < 2 || typeof Chart === 'undefined') {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  const last5 = hist.slice(-5);
+  const labels = last5.map((_, i) => i === last5.length - 1 ? 'Cette run' : '');
+  const scores = last5.map(r => r.score);
+
+  if (_resSparkChart) { _resSparkChart.destroy(); _resSparkChart = null; }
+  const ctx = canvas.getContext('2d');
+  const css = getComputedStyle(document.documentElement);
+  const accent = css.getPropertyValue('--accent').trim() || '#ff4655';
+  const dim    = css.getPropertyValue('--dim').trim()    || '#8b949e';
+
+  _resSparkChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: scores,
+        borderColor: accent,
+        backgroundColor: accent + '22',
+        fill: true,
+        tension: 0.35,
+        pointRadius: scores.map((_,i) => i === scores.length - 1 ? 4 : 2),
+        pointBackgroundColor: scores.map((_,i) => i === scores.length - 1 ? accent : dim),
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: (ctx) => ctx.raw.toLocaleString() + ' pts' }
+      } },
+      scales: { x: { display: false }, y: { display: false } },
+      layout: { padding: 4 },
+    }
+  });
+}
+
+// ---- IN-RUN TROPHY TOASTS ----
+// Fires on specific milestones during a run. State is cleared at startGame.
+function _trophy(msg, icon) {
+  if (!window.showToast) return;
+  try {
+    const el = window.showToast(msg, { type: 'info', icon: icon || '🏆', duration: 1600 });
+    if (el && el.classList) { el.classList.remove('toast--info'); el.classList.add('toast--trophy'); }
+  } catch {}
+}
+function checkInRunTrophies() {
+  if (!G._trophies) G._trophies = {};
+  const T = G._trophies;
+  if (!T.c10 && G.combo === 10) { T.c10 = 1; _trophy('Combo x10 !', '🔥'); }
+  if (!T.c20 && G.combo === 20) { T.c20 = 1; _trophy('Combo x20 !', '💯'); }
+  if (!T.c30 && G.combo === 30) { T.c30 = 1; _trophy('Combo x30 — insane !', '⚡'); }
+  if (!T.c50 && G.combo === 50) { T.c50 = 1; _trophy('Combo x50 — GOD MODE', '👑'); }
+  if (!T.h50 && G.hits === 50) { T.h50 = 1; _trophy('50 hits !', '🎯'); }
+  if (!T.h100 && G.hits === 100) { T.h100 = 1; _trophy('100 hits !', '🎯'); }
+  if (!T.h200 && G.hits === 200) { T.h200 = 1; _trophy('200 hits — monstre', '💥'); }
+  // Sub-200ms rush: 5 reactions in a row below 200ms
+  if (!T.rush && G.reactionTimes.length >= 5) {
+    const last5 = G.reactionTimes.slice(-5);
+    if (last5.every(v => v < 200)) { T.rush = 1; _trophy('Flash rush — 5× <200ms', '⚡'); }
+  }
+}
 
 // ============ MISSIONS ============
 let activeMissions = [];

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- MayhAim logo: crosshair-M hybrid with central target dot -->
+  <!-- Palette: Valorant red #ff4655 on dark #0d1117 -->
+
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff4655" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#ff4655" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ff4655" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mgrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b78"/>
+      <stop offset="100%" stop-color="#e63545"/>
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#ff4655" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Dark rounded background (App icon style) -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="#0d1117"/>
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#glow)"/>
+
+  <!-- Subtle grid/scope ticks at edges -->
+  <g stroke="#ff4655" stroke-width="3" opacity="0.22" stroke-linecap="round">
+    <!-- top -->
+    <line x1="256" y1="56" x2="256" y2="80"/>
+    <!-- bottom -->
+    <line x1="256" y1="432" x2="256" y2="456"/>
+    <!-- left -->
+    <line x1="56" y1="256" x2="80" y2="256"/>
+    <!-- right -->
+    <line x1="432" y1="256" x2="456" y2="256"/>
+  </g>
+
+  <!-- Outer scope ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#ff4655" stroke-width="4" opacity="0.35"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#ff4655" stroke-width="2" opacity="0.15"/>
+
+  <!-- Crosshair lines (through the M) -->
+  <g stroke="#ff4655" stroke-width="6" opacity="0.55" stroke-linecap="round">
+    <line x1="256" y1="90" x2="256" y2="150"/>
+    <line x1="256" y1="362" x2="256" y2="422"/>
+    <line x1="90"  y1="256" x2="150" y2="256"/>
+    <line x1="362" y1="256" x2="422" y2="256"/>
+  </g>
+
+  <!-- Bold M (main mark) - geometric/military stencil style -->
+  <g filter="url(#shadow)">
+    <path d="
+      M 140 368
+      L 140 160
+      L 188 160
+      L 256 264
+      L 324 160
+      L 372 160
+      L 372 368
+      L 324 368
+      L 324 238
+      L 266 326
+      L 246 326
+      L 188 238
+      L 188 368
+      Z
+    " fill="url(#mgrad)" stroke="#0d1117" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Central target dot (the "Aim" in MayhAim) -->
+  <circle cx="256" cy="295" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="295" r="5"  fill="#ff4655"/>
+</svg>

@@ -7,11 +7,12 @@
   "main": "electron-main.js",
   "scripts": {
     "setup-db": "node scripts/setup-db.js",
+    "build:icons": "node scripts/build-icons.js",
     "electron": "electron .",
     "electron:dev": "electron . --dev",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
-    "dist:portable": "electron-builder --win portable"
+    "dist": "npm run build:icons && electron-builder",
+    "dist:win": "npm run build:icons && electron-builder --win",
+    "dist:portable": "npm run build:icons && electron-builder --win portable"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -23,7 +24,9 @@
   },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5"
   },
   "build": {
     "appId": "com.mayhaim.aimtrainer",
@@ -42,11 +45,18 @@
       "game3d.js",
       "game.js",
       "audio.js",
+      "ui.js",
       "style.css",
       "three.min.js",
       "scenario-maps-data.js",
       "maps.js",
       "package.json",
+      "CHANGELOG.md",
+      "build/icon.ico",
+      "build/icon.png",
+      "build/icon.svg",
+      "build/splash.html",
+      "!build/icons/**",
       "!api/**",
       "!netlify/**",
       "!scripts/**",
@@ -59,14 +69,19 @@
       "!netlify.toml"
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

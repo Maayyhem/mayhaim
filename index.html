@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MayhAim - Viscose Benchmark</title>
+  <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
+  <meta name="theme-color" content="#ff4655">
+  <title>MayhAim — Aim Trainer & Coaching Hub</title>
+  <link rel="icon" type="image/png" href="build/icon.png">
+  <link rel="icon" type="image/x-icon" href="build/icon.ico">
+  <link rel="apple-touch-icon" href="build/icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="ui.js"></script>
   <script src="three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
@@ -159,49 +165,89 @@
     <!-- RESULTS -->
     <div id="results-screen" class="screen">
       <div id="bm-results-overlay" class="bm-results-overlay" style="display:none"></div>
-      <div class="results-wrap">
-        <div class="res-header">
-          <div class="res-mode-name" id="res-mode-name"></div>
-          <div class="results-rank" id="res-rank">-</div>
-        </div>
-        <div id="res-pb-wrap" class="res-pb-wrap" style="display:none"></div>
-        <div class="results-grid">
-          <div class="r-card r-card-score">
-            <span class="r-val" id="r-score">0</span>
-            <span class="r-lbl">Score</span>
+      <div class="results-wrap results-wrap-v2">
+
+        <!-- Hero: mode + rank + score + PB + sparkline -->
+        <div class="res-hero">
+          <div class="res-hero-top">
+            <div class="res-mode-name" id="res-mode-name"></div>
+            <div class="results-rank" id="res-rank">-</div>
           </div>
-          <div class="r-card">
-            <span class="r-val" id="r-acc">0%</span>
-            <span class="r-lbl">Précision</span>
+          <div class="res-hero-score">
+            <span class="res-score-big" id="r-score">0</span>
+            <span class="res-score-lbl">Score</span>
           </div>
-          <div class="r-card">
-            <span class="r-val" id="r-hits">0</span>
-            <span class="r-lbl">Hits</span>
-          </div>
-          <div class="r-card">
-            <span class="r-val" id="r-misses">0</span>
-            <span class="r-lbl">Misses</span>
-          </div>
-          <div class="r-card">
-            <span class="r-val" id="r-react">0ms</span>
-            <span class="r-lbl">Réaction</span>
-          </div>
-          <div class="r-card">
-            <span class="r-val" id="r-combo">0</span>
-            <span class="r-lbl">Best Combo</span>
+          <div id="res-pb-wrap" class="res-pb-wrap" style="display:none"></div>
+          <div class="res-sparkline-wrap" id="res-sparkline-wrap" style="display:none">
+            <div class="res-spark-lbl">5 dernières runs</div>
+            <canvas id="res-runs-spark" width="380" height="52"></canvas>
           </div>
         </div>
+
+        <!-- 3 score gauges: Precision / Speed / Consistency -->
+        <div class="res-scores-row" id="res-scores-row">
+          <div class="res-gauge" data-gauge="precision">
+            <svg class="res-gauge-svg" viewBox="0 0 120 120">
+              <circle class="res-gauge-bg" cx="60" cy="60" r="52"/>
+              <circle class="res-gauge-fg" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="res-gauge-inner">
+              <div class="res-gauge-val" id="gauge-precision">0</div>
+              <div class="res-gauge-lbl">Precision</div>
+            </div>
+          </div>
+          <div class="res-gauge" data-gauge="speed">
+            <svg class="res-gauge-svg" viewBox="0 0 120 120">
+              <circle class="res-gauge-bg" cx="60" cy="60" r="52"/>
+              <circle class="res-gauge-fg" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="res-gauge-inner">
+              <div class="res-gauge-val" id="gauge-speed">0</div>
+              <div class="res-gauge-lbl">Speed</div>
+            </div>
+          </div>
+          <div class="res-gauge" data-gauge="consistency">
+            <svg class="res-gauge-svg" viewBox="0 0 120 120">
+              <circle class="res-gauge-bg" cx="60" cy="60" r="52"/>
+              <circle class="res-gauge-fg" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="res-gauge-inner">
+              <div class="res-gauge-val" id="gauge-consistency">0</div>
+              <div class="res-gauge-lbl">Consistency</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact stats row -->
+        <div class="res-stats-compact">
+          <div class="res-stat"><span class="res-stat-val" id="r-acc">0%</span><span class="res-stat-lbl">Précision</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-hits">0</span><span class="res-stat-lbl">Hits</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-misses">0</span><span class="res-stat-lbl">Misses</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-combo">0</span><span class="res-stat-lbl">Combo</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-react">0ms</span><span class="res-stat-lbl">Réaction</span></div>
+        </div>
+
         <div id="res-threads-wrap" class="hidden">
           <div class="r-card r-threads"><span class="r-val" id="r-threads">0/8</span><span class="r-lbl">Threads</span></div>
         </div>
-        <div id="heatmap-wrap" class="heatmap-wrap" style="display:none">
-          <div class="heatmap-title">🎯 Carte des clics</div>
-          <canvas id="heatmap-canvas" width="480" height="270"></canvas>
-          <div class="heatmap-legend">
-            <span class="heatmap-hit">● Hit</span>
-            <span class="heatmap-miss">● Miss</span>
+
+        <!-- Charts row: reaction histogram + heatmap -->
+        <div class="res-charts-row">
+          <div class="res-chart-card" id="res-hist-card" style="display:none">
+            <div class="res-chart-title">⏱ Distribution temps de réaction</div>
+            <canvas id="res-reaction-hist" width="420" height="180"></canvas>
+            <div class="res-hist-stats" id="res-hist-stats"></div>
+          </div>
+          <div id="heatmap-wrap" class="heatmap-wrap res-chart-card" style="display:none">
+            <div class="res-chart-title">🎯 Carte des clics</div>
+            <canvas id="heatmap-canvas" width="480" height="270"></canvas>
+            <div class="heatmap-legend">
+              <span class="heatmap-hit">● Hit</span>
+              <span class="heatmap-miss">● Miss</span>
+            </div>
           </div>
         </div>
+
         <div class="results-actions">
           <button id="btn-retry" class="btn-primary">↺ Rejouer</button>
           <button id="btn-replay" class="btn-secondary" style="display:none" onclick="showReplay()">🎬 Replay</button>
@@ -216,10 +262,15 @@
 
       <!-- SIDEBAR -->
       <aside class="ch-sidebar">
-        <div class="ch-sidebar-logo">
-          <div class="logo">AIM<span>.</span></div>
-          <div class="subtitle">TRAINING HUB</div>
-        </div>
+        <button class="ch-sidebar-logo ch-sidebar-about-btn" type="button"
+                onclick="window.showAbout && window.showAbout()"
+                title="À propos de MayhAim">
+          <img src="build/icon.png" alt="" class="ch-sidebar-logo-icon" width="36" height="36">
+          <div class="ch-sidebar-logo-text">
+            <div class="logo">MAYH<span>AIM</span></div>
+            <div class="subtitle">TRAINING HUB</div>
+          </div>
+        </button>
 
         <nav class="ch-sidebar-nav">
           <div class="ch-nav-section">Jouer</div>
