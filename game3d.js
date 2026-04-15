@@ -229,7 +229,7 @@ function isScenarioUnlocked(key, tier) {
   const prevTier = tier === 'hard' ? 'medium' : 'easier';
   const best = getBestFor(key, prevTier);
   const threads = calcThreadsFor(key, best, prevTier);
-  return threads >= maxThreadsFor(prevTier);
+  return threads >= 1; // au moins 1 thread sur le tier précédent
 }
 function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
 
@@ -1891,9 +1891,7 @@ function renderBenchmark() {
           const lbl = t==='easier'?'E':t==='medium'?'M':'H';
           if (!unlocked) {
             const prev = t==='hard'?'medium':'easier';
-            const pTh = calcThreadsFor(key, getBestFor(key, prev), prev);
-            const pMt = maxThreadsFor(prev);
-            return `<span class="bsc-chip locked" title="Terminer ${prev} (${pTh}/${pMt}) pour débloquer">🔒</span>`;
+            return `<span class="bsc-chip locked" title="Obtenir au moins 1 thread en ${prev} pour débloquer">🔒</span>`;
           }
           const active = t === currentTier;
           return `<span class="bsc-chip${active?' active':''} tier-${t}" data-key="${key}" data-tier="${t}" title="${t} · ${thT}/${mtT} threads">${lbl}<sub>${thT}</sub></span>`;
