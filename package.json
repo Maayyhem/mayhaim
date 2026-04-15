@@ -2,8 +2,16 @@
   "name": "mayhaim",
   "version": "1.0.0",
   "private": true,
+  "description": "MayhAim — Aim trainer FPS + coaching hub",
+  "author": "Maayyhem",
+  "main": "electron-main.js",
   "scripts": {
-    "setup-db": "node scripts/setup-db.js"
+    "setup-db": "node scripts/setup-db.js",
+    "electron": "electron .",
+    "electron:dev": "electron . --dev",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -12,5 +20,69 @@
     "jsonwebtoken": "^9.0.2",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.mayhaim.aimtrainer",
+    "productName": "MayhAim",
+    "copyright": "Copyright © 2026 MayhAim",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron-main.js",
+      "electron-preload.js",
+      "index.html",
+      "profile.html",
+      "coaching.js",
+      "coachplayer.js",
+      "game3d.js",
+      "game.js",
+      "audio.js",
+      "style.css",
+      "three.min.js",
+      "scenario-maps-data.js",
+      "maps.js",
+      "package.json",
+      "!api/**",
+      "!netlify/**",
+      "!scripts/**",
+      "!.env*",
+      "!**/*.md",
+      "!dist/**",
+      "!serve.pl",
+      "!serve.ps1",
+      "!vercel.json",
+      "!netlify.toml"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MayhAim",
+      "uninstallDisplayName": "MayhAim — Aim Trainer",
+      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
+    },
+    "asar": true
   }
 }
