@@ -426,9 +426,9 @@ function initThree() {
   scene = new THREE.Scene(); scene.background = new THREE.Color(0xb8b8b8);
   camera = new THREE.PerspectiveCamera(73, innerWidth/innerHeight, 0.1, 200);
   camera.position.set(0,1.7,0);
-  renderer = new THREE.WebGLRenderer({ canvas:$('#game-canvas'), antialias:true });
-  renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.shadowMap.enabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
+  renderer = new THREE.WebGLRenderer({ canvas:$('#game-canvas'), antialias:true, powerPreference:'high-performance' });
+  renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.shadowMap.enabled = false; renderer.toneMapping = THREE.LinearToneMapping;
   clock = new THREE.Clock(); setupLights();
   roomGroup = new THREE.Group(); scene.add(roomGroup);
   targetsGroup = new THREE.Group(); scene.add(targetsGroup);
@@ -437,7 +437,7 @@ function initThree() {
 function setupLights() {
   scene.children.filter(c=>c.isLight).forEach(l=>scene.remove(l));
   scene.add(new THREE.AmbientLight(0xffffff,0.5));
-  const sun = new THREE.DirectionalLight(0xfff8f0,1); sun.position.set(5,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+  const sun = new THREE.DirectionalLight(0xfff8f0,1); sun.position.set(5,15,5); scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xaaccff,0x444422,0.4));
 }
 function updateFOV() { const h=(loadSettings().hFov||103)*Math.PI/180; camera.fov=2*Math.atan(Math.tan(h/2)/camera.aspect)*180/Math.PI; camera.updateProjectionMatrix(); }
@@ -464,12 +464,12 @@ function setupRoomLights() {
   const s = loadSettings();
   const t = ROOM_THEMES[s.roomTheme] || ROOM_THEMES.clean_grey;
   scene.add(new THREE.AmbientLight(0xffffff, t.ambient));
-  const sun = new THREE.DirectionalLight(t.sunColor, t.sunInt); sun.position.set(5,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+  const sun = new THREE.DirectionalLight(t.sunColor, t.sunInt); sun.position.set(5,15,5); scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xaaccff,0x444422,0.3));
 }
 
 function buildRoom(w,h,d) {
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M.floor); fl.rotation.x=-Math.PI/2; fl.receiveShadow=true; roomGroup.add(fl);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M.floor); fl.rotation.x=-Math.PI/2; roomGroup.add(fl);
   const rt=ROOM_THEMES[loadSettings().roomTheme]||ROOM_THEMES.clean_grey; const gr=new THREE.GridHelper(w,w,rt.grid[0],rt.grid[1]); gr.position.y=0.01; roomGroup.add(gr);
   const bw=new THREE.Mesh(new THREE.PlaneGeometry(w,h),M.wallBack); bw.position.set(0,h/2,-d/2); roomGroup.add(bw);
   const s1=new THREE.Mesh(new THREE.PlaneGeometry(d,h),M.wall); s1.position.set(-w/2,h/2,0); s1.rotation.y=Math.PI/2; roomGroup.add(s1);
@@ -479,7 +479,7 @@ function buildRoom(w,h,d) {
   for(let x=-w/3;x<=w/3;x+=w/3){const l=new THREE.Mesh(lG,lM);l.position.set(x,h-0.05,-d/4);roomGroup.add(l);}
 }
 
-function mkSphere(x,y,z,r,mat) { const g=new THREE.SphereGeometry(r,16,12),m=new THREE.Mesh(g,mat||M.t1); m.position.set(x,y,z); m.castShadow=true; targetsGroup.add(m); return m; }
+function mkSphere(x,y,z,r,mat) { const g=new THREE.SphereGeometry(r,12,8),m=new THREE.Mesh(g,mat||M.t1); m.position.set(x,y,z); targetsGroup.add(m); return m; }
 function rand(a,b) { return a+Math.random()*(b-a); }
 
 // ============================================================
