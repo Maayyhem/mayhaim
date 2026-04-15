@@ -1475,7 +1475,7 @@ function startGame(mode) {
   G.switchActiveIdx=0;G.switchTimer=0;
 
   const sc=SCENARIOS[mode];
-  $('#hud-mode').textContent = sc ? sc.label : mode;
+  $('#hud-mode').textContent = sc ? (G.benchmarkMode ? getLabel(mode) : sc.label) : mode;
   $('#hud-diff').textContent = G.benchmarkMode
     ? (window._coachLaunchSource?.tab==='ch-daily-training' ? 'Daily' : 'Benchmark')
     : G.diff;
@@ -1529,7 +1529,7 @@ function endGame() {
 
   // Mode name in header
   const rModeEl = $('#res-mode-name');
-  if(rModeEl) rModeEl.textContent = (SCENARIOS[G.mode]?.label || G.mode.replace(/_/g,' ')).toUpperCase();
+  if(rModeEl) rModeEl.textContent = (SCENARIOS[G.mode] ? (G.benchmarkMode ? getLabel(G.mode) : SCENARIOS[G.mode].label) : G.mode.replace(/_/g,' ')).toUpperCase();
 
   $('#r-score').textContent=G.score.toLocaleString();
   $('#r-acc').textContent=acc+'%'; $('#r-hits').textContent=G.hits;
@@ -1939,12 +1939,13 @@ function renderBenchmark() {
           chip.addEventListener('click', e=>{
             e.stopPropagation();
             currentTier = chip.dataset.tier;
+            window._coachLaunchSource = null; // benchmark, pas daily training
             G.benchmarkMode = true;
             startGame(chip.dataset.key);
           });
         });
         // Row click: launch with current tier
-        row.addEventListener('click', ()=>{ G.benchmarkMode=true; startGame(key); });
+        row.addEventListener('click', ()=>{ window._coachLaunchSource=null; G.benchmarkMode=true; startGame(key); });
 
         wrap.appendChild(row);
         wrap.appendChild(thTable);
@@ -1979,7 +1980,7 @@ document.addEventListener('mouseup',e=>{
 });
 $$('.mode-card').forEach(c=>c.addEventListener('click',()=>{G.benchmarkMode=false;startGame(c.dataset.mode);}));
 $('#btn-retry')?.addEventListener('click',()=>startGame(G.mode));
-$('#btn-menu')?.addEventListener('click',()=>showScreen('menu-screen'));
+// btn-menu onclick is always set by endGame() before results screen appears — no permanent listener needed
 $('#btn-benchmark')?.addEventListener('click',()=>{showScreen('benchmark-screen');renderBenchmark();});
 $('#btn-bench-back')?.addEventListener('click',()=>showScreen('menu-screen'));
 $('#btn-freeplay')?.addEventListener('click',()=>showScreen('free-play-screen'));
