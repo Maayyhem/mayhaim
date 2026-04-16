@@ -3008,9 +3008,9 @@ async function cloudSync(direction) {
   _updateSyncUI('syncing');
   console.log('[sync]', direction, 'starting…');
   try {
-    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '/api';
     if (direction === 'pull') {
-      const res = await fetch(apiBase + '/api/profile?action=sync-pull', {
+      const res = await fetch(apiBase + '/profile?action=sync-pull', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       console.log('[sync] pull response:', res.status);
@@ -3022,7 +3022,7 @@ async function cloudSync(direction) {
     } else {
       const clientData = _collectLocalData();
       console.log('[sync] push payload keys:', Object.keys(clientData).join(','));
-      const res = await fetch(apiBase + '/api/profile', {
+      const res = await fetch(apiBase + '/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ action: 'sync-push', client_data: clientData })
