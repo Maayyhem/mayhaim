@@ -3,8 +3,9 @@
 // Handles Discord OAuth via a dedicated popup window that captures
 // the returned discord_token/discord_error query params.
 
-const { app, BrowserWindow, Menu, shell, session } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, dialog } = require('electron');
 const path = require('node:path');
+const { autoUpdater } = require('electron-updater');
 
 const API_BASE = 'https://mayhaim.vercel.app';
 const DISCORD_OAUTH_PREFIX = API_BASE + '/api/login?action=discord';
@@ -160,6 +161,42 @@ app.whenReady().then(() => {
   // Splash first (shows immediately), then main in background
   createSplashWindow();
   createMainWindow();
+
+  // ── Auto-updater (GitHub Releases) ──
+  // Only runs in packaged builds — skipped during `npm run electron` dev.
+  if (app.isPackaged) {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('update-available', (info) => {
+      console.log('[updater] Update available:', info.version);
+      if (mainWindow) {
+        mainWindow.webContents.executeJavaScript(
+          `window.showToast && window.showToast('Mise à jour v${info.version} en téléchargement…', {type:'info',icon:'⬇',duration:4000})`
+        );
+      }
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('[updater] Update downloaded:', info.version);
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Mise à jour prête',
+        message: `MayhAim v${info.version} est prête. Redémarrer maintenant pour l'installer ?`,
+        buttons: ['Redémarrer', 'Plus tard'],
+        defaultId: 0,
+      }).then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall();
+      });
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('[updater] Error:', err.message);
+    });
+
+    // Check 3s after launch (let the window settle first)
+    setTimeout(() => autoUpdater.checkForUpdates(), 3000);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

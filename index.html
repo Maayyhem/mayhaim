@@ -231,20 +231,13 @@
           <div class="r-card r-threads"><span class="r-val" id="r-threads">0/8</span><span class="r-lbl">Threads</span></div>
         </div>
 
-        <!-- Charts row: reaction histogram + heatmap -->
-        <div class="res-charts-row">
-          <div class="res-chart-card" id="res-hist-card" style="display:none">
-            <div class="res-chart-title">⏱ Distribution temps de réaction</div>
-            <canvas id="res-reaction-hist" width="420" height="180"></canvas>
-            <div class="res-hist-stats" id="res-hist-stats"></div>
-          </div>
-          <div id="heatmap-wrap" class="heatmap-wrap res-chart-card" style="display:none">
-            <div class="res-chart-title">🎯 Carte des clics</div>
-            <canvas id="heatmap-canvas" width="480" height="270"></canvas>
-            <div class="heatmap-legend">
-              <span class="heatmap-hit">● Hit</span>
-              <span class="heatmap-miss">● Miss</span>
-            </div>
+        <!-- Heatmap -->
+        <div id="heatmap-wrap" class="heatmap-wrap res-chart-card" style="display:none">
+          <div class="res-chart-title">🎯 Carte des clics</div>
+          <canvas id="heatmap-canvas" width="480" height="270"></canvas>
+          <div class="heatmap-legend">
+            <span class="heatmap-hit">● Hit</span>
+            <span class="heatmap-miss">● Miss</span>
           </div>
         </div>
 

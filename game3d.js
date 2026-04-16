@@ -1307,7 +1307,7 @@ function shoot() {
         updateHUD(); return;
       }
     }
-    { const mp=_missPos(); G.clickLog.push({x:mp.x,y:mp.y,hit:false,t:Date.now()-G.startTime}); }
+    { const mp=_missPos(); G.clickLog.push({x:mp.tx,y:mp.ty,hit:false,err:mp.err,t:Date.now()-G.startTime}); }
     G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD(); return;
   }
 
@@ -1339,25 +1339,36 @@ function shoot() {
       hitTarget(tgt); return;
     }
   }
-  { const mp=_missPos(); G.clickLog.push({x:mp.x,y:mp.y,hit:false}); }
+  { const mp=_missPos(); G.clickLog.push({x:mp.tx,y:mp.ty,hit:false,err:mp.err,t:Date.now()-G.startTime}); }
   G.misses++; G.combo=0; audioEngine.play('miss'); updateHUD();
 }
 
 function _missPos() {
-  // Retourne la position 2D projetée de la cible vivante la plus proche du centre
-  // → montre "où était la cible quand tu as raté" sur la heatmap
+  // Returns the screen-projected position of the nearest alive target AND
+  // the crosshair position (always center = 0.5,0.5).
+  // The heatmap uses targetPos to show where the target was, and
+  // the distance crosshair→target gives the "aim error" vector.
   const alive = G.targets.filter(t => t.alive);
-  if (!alive.length) return {x:0.5, y:0.5};
+  if (!alive.length) return {x:0.5, y:0.5, tx:0.5, ty:0.5};
   let best = null, bestDist = Infinity;
   for (const t of alive) {
     try {
       const sp = t.mesh.position.clone().project(camera);
-      const dx = sp.x, dy = sp.y; // distance au centre (NDC 0,0)
+      const dx = sp.x, dy = sp.y;
       const d = dx*dx + dy*dy;
-      if (d < bestDist) { bestDist = d; best = {x:(sp.x+1)/2, y:(1-sp.y)/2}; }
+      if (d < bestDist) {
+        bestDist = d;
+        best = {
+          x:  0.5,             // crosshair always at center
+          y:  0.5,
+          tx: (sp.x+1)/2,     // target's screen position
+          ty: (1-sp.y)/2,
+          err: Math.sqrt(d),   // aim error in NDC units
+        };
+      }
     } catch(e) {}
   }
-  return best || {x:0.5, y:0.5};
+  return best || {x:0.5, y:0.5, tx:0.5, ty:0.5, err:0};
 }
 
 function hitTarget(t) {
@@ -1668,7 +1679,6 @@ function endGame() {
     saveRunHistoryEntry(G.mode, runEntry);
 
     renderRunsSparkline(G.mode);
-    renderReactionHistogram();
   } catch(e) { console.warn('[BATCH A] analytics failed', e); }
 
   showScreen('results-screen');

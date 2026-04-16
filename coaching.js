@@ -4490,27 +4490,32 @@ function _renderHeatmap() {
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
-  // Draw dots
+  // Draw clicks — precise positions with aim-error lines for misses
   log.forEach(p => {
     const px = p.x * W, py = p.y * H;
-    const r = p.hit ? 5 : 4;
-    const grd = ctx.createRadialGradient(px, py, 0, px, py, r * 2.5);
     if (p.hit) {
-      grd.addColorStop(0, 'rgba(74,222,128,0.9)');
+      // Green dot with glow for hits
+      const grd = ctx.createRadialGradient(px, py, 0, px, py, 10);
+      grd.addColorStop(0, 'rgba(74,222,128,0.95)');
       grd.addColorStop(1, 'rgba(74,222,128,0)');
+      ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#4ade80'; ctx.fill();
     } else {
-      grd.addColorStop(0, 'rgba(255,70,85,0.85)');
+      // Miss: show target position + error line from crosshair center → target
+      const cx = W / 2, cy = H / 2;
+      if (p.err > 0.02) {
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
+        ctx.strokeStyle = 'rgba(255,70,85,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+      // ✕ marker at target position
+      const grd = ctx.createRadialGradient(px, py, 0, px, py, 8);
+      grd.addColorStop(0, 'rgba(255,70,85,0.9)');
       grd.addColorStop(1, 'rgba(255,70,85,0)');
+      ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
+      ctx.strokeStyle = '#ff4655'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(px-3, py-3); ctx.lineTo(px+3, py+3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+3, py-3); ctx.lineTo(px-3, py+3); ctx.stroke();
     }
-    ctx.beginPath();
-    ctx.arc(px, py, r * 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = grd;
-    ctx.fill();
-    // Core dot
-    ctx.beginPath();
-    ctx.arc(px, py, r * 0.6, 0, Math.PI * 2);
-    ctx.fillStyle = p.hit ? '#4ade80' : '#ff4655';
-    ctx.fill();
   });
   // Stats overlay
   const hits = log.filter(p => p.hit).length;
