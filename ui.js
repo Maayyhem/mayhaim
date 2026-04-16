@@ -312,7 +312,7 @@
   }
 
   function showAbout() {
-    const version = window.MAYHAIM_VERSION || '1.4.2';
+    const version = window.MAYHAIM_VERSION || '1.4.3';
     const isElectron = !!window.MAYHAIM_IS_ELECTRON;
     const changelog = window.MAYHAIM_CHANGELOG;
 
