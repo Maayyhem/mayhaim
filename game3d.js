@@ -2935,6 +2935,24 @@ function _replayDraw(elapsed) {
 }
 
 // ============================================================
+// ═══ DATA RESET — bump DATA_VERSION to force wipe on all clients ═══
+// ============================================================
+const DATA_VERSION = 2; // bump this number to force a localStorage reset for all users
+(function checkDataVersion() {
+  const stored = parseInt(localStorage.getItem('mayhaim_data_version') || '0', 10);
+  if (stored < DATA_VERSION) {
+    // Preserve auth token and settings only
+    const token = localStorage.getItem('ch_token');
+    const settings = localStorage.getItem('valAim3Dv3_settings');
+    localStorage.clear();
+    if (token) localStorage.setItem('ch_token', token);
+    if (settings) localStorage.setItem('valAim3Dv3_settings', settings);
+    localStorage.setItem('mayhaim_data_version', String(DATA_VERSION));
+    console.log('[reset] localStorage wiped (data version ' + stored + ' → ' + DATA_VERSION + ')');
+  }
+})();
+
+// ============================================================
 // ═══ CLOUD SYNC — bidirectional localStorage ↔ server ═══
 // ============================================================
 
