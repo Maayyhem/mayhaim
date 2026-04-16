@@ -4827,7 +4827,7 @@ async function pfSaveProfile() {
 
     // Mettre à jour le cache local
     coachingUser = { ...coachingUser, ...data.user };
-    updateUserUI();
+    showApp();
     renderProfile();
     pfToggleEdit();
 
