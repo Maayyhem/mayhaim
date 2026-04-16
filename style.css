@@ -1246,6 +1246,67 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   .fc-toolbar { flex-direction: column; }
 }
 
+/* ── QCM Manager ── */
+.qcm-manager { max-height: 60vh; overflow-y: auto; }
+.qcm-mgr-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.qcm-mgr-item {
+  background: var(--card-h); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px;
+}
+.qcm-mgr-q {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 0.88rem; font-weight: 600; color: var(--txt); margin-bottom: 8px;
+}
+.qcm-mgr-num {
+  flex-shrink: 0; background: var(--accent); color: #fff;
+  padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800;
+}
+.qcm-mgr-choices {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+}
+.qcm-mgr-choice {
+  padding: 3px 10px; border-radius: 6px; font-size: 0.72rem;
+  background: rgba(255,255,255,0.05); color: var(--dim);
+}
+.qcm-mgr-choice--correct {
+  background: rgba(63,185,80,0.15); color: #2dbe73; font-weight: 700;
+}
+.qcm-mgr-actions { display: flex; gap: 8px; }
+.qcm-mgr-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: none; color: var(--dim); font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all 0.15s;
+}
+.qcm-mgr-btn:hover { border-color: var(--accent); color: var(--txt); }
+.qcm-mgr-btn-del:hover { border-color: #ff4655; color: #ff4655; }
+.qcm-mgr-add-btn {
+  width: 100%; padding: 12px; background: rgba(255,255,255,0.04);
+  border: 2px dashed var(--border); border-radius: 10px;
+  color: var(--dim); font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all 0.15s;
+}
+.qcm-mgr-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* QCM Editor */
+.qcm-editor { display: flex; flex-direction: column; gap: 12px; }
+.qcm-ed-field { display: flex; flex-direction: column; gap: 4px; }
+.qcm-ed-field label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--dim);
+}
+.qcm-ed-field textarea,
+.qcm-ed-field input,
+.qcm-ed-field select {
+  padding: 10px 12px; background: var(--bg); color: var(--txt);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 0.85rem; resize: vertical;
+}
+.qcm-ed-field textarea:focus,
+.qcm-ed-field input:focus,
+.qcm-ed-field select:focus {
+  border-color: var(--accent); outline: none;
+}
+
 /* Tactical Map */
 .map-step-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
 .map-step-btn { padding:5px 10px; font-size:0.7rem; font-weight:600; background:var(--bg); border:1px solid var(--border); color:var(--dim); border-radius:6px; cursor:pointer; font-family:var(--font); transition:all 0.12s; }

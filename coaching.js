@@ -1124,6 +1124,174 @@ function _qcmBuild() {
   for (const [id, questions] of Object.entries(Q)) {
     SCENARIO_QCM[+id] = questions;
   }
+  // Merge custom QCM from localStorage (overrides defaults)
+  try {
+    const custom = JSON.parse(localStorage.getItem('valAim_customQCM') || '{}');
+    for (const [id, questions] of Object.entries(custom)) {
+      SCENARIO_QCM[+id] = questions;
+    }
+  } catch {}
+}
+
+// ── QCM CRUD ──
+function _qcmSaveCustom() {
+  // Save all QCM to localStorage (so edits persist)
+  localStorage.setItem('valAim_customQCM', JSON.stringify(SCENARIO_QCM));
+}
+
+function _qcmAddQuestion(scenarioId, question) {
+  if (!SCENARIO_QCM[scenarioId]) SCENARIO_QCM[scenarioId] = [];
+  SCENARIO_QCM[scenarioId].push(question);
+  _qcmSaveCustom();
+}
+
+function _qcmEditQuestion(scenarioId, qIndex, question) {
+  if (!SCENARIO_QCM[scenarioId]?.[qIndex]) return;
+  SCENARIO_QCM[scenarioId][qIndex] = question;
+  _qcmSaveCustom();
+}
+
+function _qcmDeleteQuestion(scenarioId, qIndex) {
+  if (!SCENARIO_QCM[scenarioId]) return;
+  SCENARIO_QCM[scenarioId].splice(qIndex, 1);
+  if (!SCENARIO_QCM[scenarioId].length) delete SCENARIO_QCM[scenarioId];
+  _qcmSaveCustom();
+}
+
+// ── QCM Management Modal ──
+function _qcmOpenManager(scenarioId) {
+  _qcmBuild();
+  const s = coachingScenarios.find(sc => sc.id === scenarioId);
+  if (!s) return;
+  const questions = SCENARIO_QCM[scenarioId] || [];
+
+  const content = document.createElement('div');
+  content.className = 'qcm-manager';
+
+  function render() {
+    const qs = SCENARIO_QCM[scenarioId] || [];
+    content.innerHTML = `
+      <div class="qcm-mgr-list">
+        ${qs.length ? qs.map((q, i) => `
+          <div class="qcm-mgr-item">
+            <div class="qcm-mgr-q">
+              <span class="qcm-mgr-num">Q${i+1}</span>
+              <span>${san(q.q)}</span>
+            </div>
+            <div class="qcm-mgr-choices">
+              ${q.choices.map((c, ci) => `<span class="qcm-mgr-choice ${ci === q.answer ? 'qcm-mgr-choice--correct' : ''}">${'ABCD'[ci]}. ${san(c)}</span>`).join('')}
+            </div>
+            <div class="qcm-mgr-actions">
+              <button class="qcm-mgr-btn qcm-mgr-btn-edit" data-idx="${i}">✏️ Modifier</button>
+              <button class="qcm-mgr-btn qcm-mgr-btn-del" data-idx="${i}">🗑️ Supprimer</button>
+            </div>
+          </div>
+        `).join('') : '<p style="color:var(--dim);text-align:center;padding:20px 0">Aucune question pour ce scénario</p>'}
+      </div>
+      <button class="qcm-mgr-add-btn" id="qcm-mgr-add">+ Ajouter une question</button>
+    `;
+
+    // Bind events
+    content.querySelectorAll('.qcm-mgr-btn-edit').forEach(btn => {
+      btn.addEventListener('click', () => _qcmOpenEditor(scenarioId, +btn.dataset.idx, render));
+    });
+    content.querySelectorAll('.qcm-mgr-btn-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Supprimer cette question ?')) return;
+        _qcmDeleteQuestion(scenarioId, +btn.dataset.idx);
+        showToast.success('Question supprimée');
+        render();
+      });
+    });
+    content.querySelector('#qcm-mgr-add')?.addEventListener('click', () => {
+      _qcmOpenEditor(scenarioId, -1, render);
+    });
+  }
+
+  render();
+
+  showModal({
+    title: `📝 QCM — ${s.title}`,
+    content,
+    size: 'lg',
+  });
+}
+
+function _qcmOpenEditor(scenarioId, qIndex, onSave) {
+  const existing = qIndex >= 0 ? SCENARIO_QCM[scenarioId]?.[qIndex] : null;
+  const isNew = !existing;
+
+  const form = document.createElement('div');
+  form.className = 'qcm-editor';
+  form.innerHTML = `
+    <div class="qcm-ed-field">
+      <label>Question</label>
+      <textarea id="qcm-ed-q" rows="2" placeholder="Ex: Pour attaquer A sur Haven, quel angle faut-il smoker en premier ?">${existing ? san(existing.q) : ''}</textarea>
+    </div>
+    <div class="qcm-ed-field">
+      <label>Choix A</label>
+      <input id="qcm-ed-a" type="text" value="${existing ? san(existing.choices[0] || '') : ''}" placeholder="Réponse A">
+    </div>
+    <div class="qcm-ed-field">
+      <label>Choix B</label>
+      <input id="qcm-ed-b" type="text" value="${existing ? san(existing.choices[1] || '') : ''}" placeholder="Réponse B">
+    </div>
+    <div class="qcm-ed-field">
+      <label>Choix C</label>
+      <input id="qcm-ed-c" type="text" value="${existing ? san(existing.choices[2] || '') : ''}" placeholder="Réponse C">
+    </div>
+    <div class="qcm-ed-field">
+      <label>Choix D</label>
+      <input id="qcm-ed-d" type="text" value="${existing ? san(existing.choices[3] || '') : ''}" placeholder="Réponse D">
+    </div>
+    <div class="qcm-ed-field">
+      <label>Bonne réponse</label>
+      <select id="qcm-ed-answer">
+        <option value="0" ${existing?.answer === 0 ? 'selected' : ''}>A</option>
+        <option value="1" ${existing?.answer === 1 ? 'selected' : ''}>B</option>
+        <option value="2" ${existing?.answer === 2 ? 'selected' : ''}>C</option>
+        <option value="3" ${existing?.answer === 3 ? 'selected' : ''}>D</option>
+      </select>
+    </div>
+    <div id="qcm-ed-error" style="color:#ff4655;font-size:0.82rem;display:none;margin-bottom:8px"></div>
+    <button class="btn-primary" id="qcm-ed-save" style="width:100%">${isNew ? 'Ajouter' : 'Sauvegarder'}</button>
+  `;
+
+  const modal = showModal({
+    title: isNew ? '➕ Nouvelle question' : '✏️ Modifier la question',
+    content: form,
+    size: 'md',
+  });
+
+  form.querySelector('#qcm-ed-save').addEventListener('click', () => {
+    const q = document.getElementById('qcm-ed-q').value.trim();
+    const choices = [
+      document.getElementById('qcm-ed-a').value.trim(),
+      document.getElementById('qcm-ed-b').value.trim(),
+      document.getElementById('qcm-ed-c').value.trim(),
+      document.getElementById('qcm-ed-d').value.trim(),
+    ];
+    const answer = +document.getElementById('qcm-ed-answer').value;
+    const errEl = document.getElementById('qcm-ed-error');
+
+    if (!q) { errEl.textContent = 'La question est requise'; errEl.style.display = 'block'; return; }
+    if (choices.filter(c => c).length < 2) { errEl.textContent = 'Au moins 2 choix sont requis'; errEl.style.display = 'block'; return; }
+    // Filter out empty choices and adjust answer index
+    const validChoices = choices.filter(c => c);
+    const adjustedAnswer = Math.min(answer, validChoices.length - 1);
+
+    const question = { q, choices: validChoices, answer: adjustedAnswer };
+
+    if (isNew) {
+      _qcmAddQuestion(scenarioId, question);
+      showToast.success('Question ajoutée !');
+    } else {
+      _qcmEditQuestion(scenarioId, qIndex, question);
+      showToast.success('Question modifiée !');
+    }
+    modal.close();
+    if (onSave) onSave();
+  });
 }
 
 // ── Quiz state ──
@@ -2472,10 +2640,12 @@ function coachingRenderManageScenarios() {
       <p class="ch-card-desc">${s.description || ''}</p>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn-primary ch-card-btn" style="flex:1">Editer</button>
+        <button class="btn-qcm-scenario" style="padding:8px 14px;background:rgba(240,196,63,0.15);border:1px solid rgba(240,196,63,0.3);color:#f0c43f;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">📝 QCM</button>
         <button class="btn-del-scenario" style="padding:8px 14px;background:rgba(255,70,85,0.15);border:1px solid rgba(255,70,85,0.3);color:var(--accent);border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">Supprimer</button>
       </div>
     `;
     card.querySelector('.ch-card-btn').addEventListener('click', () => coachingOpenEditModal(s));
+    card.querySelector('.btn-qcm-scenario').addEventListener('click', () => _qcmOpenManager(s.id));
     card.querySelector('.btn-del-scenario').addEventListener('click', async () => {
       if (!confirm(`Supprimer le scénario "${s.title}" ?`)) return;
       try {
