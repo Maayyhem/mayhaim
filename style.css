@@ -783,7 +783,9 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   top: 8px;
   font-size: 0.72rem;
   pointer-events: none;
+  opacity: 0.5;
 }
+.ch-nav-search-icon svg { width: 14px; height: 14px; }
 
 /* ── Nav Groups (collapsible) ── */
 .ch-nav-group { margin-bottom: 2px; }
@@ -866,7 +868,9 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   background: var(--accent);
   border-radius: 0 2px 2px 0;
 }
-.ch-nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.ch-nav-icon { width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; opacity: 0.6; }
+.ch-nav-icon svg { width: 18px; height: 18px; }
+.ch-nav-item:hover .ch-nav-icon, .ch-nav-item.active .ch-nav-icon { opacity: 1; }
 .ch-nav-badge {
   margin-left: auto;
   background: var(--accent);
@@ -1055,6 +1059,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   padding-left: 10px;
   border-left: 3px solid var(--accent);
 }
+.ch-section-title svg { width: 16px; height: 16px; vertical-align: -2px; margin-right: 2px; }
 
 /* ── Old tabs hidden ─────────────────────────────────── */
 .ch-tabs { display: none !important; }

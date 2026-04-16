@@ -269,7 +269,7 @@
         <nav class="ch-sidebar-nav">
           <div class="ch-nav-search-wrap">
             <input type="text" id="ch-nav-search" class="ch-nav-search" placeholder="Rechercher..." autocomplete="off">
-            <span class="ch-nav-search-icon">🔍</span>
+            <span class="ch-nav-search-icon" data-icon="search"></span>
           </div>
 
           <div class="ch-nav-group" data-group="play">
@@ -279,16 +279,16 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn active" data-tab="hub-home">
-                <span class="ch-nav-icon">🏠</span> Accueil
+                <span class="ch-nav-icon" data-icon="home"></span> Accueil
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="hub-freeplay">
-                <span class="ch-nav-icon">⚡</span> Free Play
+                <span class="ch-nav-icon" data-icon="zap"></span> Free Play
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="hub-viscose">
-                <span class="ch-nav-icon">📊</span> Viscose Benchmark
+                <span class="ch-nav-icon" data-icon="chart"></span> Viscose Benchmark
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily">
-                <span class="ch-nav-icon">📅</span> Daily Challenge
+                <span class="ch-nav-icon" data-icon="calendar"></span> Daily Challenge
               </button>
             </div>
           </div>
@@ -300,22 +300,22 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-profile">
-                <span class="ch-nav-icon">👤</span> Mon Profil
+                <span class="ch-nav-icon" data-icon="user"></span> Mon Profil
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-tracker">
-                <span class="ch-nav-icon">🎮</span> Tracker Valorant
+                <span class="ch-nav-icon" data-icon="gamepad"></span> Tracker Valorant
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily-training">
-                <span class="ch-nav-icon">🗓️</span> Daily Training
+                <span class="ch-nav-icon" data-icon="training"></span> Daily Training
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
-                <span class="ch-nav-icon">📈</span> Historique
+                <span class="ch-nav-icon" data-icon="trending"></span> Historique
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-leaderboard">
-                <span class="ch-nav-icon">🏆</span> Classement
+                <span class="ch-nav-icon" data-icon="trophy"></span> Classement
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-achievements">
-                <span class="ch-nav-icon">🏅</span> Succès
+                <span class="ch-nav-icon" data-icon="medal"></span> Succès
               </button>
             </div>
           </div>
@@ -327,22 +327,22 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-ai-coach">
-                <span class="ch-nav-icon">🤖</span> Coach IA
+                <span class="ch-nav-icon" data-icon="bot"></span> Coach IA
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-scenarios">
-                <span class="ch-nav-icon">🎯</span> Scénarios
+                <span class="ch-nav-icon" data-icon="crosshair"></span> Scénarios
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-agents">
-                <span class="ch-nav-icon">🧠</span> Agents
+                <span class="ch-nav-icon" data-icon="brain"></span> Agents
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-vods">
-                <span class="ch-nav-icon">📹</span> VODs
+                <span class="ch-nav-icon" data-icon="video"></span> VODs
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-cours">
-                <span class="ch-nav-icon">📚</span> Cours
+                <span class="ch-nav-icon" data-icon="book"></span> Cours
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-warmup">
-                <span class="ch-nav-icon">🔥</span> Échauffement
+                <span class="ch-nav-icon" data-icon="flame"></span> Échauffement
               </button>
             </div>
           </div>
@@ -354,13 +354,13 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">
-                <span class="ch-nav-icon">👥</span> Élèves
+                <span class="ch-nav-icon" data-icon="users"></span> Élèves
               </button>
               <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">
-                <span class="ch-nav-icon">🗺️</span> Map Editor
+                <span class="ch-nav-icon" data-icon="map"></span> Map Editor
               </button>
               <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">
-                <span class="ch-nav-icon">🔧</span> Gestion Scénarios
+                <span class="ch-nav-icon" data-icon="wrench"></span> Gestion Scénarios
               </button>
             </div>
           </div>
@@ -372,26 +372,26 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn" data-tab="ch-messages">
-                <span class="ch-nav-icon">💬</span> Messages
+                <span class="ch-nav-icon" data-icon="message"></span> Messages
                 <span class="ch-nav-badge" id="nav-notif-badge" style="display:none">0</span>
               </button>
               <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">
-                <span class="ch-nav-icon">👨‍🏫</span> Mon Coach
+                <span class="ch-nav-icon" data-icon="teacher"></span> Mon Coach
               </button>
               <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mes-vods" style="display:none">
-                <span class="ch-nav-icon">🎬</span> Mes VODs<span class="ch-nav-badge" id="badge-vods" style="display:none">!</span>
+                <span class="ch-nav-icon" data-icon="film"></span> Mes VODs<span class="ch-nav-badge" id="badge-vods" style="display:none">!</span>
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="cp-mon-plan">
-                <span class="ch-nav-icon">🗓️</span> Mon Plan<span class="ch-nav-badge" id="badge-plan" style="display:none">!</span>
+                <span class="ch-nav-icon" data-icon="clipboard"></span> Mon Plan<span class="ch-nav-badge" id="badge-plan" style="display:none">!</span>
               </button>
               <button class="ch-nav-item ch-tab-btn" data-tab="cp-feedbacks">
-                <span class="ch-nav-icon">📝</span> Feedbacks<span class="ch-nav-badge" id="badge-feedback" style="display:none">!</span>
+                <span class="ch-nav-icon" data-icon="feedback"></span> Feedbacks<span class="ch-nav-badge" id="badge-feedback" style="display:none">!</span>
               </button>
             </div>
           </div>
 
           <button class="ch-nav-item ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">
-            <span class="ch-nav-icon">⚙️</span> Admin
+            <span class="ch-nav-icon" data-icon="admin"></span> Admin
           </button>
 
           <div class="ch-nav-group" data-group="general">
@@ -401,7 +401,7 @@
             </button>
             <div class="ch-nav-group-items">
               <button class="ch-nav-item ch-tab-btn" data-tab="hub-settings">
-                <span class="ch-nav-icon">⚙️</span> Paramètres
+                <span class="ch-nav-icon" data-icon="settings"></span> Paramètres
               </button>
             </div>
           </div>
@@ -910,7 +910,7 @@
         <!-- ══ HUB VISCOSE BENCHMARK (remplace benchmark-screen) ══ -->
         <div id="hub-viscose" class="ch-panel">
           <div class="hub-viscose-header">
-            <h2 class="ch-section-title" style="margin:0;flex:1">📊 Viscose Benchmark</h2>
+            <h2 class="ch-section-title" style="margin:0;flex:1"><span data-icon="chart"></span> Viscose Benchmark</h2>
             <div class="bench-global-tiers">
               <span class="bench-gtier-chip" data-tier="easier" onclick="setCurrentTier('easier')">Easier</span>
               <span class="bench-gtier-chip active" data-tier="medium" onclick="setCurrentTier('medium')">Medium</span>
@@ -1066,7 +1066,7 @@
 
         <!-- SCENARIOS -->
         <div id="ch-scenarios" class="ch-panel">
-          <h2 class="ch-section-title">🎯 Scénarios Tactiques</h2>
+          <h2 class="ch-section-title"><span data-icon="crosshair"></span> Scénarios Tactiques</h2>
           <div class="fc-toolbar">
             <div class="ch-filters" style="margin-bottom:0">
               <div class="ch-filter-group"><label>Rang</label>
@@ -1130,7 +1130,7 @@
 
         <!-- ÉCHAUFFEMENT -->
         <div id="ch-warmup" class="ch-panel">
-          <h2 class="ch-section-title">🔥 Routine d'Échauffement</h2>
+          <h2 class="ch-section-title"><span data-icon="flame"></span> Routine d'Échauffement</h2>
           <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Une session de warm-up complète avant de jouer. Inspirée de la méthode Oblivity.</p>
 
           <div class="warmup-phases">
@@ -1532,7 +1532,7 @@
 
         <!-- DAILY CHALLENGE -->
         <div id="ch-daily" class="ch-panel">
-          <h2 class="ch-section-title">⚡ Daily Challenge</h2>
+          <h2 class="ch-section-title"><span data-icon="zap"></span> Daily Challenge</h2>
           <div class="daily-hero">
             <div class="daily-mode-badge" id="daily-mode-badge">—</div>
             <div class="daily-mode-desc" id="daily-mode-desc">Chargement…</div>
@@ -1543,7 +1543,7 @@
             </div>
           </div>
           <div class="daily-board-wrap">
-            <h3 class="ch-section-title" style="font-size:1rem;margin-bottom:10px">🏆 Classement du jour</h3>
+            <h3 class="ch-section-title" style="font-size:1rem;margin-bottom:10px"><span data-icon="trophy"></span> Classement du jour</h3>
             <div id="daily-leaderboard"><p class="ch-empty">Chargement…</p></div>
           </div>
         </div>
@@ -1672,7 +1672,7 @@
 
         <!-- TRACKER VALORANT -->
         <div id="ch-tracker" class="ch-panel">
-          <h2 class="ch-section-title">🎮 Tracker Valorant</h2>
+          <h2 class="ch-section-title"><span data-icon="gamepad"></span> Tracker Valorant</h2>
           <div class="trk-search-bar">
             <div class="trk-search-inner">
               <span class="trk-search-icon">🔍</span>
@@ -1694,7 +1694,7 @@
 
           <hr style="border-color:var(--border);margin:24px 0 16px">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-            <h3 class="ch-section-title" style="font-size:1rem;margin:0">📈 Progression par mode</h3>
+            <h3 class="ch-section-title" style="font-size:1rem;margin:0"><span data-icon="trending"></span> Progression par mode</h3>
             <select id="pb-mode-select" class="wu-select" style="font-size:0.8rem" onchange="renderPbChart()">
               <option value="">— Choisir un mode —</option>
             </select>
@@ -1708,7 +1708,7 @@
           <div id="dt-content"></div>
           <!-- Weekly Challenges -->
           <div class="weekly-challenges-section" style="margin-top:24px;">
-            <h3 class="ch-section-title">📆 Défis de la semaine</h3>
+            <h3 class="ch-section-title"><span data-icon="calendar"></span> Défis de la semaine</h3>
             <p style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">3 défis renouvelés chaque lundi. Complète-les tous pour le badge hebdomadaire !</p>
             <div id="weekly-challenges-grid" class="weekly-grid"></div>
           </div>
@@ -1716,7 +1716,7 @@
 
         <!-- LEADERBOARD -->
         <div id="ch-leaderboard" class="ch-panel">
-          <h2 class="ch-section-title">🏆 Classement Global</h2>
+          <h2 class="ch-section-title"><span data-icon="trophy"></span> Classement Global</h2>
 
           <!-- Toggle: Global vs Par Mode -->
           <div class="lb-toggle-row">
@@ -1748,7 +1748,7 @@
         </div>
         <!-- ACHIEVEMENTS -->
         <div id="ch-achievements" class="ch-panel">
-          <h2 class="ch-section-title">🏅 Succès & Récompenses</h2>
+          <h2 class="ch-section-title"><span data-icon="medal"></span> Succès & Récompenses</h2>
           <div id="ch-ach-progress" class="ach-progress-wrap"></div>
           <div id="ch-achievements-grid" class="ach-grid"></div>
         </div>
