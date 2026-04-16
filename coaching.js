@@ -3395,6 +3395,29 @@ function _renderAiCoach(a, generatedAt, weekLabel, weekStart, daysLeft) {
 
 // ============ VALORANT TRACKER ============
 
+// Agent icon URLs from valorant-api.com
+const AGENT_ICONS = {};
+(async function loadAgentIcons() {
+  try {
+    const r = await fetch('https://valorant-api.com/v1/agents?isPlayableCharacter=true');
+    const d = await r.json();
+    for (const a of d.data || []) AGENT_ICONS[a.displayName.toLowerCase()] = a.displayIcon;
+  } catch(e) {}
+})();
+
+// Rank emblem URLs
+function _rankEmblemUrl(rankStr) {
+  if (!rankStr) return null;
+  const tiers = {'iron':3,'bronze':6,'silver':9,'gold':12,'platinum':15,'diamond':18,'ascendant':21,'immortal':24,'radiant':27};
+  const parts = rankStr.toLowerCase().split(' ');
+  const base = parts[0];
+  const num = parseInt(parts[1]) || 1;
+  const tier = tiers[base];
+  if (tier == null) return null;
+  const id = base === 'radiant' ? 27 : tier + (num - 1);
+  return `https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${id}/smallicon.png`;
+}
+
 function trackerTabLoad() {
   const main = document.getElementById('trk-main');
   if (!main) return;
@@ -3405,7 +3428,7 @@ function trackerTabLoad() {
         <div class="trk-link-title">Lie ton compte Riot Games</div>
         <p class="trk-link-desc">Connecte ton Riot ID pour accéder à tes stats Valorant en temps réel — Win Rate, KDA, ACS, headshot %, top agents et dernières parties ranked.</p>
         <div class="trk-link-form">
-          <input id="trk-riot-input" type="text" class="trk-link-input" placeholder="Pseudo#TAG  (ex: TenZ#NA1)" autocomplete="off">
+          <input id="trk-riot-input" type="text" class="trk-link-input" placeholder="Pseudo#TAG  (ex: TenZ#0505)" autocomplete="off">
           <button class="trk-link-btn" onclick="trackerLinkRiot()">Lier mon compte Riot</button>
           <div id="trk-link-msg" class="trk-link-msg"></div>
         </div>
@@ -3420,27 +3443,36 @@ function _trackerShowAccount() {
   if (!main) return;
   const u = coachingUser;
   const rankColor = _riotTierColor(u.riot_rank);
+  const emblemUrl = _rankEmblemUrl(u.riot_rank);
   const syncDate = u.riot_rank_synced_at
     ? new Date(u.riot_rank_synced_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
     : null;
   main.innerHTML = `
-    <div class="trk-account-header">
-      <div class="trk-account-info">
-        <div class="trk-account-name">${san(u.riot_gamename)}<span class="trk-tag">#${san(u.riot_tagline)}</span></div>
-        ${u.riot_rank
-          ? `<div class="trk-account-rank" style="background:${rankColor}18;color:${rankColor};border:1px solid ${rankColor}44">${san(u.riot_rank)}${u.riot_lp != null ? ` · ${u.riot_lp} LP` : ''}</div>`
-          : `<div style="color:var(--dim);font-size:0.82rem;margin-top:6px">Rang non synchronisé</div>`}
-        ${syncDate ? `<div class="trk-account-sync">Dernière sync : ${syncDate}</div>` : ''}
-      </div>
-      <div class="trk-account-actions">
-        <button class="trk-btn-sync" onclick="trackerSyncRank(this)">🔄 Sync rang</button>
-        <button class="trk-btn-unlink" onclick="trackerUnlink()">Délier</button>
+    <div class="trk-hero">
+      <div class="trk-hero-content">
+        <div class="trk-hero-left">
+          <div class="trk-rank-emblem">
+            ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">🎯</span>'}
+          </div>
+          <div class="trk-hero-info">
+            <div class="trk-hero-name">${san(u.riot_gamename)}<span class="trk-tag">#${san(u.riot_tagline)}</span></div>
+            ${u.riot_rank
+              ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(u.riot_rank)}<span class="trk-hero-lp">${u.riot_lp != null ? u.riot_lp + ' RR' : ''}</span></div>`
+              : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non synchronisé</div>'}
+            ${syncDate ? `<div class="trk-hero-sync">Sync ${syncDate}</div>` : ''}
+          </div>
+        </div>
+        <div class="trk-hero-actions">
+          <button class="trk-btn trk-btn-primary" onclick="trackerSyncRank(this)">🔄 Sync</button>
+          <button class="trk-btn trk-btn-ghost" onclick="trackerLoadStats(this)">📊 Stats</button>
+          <button class="trk-btn trk-btn-ghost" onclick="trackerUnlink()">Délier</button>
+        </div>
       </div>
     </div>
-    <div id="trk-stats-wrap">
-      <button class="trk-link-btn" onclick="trackerLoadStats(this)">📊 Charger mes stats compétitives</button>
-    </div>
+    <div id="trk-stats-wrap"></div>
     <div id="trk-msg" class="trk-link-msg"></div>`;
+  // Auto-load stats
+  trackerLoadStats();
 }
 
 async function trackerLinkRiot() {
@@ -3456,16 +3488,11 @@ async function trackerLinkRiot() {
       body: JSON.stringify({ action:'link-riot', riot_id })
     });
     const data = await res.json();
-    if (!res.ok) {
-      if(msg){msg.textContent=data.error;msg.style.color='#ff4655';}
-      return;
-    }
+    if (!res.ok) { if(msg){msg.textContent=data.error;msg.style.color='#ff4655';} return; }
     coachingUser = { ...coachingUser, riot_gamename:data.riot.gamename, riot_tagline:data.riot.tagline,
       riot_rank:data.riot.rank, riot_lp:data.riot.lp, riot_region:data.riot.region, riot_rank_synced_at:new Date().toISOString() };
     _trackerShowAccount();
-  } catch(e) {
-    if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';}
-  }
+  } catch(e) { if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';} }
 }
 
 async function trackerSyncRank(btn) {
@@ -3502,107 +3529,171 @@ async function trackerLoadStats(btn) {
   const msg  = document.getElementById('trk-msg');
   if (!wrap) return;
   if (btn) btn.disabled = true;
-  wrap.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--dim);font-size:0.85rem">
+  wrap.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--dim);font-size:0.85rem">
     <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">📊</div>Chargement des statistiques…</div>`;
   try {
     const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
-      wrap.innerHTML = `<div style="text-align:center;padding:20px 0">
-        <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">${san(data.error)}${data.detail ? `<br><span style="font-size:0.7rem;opacity:.6">${san(data.detail)}</span>` : ''}</p>
-        <button class="trk-link-btn" style="max-width:300px;margin:0 auto" onclick="trackerLoadStats(this)">Réessayer</button>
-      </div>`;
+      wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
+        <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">${san(data.error)}</p>
+        <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this)">Réessayer</button></div>`;
       return;
     }
     trackerRender(data, wrap);
   } catch(e) {
-    wrap.innerHTML = `<div style="text-align:center;padding:20px 0">
+    wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
       <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">Erreur réseau</p>
-      <button class="trk-link-btn" style="max-width:300px;margin:0 auto" onclick="trackerLoadStats(this)">Réessayer</button>
-    </div>`;
+      <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this)">Réessayer</button></div>`;
   }
+  finally { if(btn) btn.disabled=false; }
 }
 
 function trackerLoad() { trackerLoadStats(); }
+
+function _donutSvg(pct, color) {
+  const r = 58, c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  return `<svg class="trk-donut-svg" viewBox="0 0 140 140" width="140" height="140">
+    <circle class="trk-donut-bg" cx="70" cy="70" r="${r}"/>
+    <circle class="trk-donut-fg" cx="70" cy="70" r="${r}" stroke="${color}"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}"/>
+  </svg>`;
+}
+
+function _perfBar(val, max, color) {
+  const pct = Math.min(100, Math.round((val / max) * 100));
+  return `<div class="trk-perf-bar"><div class="trk-perf-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+}
 
 function trackerRender(data, el) {
   const s = data.stats;
   const wrColor = s.win_rate >= 50 ? '#2dbe73' : '#ff4655';
   const kdaColor = s.kda >= 1.5 ? '#2dbe73' : s.kda >= 1 ? '#f0c43f' : '#ff4655';
+  const acsColor = s.avg_acs >= 200 ? '#2dbe73' : s.avg_acs >= 150 ? '#f0c43f' : 'var(--accent)';
   const hsColor  = s.avg_hs_pct == null ? 'var(--dim)' : s.avg_hs_pct >= 25 ? '#2dbe73' : s.avg_hs_pct >= 15 ? '#f0c43f' : 'var(--dim)';
-  const rankColor = _riotTierColor(data.account.rank);
+  const dmgColor = s.avg_damage != null && s.avg_damage >= 150 ? '#2dbe73' : '#f0c43f';
 
+  // Agents HTML
   const agentsHtml = (data.top_agents || []).map(a => {
     const wr = a.games > 0 ? Math.round(a.wins / a.games * 100) : 0;
-    const cls = wr >= 50 ? 'win' : 'loss';
+    const c = wr >= 50 ? '#2dbe73' : '#ff4655';
+    const icon = AGENT_ICONS[a.agent.toLowerCase()];
     return `<div class="trk-agent-row">
-      <span class="trk-agent-name">${san(a.agent)}</span>
-      <span class="trk-agent-games">${a.games} partie${a.games>1?'s':''}</span>
-      <span class="trk-wr-badge ${cls}">${wr}%</span>
+      <div class="trk-agent-icon">${icon ? `<img src="${icon}" alt="">` : `<span style="font-size:1.1rem;display:flex;align-items:center;justify-content:center;height:100%">🎯</span>`}</div>
+      <div class="trk-agent-info">
+        <div class="trk-agent-name">${san(a.agent)}</div>
+        <div class="trk-agent-games">${a.games} partie${a.games>1?'s':''}</div>
+      </div>
+      <div class="trk-agent-wr-bar"><div class="trk-agent-wr-fill" style="width:${wr}%;background:${c}"></div></div>
+      <span class="trk-wr-val" style="color:${c}">${wr}%</span>
     </div>`;
   }).join('');
 
+  // Maps HTML
   const mapsHtml = (data.top_maps || []).map(m => {
     const wr = m.games > 0 ? Math.round(m.wins / m.games * 100) : 0;
-    const cls = wr >= 50 ? 'win' : 'loss';
+    const c = wr >= 50 ? '#2dbe73' : '#ff4655';
     return `<div class="trk-map-row">
-      <span class="trk-map-name">${san(m.map)}</span>
-      <span class="trk-map-games">${m.games} partie${m.games>1?'s':''}</span>
-      <span class="trk-wr-badge ${cls}">${wr}%</span>
+      <div class="trk-agent-icon"><span style="font-size:0.9rem;display:flex;align-items:center;justify-content:center;height:100%">🗺️</span></div>
+      <div class="trk-agent-info">
+        <div class="trk-agent-name">${san(m.map)}</div>
+        <div class="trk-agent-games">${m.games} partie${m.games>1?'s':''}</div>
+      </div>
+      <div class="trk-agent-wr-bar"><div class="trk-agent-wr-fill" style="width:${wr}%;background:${c}"></div></div>
+      <span class="trk-wr-val" style="color:${c}">${wr}%</span>
     </div>`;
   }).join('');
 
+  // Matches HTML
   const matchesHtml = (data.recent_matches || []).map(m => {
     const rc = m.result === 'WIN' ? 'win' : 'loss';
     const kc = m.deaths > 0 ? (m.kills/m.deaths >= 1.5 ? '#2dbe73' : m.kills/m.deaths >= 1 ? '#f0c43f' : '#ff4655') : '#2dbe73';
     const dateStr = m.date ? new Date(m.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
-    return `<div class="trk-match-row">
-      <div>
+    const agentIcon = AGENT_ICONS[(m.agent||'').toLowerCase()];
+    return `<div class="trk-match ${rc}">
+      <div class="trk-match-agent">${agentIcon ? `<img src="${agentIcon}" alt="">` : `<span style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">🎯</span>`}</div>
+      <div class="trk-match-main">
         <div class="trk-match-map">${san(m.map)}</div>
         <div class="trk-match-meta">${san(m.agent)} · ${dateStr}</div>
       </div>
-      <span class="trk-match-result ${rc}">${m.result}</span>
+      <span class="trk-match-result-badge ${rc}">${m.result}</span>
       <span class="trk-match-score">${m.score}</span>
       <span class="trk-match-kda" style="color:${kc}">${m.kills}/${m.deaths}/${m.assists}</span>
-      <span class="trk-match-acs">${m.acs} ACS</span>
+      <div class="trk-match-acs-wrap">
+        <div class="trk-match-acs-val">${m.acs}</div>
+        <div class="trk-match-acs-lbl">ACS</div>
+      </div>
     </div>`;
   }).join('');
 
   el.innerHTML = `
-    <div class="trk-stats-grid">
-      <div class="trk-stat-card">
-        <div class="trk-stat-val" style="color:${wrColor}">${s.win_rate}%</div>
-        <div class="trk-stat-lbl">Win Rate</div>
-        <div class="trk-stat-sub">${s.wins}V ${s.losses}D</div>
+    <!-- Overview: Donut + Performance -->
+    <div class="trk-overview">
+      <div class="trk-winrate-card">
+        <div class="trk-donut-wrap">
+          ${_donutSvg(s.win_rate, wrColor)}
+          <div class="trk-donut-center">
+            <div class="trk-donut-pct" style="color:${wrColor}">${s.win_rate}%</div>
+            <div class="trk-donut-lbl">Win Rate</div>
+          </div>
+        </div>
+        <div class="trk-wl-row">
+          <span class="trk-wl-w">${s.wins}W</span>
+          <span class="trk-wl-l">${s.losses}L</span>
+        </div>
       </div>
-      <div class="trk-stat-card">
-        <div class="trk-stat-val" style="color:${kdaColor}">${s.kda}</div>
-        <div class="trk-stat-lbl">K/D/A</div>
-      </div>
-      <div class="trk-stat-card">
-        <div class="trk-stat-val" style="color:var(--accent)">${s.avg_acs}</div>
-        <div class="trk-stat-lbl">ACS moyen</div>
-      </div>
-      <div class="trk-stat-card">
-        <div class="trk-stat-val" style="color:${hsColor}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</div>
-        <div class="trk-stat-lbl">Headshot %</div>
+
+      <div class="trk-perf-card">
+        <div class="trk-perf-item">
+          <div class="trk-perf-header">
+            <span class="trk-perf-label">K/D/A</span>
+            <span class="trk-perf-val" style="color:${kdaColor}">${s.kda}</span>
+          </div>
+          ${_perfBar(s.kda, 3, kdaColor)}
+        </div>
+        <div class="trk-perf-item">
+          <div class="trk-perf-header">
+            <span class="trk-perf-label">ACS moyen</span>
+            <span class="trk-perf-val" style="color:${acsColor}">${s.avg_acs}</span>
+          </div>
+          ${_perfBar(s.avg_acs, 300, acsColor)}
+        </div>
+        <div class="trk-perf-item">
+          <div class="trk-perf-header">
+            <span class="trk-perf-label">Headshot %</span>
+            <span class="trk-perf-val" style="color:${hsColor}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</span>
+          </div>
+          ${s.avg_hs_pct != null ? _perfBar(s.avg_hs_pct, 40, hsColor) : '<div class="trk-perf-bar"></div>'}
+        </div>
+        <div class="trk-perf-item">
+          <div class="trk-perf-header">
+            <span class="trk-perf-label">Damage/Round</span>
+            <span class="trk-perf-val" style="color:${dmgColor}">${s.avg_damage != null ? s.avg_damage : '—'}</span>
+          </div>
+          ${s.avg_damage != null ? _perfBar(s.avg_damage, 200, dmgColor) : '<div class="trk-perf-bar"></div>'}
+        </div>
       </div>
     </div>
 
-    <div class="trk-split-grid">
-      <div class="trk-split-card">
-        <div class="trk-split-title">Top Agents</div>
-        ${agentsHtml || '<p style="color:var(--dim);font-size:0.8rem">Aucune donnée</p>'}
+    <!-- Agents & Maps -->
+    <div class="trk-split">
+      <div class="trk-panel">
+        <div class="trk-panel-title">Top Agents</div>
+        ${agentsHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:8px 0">Aucune donnée</p>'}
       </div>
-      <div class="trk-split-card">
-        <div class="trk-split-title">Top Maps</div>
-        ${mapsHtml || '<p style="color:var(--dim);font-size:0.8rem">Aucune donnée</p>'}
+      <div class="trk-panel">
+        <div class="trk-panel-title">Top Maps</div>
+        ${mapsHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:8px 0">Aucune donnée</p>'}
       </div>
     </div>
 
-    <div class="trk-matches-card">
-      <div class="trk-matches-title">Dernières parties · ${s.matches_analyzed} analysées</div>
-      ${matchesHtml || '<p style="color:var(--dim);font-size:0.8rem;padding:8px 0">Aucune partie trouvée</p>'}
+    <!-- Match History -->
+    <div class="trk-matches">
+      <div class="trk-matches-header">
+        <span class="trk-matches-title">Historique · ${s.matches_analyzed} parties</span>
+      </div>
+      ${matchesHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:16px 18px">Aucune partie trouvée</p>'}
     </div>
 
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
