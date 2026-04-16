@@ -1179,6 +1179,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ============ VODS ============
 
+function getWatchedVods() {
+  try { return JSON.parse(localStorage.getItem('valAim_watchedVods') || '[]'); } catch { return []; }
+}
+function markVodWatched(id) {
+  const list = getWatchedVods();
+  if (!list.includes(id)) { list.push(id); localStorage.setItem('valAim_watchedVods', JSON.stringify(list)); }
+}
+
 function coachingRenderVods() {
   const player = document.getElementById('ch-vod-player-filter')?.value || '';
   const agent = document.getElementById('ch-vod-agent-filter')?.value || '';
