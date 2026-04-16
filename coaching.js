@@ -1006,6 +1006,19 @@ function _renderDashSparkline(activity) {
 
 // ============ scenarios ============
 
+// ── Scenario completion persistence ──
+function getCompletedscenarios() {
+  try { return JSON.parse(localStorage.getItem('valAim_completedScenarios') || '[]'); } catch { return []; }
+}
+function markScenarioCompleted(id) {
+  const list = getCompletedscenarios();
+  if (!list.includes(id)) { list.push(id); localStorage.setItem('valAim_completedScenarios', JSON.stringify(list)); }
+}
+
+// ── Flashcard state ──
+let _fcFiltered = [];
+let _fcIndex = 0;
+
 function coachingRenderScenarios() {
   const rank = document.getElementById('ch-rank-filter')?.value || '';
   const map = document.getElementById('ch-map-filter')?.value || '';
@@ -1018,30 +1031,172 @@ function coachingRenderScenarios() {
   if (type) filtered = filtered.filter(s => s.type === type);
   filtered = [...filtered].sort((a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank));
 
-  const list = document.getElementById('ch-scenarios-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (!filtered.length) { list.innerHTML = '<p class="ch-empty">Aucun scénario trouvé.</p>'; return; }
-
-  const completed = getCompletedscenarios();
-  filtered.forEach(s => {
-    const done = completed.includes(s.id);
-    const card = document.createElement('div');
-    card.className = 'ch-card' + (done ? ' ch-done' : '');
-    card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="ch-badge">${s.rank || ''}</span>
-        ${done ? '<span class="ch-badge-done">Complete</span>' : ''}
-      </div>
-      <div class="ch-card-title">${s.title}</div>
-      <div class="ch-card-meta">${s.map || ''} \u00b7 ${s.type === 'attack' ? 'Attaque' : s.type === 'defense' ? 'Défense' : 'Retake'}</div>
-      <p class="ch-card-desc">${s.description || ''}</p>
-      <button class="btn-primary ch-card-btn">Voir le guide</button>
-    `;
-    card.querySelector('.ch-card-btn').addEventListener('click', () => coachingOpenScenarioModal(s));
-    list.appendChild(card);
-  });
+  _fcFiltered = filtered;
+  _fcIndex = 0;
+  _fcRenderCard();
+  _fcRenderDots();
+  _fcUpdateCounter();
 }
+
+function _fcRenderCard() {
+  const wrapper = document.getElementById('fc-card-wrapper');
+  if (!wrapper) return;
+  if (!_fcFiltered.length) {
+    wrapper.innerHTML = '<p class="ch-empty" style="padding:60px 0">Aucun scénario trouvé.</p>';
+    return;
+  }
+  const s = _fcFiltered[_fcIndex];
+  const completed = getCompletedscenarios();
+  const done = completed.includes(s.id);
+  const typeLabel = s.type === 'attack' ? '⚔️ Attaque' : s.type === 'defense' ? '🛡️ Défense' : '🔄 Retake';
+  const typeClass = s.type === 'attack' ? 'fc-type-attack' : s.type === 'defense' ? 'fc-type-defense' : 'fc-type-retake';
+  const rankColor = _fcRankColor(s.rank);
+  const diffStars = '★'.repeat(s.difficulty || 1) + '☆'.repeat(5 - (s.difficulty || 1));
+
+  wrapper.innerHTML = `
+    <div class="fc-card ${done ? 'fc-card--done' : ''}" id="fc-active-card" onclick="_fcFlip()">
+      <!-- FRONT -->
+      <div class="fc-face fc-front">
+        <div class="fc-front-header">
+          <span class="fc-rank-pill" style="background:${rankColor}">${s.rank}</span>
+          <span class="fc-type-pill ${typeClass}">${typeLabel}</span>
+          ${done ? '<span class="fc-done-pill">✓ Maîtrisé</span>' : ''}
+        </div>
+        <div class="fc-front-body">
+          <div class="fc-map-name">${san(s.map || '')}</div>
+          <h3 class="fc-title">${san(s.title)}</h3>
+          <div class="fc-difficulty">${diffStars}</div>
+          <p class="fc-desc">${san(s.description || '')}</p>
+        </div>
+        <div class="fc-front-footer">
+          <span class="fc-flip-hint">🔄 Retourner pour voir le guide</span>
+        </div>
+      </div>
+      <!-- BACK -->
+      <div class="fc-face fc-back">
+        <div class="fc-back-header">
+          <h4 class="fc-back-title">${san(s.title)}</h4>
+          <span class="fc-rank-pill fc-rank-pill--sm" style="background:${rankColor}">${s.rank}</span>
+        </div>
+        <div class="fc-back-body">
+          <div class="fc-section">
+            <div class="fc-section-label">📋 Guide étape par étape</div>
+            <div class="fc-guide">${_fcFormatGuide(s.guide)}</div>
+          </div>
+          ${s.tips ? `<div class="fc-section">
+            <div class="fc-section-label">💡 Tips</div>
+            <p class="fc-tips">${san(s.tips)}</p>
+          </div>` : ''}
+          <div id="fc-map-container" style="margin-top:8px"></div>
+        </div>
+        <div class="fc-back-footer">
+          <button class="fc-btn fc-btn-train" onclick="event.stopPropagation();_fcTrain(${_fcIndex})">🎮 S'entraîner</button>
+          <button class="fc-btn fc-btn-master ${done ? 'fc-btn--done' : ''}" onclick="event.stopPropagation();_fcMarkDone(${_fcIndex})">${done ? '✓ Maîtrisé' : 'Marquer maîtrisé'}</button>
+        </div>
+      </div>
+    </div>`;
+
+  // Render map if available (after DOM insert)
+  setTimeout(() => {
+    if (typeof renderTacticalMap === 'function' && (getCustomScenarioMap(s.id) || typeof SCENARIO_ANNOTATIONS !== 'undefined' && SCENARIO_ANNOTATIONS[s.id])) {
+      renderTacticalMap('fc-map-container', s.id, 0);
+    } else if (typeof renderBlankMap === 'function' && s.map) {
+      renderBlankMap('fc-map-container', s.map);
+    }
+  }, 50);
+}
+
+function _fcFormatGuide(guide) {
+  if (!guide) return '<p style="color:var(--dim)">Guide non disponible.</p>';
+  return san(guide).split('\n').map(line => {
+    const m = line.match(/^(\d+)\.\s*(.*)/);
+    if (m) return `<div class="fc-step"><span class="fc-step-num">${m[1]}</span><span>${m[2]}</span></div>`;
+    return `<p>${line}</p>`;
+  }).join('');
+}
+
+function _fcRankColor(rank) {
+  const colors = { IRON:'#8b8b8b', BRONZE:'#cd7f32', SILVER:'#c0c0c0', GOLD:'#ffd700', PLATINUM:'#00bfa5', DIAMOND:'#b388ff', ASCENDANT:'#2dbe73', IMMORTAL:'#ff4655', RADIANT:'#fffacd' };
+  return colors[rank] || 'var(--dim)';
+}
+
+function _fcFlip() {
+  const card = document.getElementById('fc-active-card');
+  if (card) card.classList.toggle('fc-flipped');
+}
+
+function _fcNav(dir) {
+  if (!_fcFiltered.length) return;
+  _fcIndex = (_fcIndex + dir + _fcFiltered.length) % _fcFiltered.length;
+  _fcRenderCard();
+  _fcUpdateDots();
+  _fcUpdateCounter();
+}
+
+function _fcRenderDots() {
+  const dots = document.getElementById('fc-dots');
+  if (!dots) return;
+  if (_fcFiltered.length <= 1 || _fcFiltered.length > 30) { dots.innerHTML = ''; return; }
+  dots.innerHTML = _fcFiltered.map((_, i) =>
+    `<span class="fc-dot ${i === _fcIndex ? 'fc-dot--active' : ''}" onclick="_fcIndex=${i};_fcRenderCard();_fcUpdateDots();_fcUpdateCounter()"></span>`
+  ).join('');
+}
+
+function _fcUpdateDots() {
+  const dots = document.querySelectorAll('.fc-dot');
+  dots.forEach((d, i) => d.classList.toggle('fc-dot--active', i === _fcIndex));
+}
+
+function _fcUpdateCounter() {
+  const counter = document.getElementById('fc-counter');
+  const masteredEl = document.getElementById('fc-mastered-count');
+  if (counter) counter.textContent = _fcFiltered.length ? `${_fcIndex + 1} / ${_fcFiltered.length}` : '0 / 0';
+  if (masteredEl) {
+    const completed = getCompletedscenarios();
+    const n = _fcFiltered.filter(s => completed.includes(s.id)).length;
+    masteredEl.textContent = `${n} maîtrisé${n > 1 ? 's' : ''}`;
+  }
+}
+
+function _fcTrain(idx) {
+  const s = _fcFiltered[idx];
+  if (!s) return;
+  markScenarioCompleted(s.id);
+  incrementSessions();
+  _setCoachLaunchSource('ch-scenarios');
+  coachingSwitchTab('hub-home');
+  const aimMode = s.aim_mode || s.aimMode;
+  const aimDiff = s.aim_diff || s.aimDiff;
+  if (aimDiff) document.getElementById('opt-diff').value = aimDiff;
+  setTimeout(() => { const btn = document.querySelector(`.mode-card[data-mode="${aimMode}"]`); if (btn) btn.click(); }, 100);
+}
+
+function _fcMarkDone(idx) {
+  const s = _fcFiltered[idx];
+  if (!s) return;
+  markScenarioCompleted(s.id);
+  _fcRenderCard();
+  _fcUpdateCounter();
+  showToast.success('Scénario marqué comme maîtrisé !');
+}
+
+// Keyboard navigation for flashcards
+document.addEventListener('keydown', (e) => {
+  const scenPanel = document.getElementById('ch-scenarios');
+  if (!scenPanel || scenPanel.style.display === 'none' || !scenPanel.offsetParent) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); _fcNav(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); _fcNav(1); }
+  if (e.key === ' ' || e.key === 'Enter') {
+    const card = document.getElementById('fc-active-card');
+    if (card && document.activeElement?.tagName !== 'BUTTON') { e.preventDefault(); _fcFlip(); }
+  }
+});
+
+// Nav button listeners
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fc-prev')?.addEventListener('click', () => _fcNav(-1));
+  document.getElementById('fc-next')?.addEventListener('click', () => _fcNav(1));
+});
 
 function coachingOpenScenarioModal(s) {
   const modal = document.getElementById('ch-scenario-modal');

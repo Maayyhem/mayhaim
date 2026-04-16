@@ -1089,6 +1089,158 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ch-empty { color:var(--dim); grid-column:1/-1; text-align:center; padding:36px; }
 .ch-howto { font-size:0.75rem; color:var(--txt); line-height:1.6; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; border-left:3px solid var(--accent); margin-top:10px; }
 
+/* ── Flashcard Scenarios ── */
+.fc-toolbar {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.fc-progress {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.85rem; color: var(--dim); white-space: nowrap;
+}
+.fc-mastered-badge {
+  background: rgba(63,185,80,0.12); color: #2dbe73;
+  padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+}
+.fc-container {
+  display: flex; align-items: center; gap: 12px;
+  perspective: 1200px; min-height: 420px;
+}
+.fc-card-wrapper { flex: 1; max-width: 640px; margin: 0 auto; }
+.fc-nav {
+  width: 44px; height: 44px; flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: 50%;
+  color: var(--txt); font-size: 1.4rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.fc-nav:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
+.fc-card {
+  position: relative; width: 100%; min-height: 380px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+}
+.fc-card.fc-flipped { transform: rotateY(180deg); }
+.fc-face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--card); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.fc-back { transform: rotateY(180deg); }
+/* Front */
+.fc-front-header {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 18px 22px 0;
+}
+.fc-rank-pill {
+  padding: 4px 14px; border-radius: 20px; font-size: 0.65rem;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #111;
+}
+.fc-rank-pill--sm { font-size: 0.58rem; padding: 3px 10px; }
+.fc-type-pill {
+  padding: 4px 12px; border-radius: 20px; font-size: 0.65rem;
+  font-weight: 700; letter-spacing: 0.3px;
+}
+.fc-type-attack  { background: rgba(255,70,85,0.15); color: #ff4655; }
+.fc-type-defense { background: rgba(0,191,165,0.15); color: #00bfa5; }
+.fc-type-retake  { background: rgba(240,196,63,0.15); color: #f0c43f; }
+.fc-done-pill {
+  padding: 4px 12px; border-radius: 20px; font-size: 0.65rem;
+  font-weight: 700; background: rgba(63,185,80,0.15); color: #2dbe73;
+  margin-left: auto;
+}
+.fc-front-body { flex: 1; padding: 20px 22px; display: flex; flex-direction: column; }
+.fc-map-name {
+  font-size: 0.72rem; color: var(--dim); text-transform: uppercase;
+  letter-spacing: 2px; font-weight: 600; margin-bottom: 6px;
+}
+.fc-title {
+  font-size: 1.25rem; font-weight: 800; color: var(--txt);
+  margin: 0 0 10px; line-height: 1.3;
+}
+.fc-difficulty { color: #ffd700; font-size: 0.85rem; letter-spacing: 2px; margin-bottom: 14px; }
+.fc-desc {
+  font-size: 0.85rem; color: var(--dim); line-height: 1.6; margin: 0;
+}
+.fc-front-footer {
+  padding: 14px 22px; border-top: 1px solid var(--border);
+  text-align: center;
+}
+.fc-flip-hint {
+  font-size: 0.72rem; color: var(--dim); opacity: 0.7;
+  animation: fcPulse 2s ease-in-out infinite;
+}
+@keyframes fcPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+/* Back */
+.fc-back-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+}
+.fc-back-title { font-size: 1rem; font-weight: 700; color: var(--txt); margin: 0; }
+.fc-back-body { flex: 1; padding: 16px 22px; overflow-y: auto; }
+.fc-section { margin-bottom: 16px; }
+.fc-section-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--accent); margin-bottom: 8px;
+}
+.fc-guide { display: flex; flex-direction: column; gap: 6px; }
+.fc-step {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 0.82rem; line-height: 1.55; color: var(--txt);
+}
+.fc-step-num {
+  flex-shrink: 0; width: 22px; height: 22px;
+  background: var(--accent); color: #fff; border-radius: 50%;
+  font-size: 0.65rem; font-weight: 800; display: flex;
+  align-items: center; justify-content: center;
+}
+.fc-tips {
+  font-size: 0.82rem; line-height: 1.55; color: var(--dim);
+  margin: 0; padding: 10px 14px; background: rgba(255,255,255,0.03);
+  border-radius: 8px; border-left: 3px solid #f0c43f;
+}
+.fc-back-footer {
+  display: flex; gap: 10px; padding: 14px 22px;
+  border-top: 1px solid var(--border);
+}
+.fc-btn {
+  flex: 1; padding: 10px; border: none; border-radius: 8px;
+  font-weight: 700; font-size: 0.78rem; cursor: pointer;
+  font-family: var(--font); transition: filter 0.15s;
+}
+.fc-btn:hover { filter: brightness(1.15); }
+.fc-btn-train { background: var(--accent); color: #fff; }
+.fc-btn-master { background: var(--card-h); color: var(--txt); border: 1px solid var(--border); }
+.fc-btn--done { background: rgba(63,185,80,0.15); color: #2dbe73; border-color: rgba(63,185,80,0.3); }
+/* Dots */
+.fc-dots {
+  display: flex; justify-content: center; gap: 6px;
+  margin-top: 16px; flex-wrap: wrap;
+}
+.fc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); cursor: pointer; transition: all 0.2s;
+}
+.fc-dot--active { background: var(--accent); transform: scale(1.3); }
+.fc-hint {
+  text-align: center; font-size: 0.68rem; color: var(--dim);
+  margin-top: 10px; opacity: 0.6;
+}
+/* Card needs explicit height when flipped (both faces absolute) */
+.fc-card-wrapper { position: relative; }
+.fc-card { min-height: 400px; }
+.fc-face { min-height: 400px; }
+.fc-card--done { border-color: rgba(63,185,80,0.3); }
+@media (max-width:600px) {
+  .fc-container { gap: 6px; min-height: 350px; }
+  .fc-nav { width: 34px; height: 34px; font-size: 1.1rem; }
+  .fc-card, .fc-face { min-height: 350px; }
+  .fc-title { font-size: 1.05rem; }
+  .fc-toolbar { flex-direction: column; }
+}
+
 /* Tactical Map */
 .map-step-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
 .map-step-btn { padding:5px 10px; font-size:0.7rem; font-weight:600; background:var(--bg); border:1px solid var(--border); color:var(--dim); border-radius:6px; cursor:pointer; font-family:var(--font); transition:all 0.12s; }
