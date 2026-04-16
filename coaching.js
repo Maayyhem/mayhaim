@@ -266,10 +266,179 @@ const DEFAULT_SCENARIOS = [
     tips: "CT est l'angle de post-plant le plus populaire sur A Pearl — flash avant d'y approcher. Art est le second spot préféré : smoke ou flash si tu n'as pas l'info. La structure centrale offre la meilleure protection pour le défuse.",
     aim_mode: "w1w3ts_reload", aim_diff: "medium"
   },
+
+  // ════════════════════════════════════════
+  // BIND (additional)
+  // ════════════════════════════════════════
+  {
+    id: 22, title: "Défense B Site Hookah Control — Bind", rank: "GOLD", map: "Bind", type: "defense", difficulty: 3,
+    description: "Tenir B site en contrôlant hookah et les angles depuis CT pour empêcher toute exécution.",
+    guide: "1. Sentinel place un trip à l'entrée de hookah pour l'info précoce\n2. 1 joueur tient l'angle CT B avec vue sur hookah sortie\n3. 1 joueur hold le coin U-Hall pour couvrir le flanc\n4. Controller garde une smoke pour B main si rush détecté\n5. Si push hookah : le joueur CT engage immédiatement, U-Hall flanke\n6. Ne jamais avancer dans hookah seul — c'est un piège mortel",
+    tips: "Le trip hookah est l'info la plus précieuse en défense B Bind — ne jamais l'oublier. CT est la position dominante : tu contrôles toute la sortie hookah depuis là. Si tu entends du bruit B main, appelle la rotation mais ne quitte pas CT.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+
+  // ════════════════════════════════════════
+  // HAVEN (additional)
+  // ════════════════════════════════════════
+  {
+    id: 23, title: "Hold A depuis Heaven + Short — Haven", rank: "SILVER", map: "Haven", type: "defense", difficulty: 2,
+    description: "Défendre A site avec un setup défensif depuis heaven et short pour couvrir toutes les entrées.",
+    guide: "1. 1 joueur prend heaven A (vue dominante sur tout le site)\n2. 1 joueur hold short A depuis le coin mur\n3. Sentinel place un trip sur A long pour détecter les pushes\n4. Controller garde une smoke pour A main si rush\n5. Si push A main : heaven engage en premier, short flanke\n6. Si push A long : short engage, heaven couvre depuis le haut",
+    tips: "Heaven donne un avantage de hauteur décisif sur A Haven — priorise cette position. Short A est le second angle clé : un joueur doit toujours le tenir. Le trip sur A long donne l'info gratuite dès les premières secondes du round.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+
+  // ════════════════════════════════════════
+  // SPLIT (additional)
+  // ════════════════════════════════════════
+  {
+    id: 24, title: "Retake A via CT + Heaven — Split", rank: "PLATINUM", map: "Split", type: "retake", difficulty: 4,
+    description: "Reprendre A site en coordonnant une entrée par CT et une montée par heaven pour pincer les post-plant.",
+    guide: "1. 1 joueur entre A depuis CT direct (chemin principal)\n2. 1 joueur monte heaven depuis mid pour angle élevé\n3. Initiator flash le site depuis CT avant l'entrée\n4. Smoke le coin ramp si un défenseur probable\n5. Le joueur heaven clear les coins hauts pendant que CT entre\n6. Defuser depuis la position couverte par ramp — heaven surveille",
+    tips: "Heaven donne un angle de retake dévastateur — impossible à ignorer pour les post-plant. CT est le chemin direct mais prévisible : flash obligatoire avant d'entrer. La coordination entre CT et heaven doit être simultanée pour maximiser la pince.",
+    aim_mode: "vox_ts2", aim_diff: "hard"
+  },
+
+  // ════════════════════════════════════════
+  // LOTUS (additional)
+  // ════════════════════════════════════════
+  {
+    id: 25, title: "Retake A via Tree + Door — Lotus", rank: "PLATINUM", map: "Lotus", type: "retake", difficulty: 4,
+    description: "Reprendre A site en utilisant la porte cassée et l'angle tree pour pincer les attaquants post-plant.",
+    guide: "1. 1 joueur entre A depuis le côté tree (CT)\n2. 1 joueur passe par la porte cassée pour un angle latéral\n3. Initiator flash le site depuis tree side avant d'entrer\n4. Smoke root corner si un défenseur y est probable\n5. Pincer : un depuis tree side, un depuis la porte simultanément\n6. Defuser derrière le stone — meilleure couverture sur le site",
+    tips: "La porte cassée offre un angle de retake inattendu que beaucoup d'attaquants oublient de couvrir. Tree side reste l'angle dominant — flash avant d'approcher. Ne defuse jamais sans avoir confirmé root ET tree clear.",
+    aim_mode: "w1w3ts_reload", aim_diff: "hard"
+  },
+
+  // ════════════════════════════════════════
+  // BREEZE (additional)
+  // ════════════════════════════════════════
+  {
+    id: 26, title: "Execute A via Mid Door — Breeze", rank: "GOLD", map: "Breeze", type: "attack", difficulty: 3,
+    description: "Exécuter sur A site en passant par mid door avec smoke pyramide et flash pour sécuriser l'entrée.",
+    guide: "1. Controller smoke pyramide (l'angle dominant depuis A site)\n2. Controller smoke le coin CT A pour bloquer les rotations\n3. Initiator flash mid door avant l'entrée\n4. Duelist entre le premier — pre-aim pyramide immédiatement\n5. Deuxième joueur clear le coin cave à droite\n6. Plant derrière le pilier central — couverture maximale",
+    tips: "Pyramide est l'angle le plus mortel de A Breeze depuis mid door — smoke obligatoire. Cave est souvent tenu agressivement : approche avec une flash prête. Le pilier central est le seul cover fiable pour le plant.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+
+  // ════════════════════════════════════════
+  // ASCENT (NEW)
+  // ════════════════════════════════════════
+  {
+    id: 27, title: "Execute A via A Main — Ascent", rank: "SILVER", map: "Ascent", type: "attack", difficulty: 2,
+    description: "Exécuter sur A site en passant par A main avec smoke heaven et flash pour sécuriser l'entrée.",
+    guide: "1. Controller smoke heaven A (l'angle dominant sur le site)\n2. Controller smoke le coin CT pour bloquer la vue défenseur\n3. Initiator flash A main par-dessus le mur\n4. Duelist entre le premier — pre-aim generator immédiatement\n5. Deuxième joueur clear le coin hell (sous heaven)\n6. Plant derrière generator — meilleure couverture depuis A main",
+    tips: "Heaven est l'angle le plus dangereux sur A Ascent — une smoke suffit mais elle est obligatoire. Generator est le meilleur spot de plant : il offre une couverture depuis hell et main. Hell est souvent oublié par les attaquants : check-le systématiquement.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 28, title: "Execute B via B Main — Ascent", rank: "SILVER", map: "Ascent", type: "attack", difficulty: 2,
+    description: "Exécuter sur B site en passant par B main avec smoke CT et flash pour ouvrir le site.",
+    guide: "1. Controller smoke CT B (l'angle dominant en sortant de B main)\n2. Controller smoke le coin market pour bloquer les renforts\n3. Initiator flash B main avant d'entrer le site\n4. Duelist entre le premier — pre-aim lane immédiatement\n5. Deuxième joueur clear le coin back-site (derrière la boîte)\n6. Plant derrière la boîte centrale — difficile à défuser depuis CT",
+    tips: "CT est l'angle le plus dangereux en entrée B Ascent — une smoke est non-négociable. Market est la route de rotation principale : smoke-le pour isoler le site. Lane est souvent tenu agressivement — pre-aim en sortant de B main.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  {
+    id: 29, title: "Contrôle Mid Catwalk + Market — Ascent", rank: "GOLD", map: "Ascent", type: "defense", difficulty: 3,
+    description: "Dominer le mid d'Ascent depuis catwalk et market pour bloquer les splits et collecter l'info.",
+    guide: "1. 1 joueur hold catwalk depuis le coin (vue sur top mid)\n2. 1 joueur tient market door (crossfire avec catwalk)\n3. Sentinel place un trip sur bottom mid pour l'info\n4. Controller garde une smoke pour urgence mid\n5. Si push mid : crossfire catwalk + market simultanément\n6. Ne jamais avancer top mid sans info — c'est un death trap",
+    tips: "Celui qui contrôle mid sur Ascent contrôle les splits A et B. Le crossfire catwalk + market est extrêmement dur à traverser sans utils. Le trip bottom mid donne l'alerte précoce — ne jamais s'en priver.",
+    aim_mode: "w1w3ts_reload", aim_diff: "medium"
+  },
+  {
+    id: 30, title: "Retake A via CT + Hell — Ascent", rank: "GOLD", map: "Ascent", type: "retake", difficulty: 3,
+    description: "Reprendre A site en entrant par CT et par hell simultanément pour pincer les post-plant.",
+    guide: "1. 1 joueur entre A depuis CT direct\n2. 1 joueur passe par hell pour un angle bas inattendu\n3. Flash le site depuis CT avant d'entrer\n4. Smoke generator si un défenseur probable\n5. Pincer : un depuis CT, un depuis hell en même temps\n6. Defuser derrière generator — couverture sur CT et main",
+    tips: "Hell donne un angle de retake bas et inattendu que beaucoup d'attaquants oublient. Generator est le spot de post-plant le plus populaire sur A Ascent — flash ou smoke. La coordination entre CT et hell doit être parfaite pour réussir la pince.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+
+  // ════════════════════════════════════════
+  // ICEBOX (NEW)
+  // ════════════════════════════════════════
+  {
+    id: 31, title: "Execute A via A Belt — Icebox", rank: "GOLD", map: "Icebox", type: "attack", difficulty: 3,
+    description: "Exécuter sur A site en passant par belt avec smoke rafters et flash pour ouvrir le site.",
+    guide: "1. Controller smoke rafters (le défenseur là-haut voit tout le site)\n2. Controller smoke le coin CT A pour bloquer les rotations\n3. Initiator flash A main depuis le couloir belt\n4. Duelist entre par belt — pre-aim nest immédiatement\n5. Deuxième joueur clear le coin pipes (à gauche en entrant)\n6. Plant sur le spot default — visible depuis belt pour le post-plant",
+    tips: "Rafters est la position la plus forte de A Icebox — impossible d'entrer sans la smoker. Nest est souvent tenu agressivement par un sentinel : flash avant d'approcher. Le plant default permet de surveiller depuis belt en post-plant.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 32, title: "Execute B via B Orange — Icebox", rank: "SILVER", map: "Icebox", type: "attack", difficulty: 2,
+    description: "Exécuter sur B site en passant par orange avec smoke CT et flash pour sécuriser l'entrée.",
+    guide: "1. Controller smoke CT B (l'angle dominant depuis le fond du site)\n2. Initiator flash orange avant d'entrer\n3. Duelist entre le premier — pre-aim yellow immédiatement\n4. Deuxième joueur clear le coin green (côté gauche)\n5. Troisième joueur couvre kitchen depuis orange\n6. Plant derrière la grande caisse — couverture depuis orange",
+    tips: "CT B est l'angle le plus dangereux en entrée — une smoke suffit mais elle est obligatoire. Yellow est souvent tenu agressivement : pre-aim en entrant. Green est fréquemment oublié mais régulièrement occupé par un sentinel.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  {
+    id: 33, title: "Hold B Kitchen + Yellow Setup — Icebox", rank: "GOLD", map: "Icebox", type: "defense", difficulty: 3,
+    description: "Défendre B site avec un crossfire entre kitchen et yellow pour couvrir toutes les entrées.",
+    guide: "1. 1 joueur tient yellow (vue sur orange et entrée B)\n2. 1 joueur hold kitchen (crossfire avec yellow)\n3. Sentinel place un trip sur l'entrée orange pour l'info\n4. Controller garde une smoke pour orange si rush détecté\n5. Si push orange : yellow engage, kitchen flanke\n6. Si push green : kitchen engage, yellow repositionne",
+    tips: "Le crossfire yellow + kitchen rend l'entrée B très difficile sans utils. Yellow est exposé aux flashs — recule si une flash est annoncée. Le trip orange est l'info la plus précieuse en défense B Icebox.",
+    aim_mode: "w1w3ts_reload", aim_diff: "medium"
+  },
+  {
+    id: 34, title: "Retake A via Rafters + Belt — Icebox", rank: "PLATINUM", map: "Icebox", type: "retake", difficulty: 4,
+    description: "Reprendre A site en montant par rafters et en entrant par belt pour pincer les attaquants.",
+    guide: "1. 1 joueur monte rafters depuis CT (angle élevé dominant)\n2. 1 joueur entre par belt (chemin direct)\n3. Flash le site depuis belt avant d'entrer\n4. Smoke nest si un défenseur y est probable\n5. Pincer : un depuis rafters (haut), un depuis belt (bas)\n6. Defuser derrière le container — couverture depuis rafters",
+    tips: "Rafters donne un angle de retake dévastateur impossible à ignorer pour les post-plant. Belt est direct mais prévisible — flash obligatoire. La différence de hauteur entre rafters et belt rend la pince extrêmement difficile à contrer.",
+    aim_mode: "vox_ts2", aim_diff: "hard"
+  },
+
+  // ════════════════════════════════════════
+  // SUNSET (NEW)
+  // ════════════════════════════════════════
+  {
+    id: 35, title: "Execute A via A Main — Sunset", rank: "SILVER", map: "Sunset", type: "attack", difficulty: 2,
+    description: "Exécuter sur A site en passant par A main avec smoke elbow et flash pour ouvrir le site.",
+    guide: "1. Controller smoke elbow (le défenseur là voit toute l'entrée)\n2. Controller smoke le coin heaven pour bloquer la vue haute\n3. Initiator flash A main avant d'entrer\n4. Duelist entre le premier — pre-aim site center immédiatement\n5. Deuxième joueur clear le coin back-site à droite\n6. Plant derrière la structure centrale — couverture depuis A main",
+    tips: "Elbow est l'angle le plus mortel de A Sunset — smoke obligatoire avant d'entrer. Heaven donne un angle élevé dangereux : smoke-le si possible. La structure centrale est le meilleur spot de plant pour le post-plant depuis main.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 36, title: "Hold B depuis Market + CT — Sunset", rank: "GOLD", map: "Sunset", type: "defense", difficulty: 3,
+    description: "Défendre B site avec un crossfire depuis market et CT pour couvrir les deux entrées principales.",
+    guide: "1. 1 joueur tient market (vue sur B main et entrée)\n2. 1 joueur hold CT B (crossfire avec market)\n3. Sentinel place un trip sur B main pour l'info précoce\n4. Controller garde une smoke pour B main si rush détecté\n5. Si push B main : market engage le premier, CT flanke\n6. Ne jamais avancer dans B main seul — attendre le crossfire",
+    tips: "Le crossfire market + CT est la clé de la défense B Sunset. Market est la position agressive — recule après chaque engagement. Le trip B main donne l'info gratuite : ne jamais s'en priver en début de round.",
+    aim_mode: "pasu_reload", aim_diff: "medium"
+  },
+  {
+    id: 37, title: "Retake Mid via Courtyard — Sunset", rank: "PLATINUM", map: "Sunset", type: "retake", difficulty: 4,
+    description: "Reprendre le contrôle du mid en entrant par courtyard avec des utils pour flush les défenseurs.",
+    guide: "1. Initiator lance un drone ou une haunt pour info mid\n2. Controller smoke les angles dominants (top mid)\n3. Flash courtyard avant d'entrer\n4. 1 joueur entre courtyard — clear les coins latéraux\n5. 1 joueur couvre depuis le côté opposé\n6. Une fois mid secure, décider du split A ou B",
+    tips: "Le mid de Sunset est crucial pour les rotations — le reprendre change le round. Courtyard est l'entrée la plus sûre pour reprendre mid. Toujours utiliser un drone ou une haunt avant d'entrer — le mid est dangereux sans info.",
+    aim_mode: "w1w3ts_reload", aim_diff: "hard"
+  },
+
+  // ════════════════════════════════════════
+  // ABYSS (NEW)
+  // ════════════════════════════════════════
+  {
+    id: 38, title: "Execute B via B Main — Abyss", rank: "GOLD", map: "Abyss", type: "attack", difficulty: 3,
+    description: "Exécuter sur B site en passant par B main avec smoke heaven et flash pour sécuriser l'entrée.",
+    guide: "1. Controller smoke heaven B (le défenseur là-haut contrôle tout)\n2. Controller smoke le coin CT B pour bloquer les rotations\n3. Initiator flash B main avant d'entrer\n4. Duelist entre le premier — pre-aim pillar immédiatement\n5. Deuxième joueur clear le coin sous heaven\n6. Plant derrière pillar — couverture maximale depuis B main",
+    tips: "Heaven est la position dominante de B Abyss — impossible d'entrer sans la smoker. Attention aux chutes : les bords du site sont mortels sur Abyss. Pillar est le meilleur cover de plant — ne plante jamais à découvert.",
+    aim_mode: "vox_ts2", aim_diff: "medium"
+  },
+  {
+    id: 39, title: "Hold A depuis Bridge + CT — Abyss", rank: "SILVER", map: "Abyss", type: "defense", difficulty: 2,
+    description: "Défendre A site avec un crossfire entre bridge et CT pour contrôler les entrées.",
+    guide: "1. 1 joueur tient bridge (vue sur A main et l'entrée)\n2. 1 joueur hold CT A (crossfire avec bridge)\n3. Sentinel place un trip sur A main pour l'info\n4. Controller garde une smoke pour A main si rush\n5. Si push A main : bridge engage, CT flanke\n6. Attention aux bords — ne jamais reculer trop près du vide",
+    tips: "Bridge est la position la plus forte de A Abyss mais attention aux chutes accidentelles. Le crossfire bridge + CT rend l'entrée A très difficile. Sur Abyss, la conscience spatiale est cruciale — les bords sont mortels.",
+    aim_mode: "pokeball_frenzy", aim_diff: "medium"
+  },
+  {
+    id: 40, title: "Retake B via CT + Heaven — Abyss", rank: "PLATINUM", map: "Abyss", type: "retake", difficulty: 4,
+    description: "Reprendre B site en entrant par CT et en montant heaven pour pincer les post-plant.",
+    guide: "1. 1 joueur entre B depuis CT direct\n2. 1 joueur monte heaven B pour l'angle élevé\n3. Flash le site depuis CT avant d'entrer\n4. Smoke pillar si un défenseur probable\n5. Pincer : un depuis CT, un depuis heaven simultanément\n6. Defuser derrière pillar — heaven surveille tout le site",
+    tips: "Heaven donne un angle de retake décisif sur B Abyss — priorise cette montée. CT est prévisible mais nécessaire — flash obligatoire. Attention aux knockbacks près des bords du site pendant le retake.",
+    aim_mode: "w1w3ts_reload", aim_diff: "hard"
+  },
 ];
 
 // Load scenarios: merge defaults with user-created ones from localStorage
-const SCENARIOS_VERSION = 5; // bump when DEFAULT_SCENARIOS changes to clear stale cache
+const SCENARIOS_VERSION = 6; // bump when DEFAULT_SCENARIOS changes to clear stale cache
 let coachingScenarios = loadScenarios();
 
 function loadScenarios() {
@@ -1119,6 +1288,98 @@ function _qcmBuild() {
     21: [
       { q: "Quel est l'angle de post-plant le plus populaire sur A Pearl ?", choices: ["Art", "CT", "Link", "Mid"], answer: 1 },
       { q: "Que faut-il faire avant d'approcher CT en retake A Pearl ?", choices: ["Planter", "Smoker", "Flash", "Run"], answer: 2 },
+    ],
+    22: [
+      { q: "En défense B Bind, où le sentinel doit-il placer son trip ?", choices: ["B main", "CT", "À l'entrée de hookah", "U-Hall"], answer: 2 },
+      { q: "Quelle est la position dominante en défense B Bind ?", choices: ["Hookah", "U-Hall", "CT B", "B main"], answer: 2 },
+      { q: "Pourquoi ne faut-il jamais avancer seul dans hookah en défense ?", choices: ["C'est trop long", "C'est un piège mortel", "Il n'y a pas de couverture", "Les rotations sont lentes"], answer: 1 },
+    ],
+    23: [
+      { q: "Quelle position donne un avantage de hauteur décisif sur A Haven ?", choices: ["Short A", "CT", "Heaven A", "Long A"], answer: 2 },
+      { q: "Où le sentinel doit-il placer son trip en défense A Haven ?", choices: ["Short A", "A long", "Heaven", "CT"], answer: 1 },
+      { q: "Si les attaquants push A main sur Haven, qui engage en premier ?", choices: ["Short A", "Heaven", "CT", "Le sentinel"], answer: 1 },
+    ],
+    24: [
+      { q: "Par quels chemins retake A sur Split dans ce scénario ?", choices: ["CT + Mid", "CT + Heaven", "Ramp + Main", "Sewer + CT"], answer: 1 },
+      { q: "Quel coin faut-il smoker si un défenseur y est probable en retake A Split ?", choices: ["Heaven", "CT", "Ramp", "Screen"], answer: 2 },
+      { q: "Pourquoi heaven est-il dévastateur en retake A Split ?", choices: ["Il donne du cover", "L'angle élevé est impossible à ignorer", "Il bloque les rotations", "Il donne de l'info"], answer: 1 },
+    ],
+    25: [
+      { q: "Quel angle inattendu utiliser pour retake A Lotus ?", choices: ["Tree side", "Root", "La porte cassée", "C link"], answer: 2 },
+      { q: "Quel est le meilleur spot de défuse sur A Lotus ?", choices: ["Root corner", "Tree side", "Derrière le stone", "La porte"], answer: 2 },
+      { q: "Que faut-il confirmer clear avant de defuse sur A Lotus ?", choices: ["Root ET tree", "CT ET main", "Door ET link", "Mound ET root"], answer: 0 },
+    ],
+    26: [
+      { q: "Quel est l'angle le plus mortel de A Breeze depuis mid door ?", choices: ["Cave", "CT A", "Pyramide", "Le pilier"], answer: 2 },
+      { q: "Quel coin est souvent tenu agressivement sur A Breeze ?", choices: ["CT", "Mid door", "Cave", "Pyramide"], answer: 2 },
+    ],
+    27: [
+      { q: "Quel est l'angle le plus dangereux sur A Ascent ?", choices: ["Generator", "Hell", "Heaven", "CT"], answer: 2 },
+      { q: "Quel est le meilleur spot de plant sur A Ascent ?", choices: ["Au centre du site", "Derrière generator", "Dans hell", "Près de heaven"], answer: 1 },
+      { q: "Quel coin est souvent oublié par les attaquants sur A Ascent ?", choices: ["Heaven", "CT", "Hell", "Generator"], answer: 2 },
+    ],
+    28: [
+      { q: "Quel angle est non-négociable à smoker en entrant B Ascent ?", choices: ["Market", "Lane", "CT B", "Back-site"], answer: 2 },
+      { q: "Quelle est la route de rotation principale vers B Ascent ?", choices: ["CT", "Mid", "Market", "Lane"], answer: 2 },
+      { q: "Quel angle est souvent tenu agressivement sur B Ascent ?", choices: ["CT", "Back-site", "Lane", "Market"], answer: 2 },
+    ],
+    29: [
+      { q: "Qui contrôle les splits A et B sur Ascent ?", choices: ["Celui qui tient A", "Celui qui contrôle mid", "Celui qui défend B", "Le sentinel"], answer: 1 },
+      { q: "Où le sentinel doit-il placer son trip pour contrôler mid Ascent ?", choices: ["Top mid", "Bottom mid", "Catwalk", "Market door"], answer: 1 },
+      { q: "Pourquoi ne faut-il jamais avancer top mid sans info sur Ascent ?", choices: ["C'est trop loin", "C'est un death trap", "Les rotations sont lentes", "Il n'y a pas de smoke"], answer: 1 },
+    ],
+    30: [
+      { q: "Quel angle de retake est bas et inattendu sur A Ascent ?", choices: ["CT", "Heaven", "Hell", "Generator"], answer: 2 },
+      { q: "Quel est le spot de post-plant le plus populaire sur A Ascent ?", choices: ["Hell", "CT", "Generator", "Heaven"], answer: 2 },
+      { q: "Que faut-il faire avant d'entrer par CT en retake A Ascent ?", choices: ["Planter", "Smoker generator", "Flash", "Attendre"], answer: 2 },
+    ],
+    31: [
+      { q: "Quelle est la position la plus forte de A Icebox ?", choices: ["Belt", "Nest", "Rafters", "Pipes"], answer: 2 },
+      { q: "Quel spot de plant permet de surveiller depuis belt en post-plant ?", choices: ["Le coin pipes", "Le spot default", "Derrière le container", "Près de nest"], answer: 1 },
+      { q: "Quel coin est souvent tenu par un sentinel sur A Icebox ?", choices: ["Belt", "Pipes", "Nest", "Rafters"], answer: 2 },
+    ],
+    32: [
+      { q: "Quel angle est le plus dangereux en entrant B Icebox ?", choices: ["Yellow", "Green", "Kitchen", "CT B"], answer: 3 },
+      { q: "Quel coin est fréquemment oublié mais occupé par un sentinel sur B Icebox ?", choices: ["Yellow", "Green", "Kitchen", "CT"], answer: 1 },
+    ],
+    33: [
+      { q: "Quel crossfire est la clé de la défense B Icebox ?", choices: ["CT + Green", "Yellow + Kitchen", "Orange + CT", "Green + Yellow"], answer: 1 },
+      { q: "Quelle est l'info la plus précieuse en défense B Icebox ?", choices: ["Les pas mid", "Le call A", "Le trip orange", "Le son de la rope"], answer: 2 },
+      { q: "Que faire si une flash est annoncée en position yellow ?", choices: ["Peeker", "Reculer", "Rester immobile", "Avancer"], answer: 1 },
+    ],
+    34: [
+      { q: "Pourquoi la pince rafters + belt est difficile à contrer sur A Icebox ?", choices: ["La vitesse", "La différence de hauteur", "Le nombre de joueurs", "Les smokes"], answer: 1 },
+      { q: "Quel angle est dominant en retake A Icebox ?", choices: ["Belt", "Nest", "Rafters", "Pipes"], answer: 2 },
+    ],
+    35: [
+      { q: "Quel est l'angle le plus mortel de A Sunset ?", choices: ["Heaven", "Back-site", "Elbow", "CT"], answer: 2 },
+      { q: "Quel angle élevé est dangereux sur A Sunset ?", choices: ["CT", "Elbow", "Heaven", "Main"], answer: 2 },
+      { q: "Quel est le meilleur spot de plant pour le post-plant depuis main sur A Sunset ?", choices: ["Au centre", "Derrière la structure centrale", "Dans le coin", "Près de heaven"], answer: 1 },
+    ],
+    36: [
+      { q: "Quel crossfire est la clé de la défense B Sunset ?", choices: ["CT + Main", "Market + CT", "Heaven + CT", "Market + Main"], answer: 1 },
+      { q: "Quelle est la position agressive en défense B Sunset ?", choices: ["CT", "B main", "Market", "Heaven"], answer: 2 },
+      { q: "Que donne le trip B main en défense B Sunset ?", choices: ["Des dégâts", "Du temps", "De l'info gratuite", "Un avantage numérique"], answer: 2 },
+    ],
+    37: [
+      { q: "Pourquoi le mid de Sunset est-il crucial ?", choices: ["Il donne des kills", "Il contrôle les rotations", "Il est facile à tenir", "Il donne du cover"], answer: 1 },
+      { q: "Quelle est l'entrée la plus sûre pour reprendre mid sur Sunset ?", choices: ["Top mid", "Courtyard", "B main", "A main"], answer: 1 },
+      { q: "Que faut-il toujours utiliser avant d'entrer mid sur Sunset ?", choices: ["Un smoke", "Un flash", "Un drone ou une haunt", "Un molly"], answer: 2 },
+    ],
+    38: [
+      { q: "Quelle est la position dominante de B Abyss ?", choices: ["CT B", "Pillar", "Heaven B", "B main"], answer: 2 },
+      { q: "Quel est le meilleur cover de plant sur B Abyss ?", choices: ["CT", "Heaven", "Pillar", "B main"], answer: 2 },
+      { q: "Quel danger unique existe sur Abyss par rapport aux autres maps ?", choices: ["Les téléporteurs", "Les portes", "Les chutes mortelles", "Les cordes"], answer: 2 },
+    ],
+    39: [
+      { q: "Quelle est la position la plus forte de A Abyss ?", choices: ["CT A", "A main", "Bridge", "Heaven"], answer: 2 },
+      { q: "Quel crossfire rend l'entrée A difficile sur Abyss ?", choices: ["CT + Main", "Bridge + CT", "Heaven + Bridge", "Main + Heaven"], answer: 1 },
+      { q: "Que faut-il surveiller en permanence sur Abyss ?", choices: ["Les téléporteurs", "Les bords du vide", "Les cordes", "Les portes"], answer: 1 },
+    ],
+    40: [
+      { q: "Quel angle de retake est décisif sur B Abyss ?", choices: ["CT", "B main", "Heaven", "Pillar"], answer: 2 },
+      { q: "Que faut-il smoker en retake B Abyss si un défenseur est probable ?", choices: ["CT", "Heaven", "Pillar", "B main"], answer: 2 },
+      { q: "Quel danger spécifique existe pendant le retake B sur Abyss ?", choices: ["Les flashs", "Les knockbacks près des bords", "Les rotations rapides", "Les smokes ennemies"], answer: 1 },
     ],
   };
   for (const [id, questions] of Object.entries(Q)) {
