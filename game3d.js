@@ -549,33 +549,33 @@ function tR(base) { const d=G.diff; return d==='easy'?base*1.3:d==='hard'?base*0
 
 // ═══ CONTROL TRACKING SPAWNS ═══
 
-// Arm: smooth sinusoidal, large range
-function spawn_whisphereraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t4,{mv:'whisphereraw'}); }
-function spawn_whisphere() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t4,{mv:'whisphere'}); }
-function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t3,{mv:'smoothbot'}); }
+// Arm: large range movements
+function spawn_whisphereraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t4,{mv:'whisphereraw',orbitAngle:0,orbitR:4,orbitRTarget:4,orbitY:0,orbitSpeed:1.2}); }
+function spawn_whisphere() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t4,{mv:'whisphere',theta1:0,theta2:0,omega1:2.5,omega2:2.5,L1:3.5,L2:2.5}); }
+function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t3,{mv:'smoothbot',strafeVx:0,strafeTarget:0,strafeAccel:0,strafeCd:0,crouchVy:0,crouchTarget:1.7}); }
 
 // Wrist: tighter, faster direction changes
 function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t6,{mv:'leaptrack',phase:0,jumpTimer:0}); }
-function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'ctrlsphere_aim'}); }
-function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t5,{mv:'vt_ctrlsphere'}); }
+function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'ctrlsphere_aim',spiralAngle:0,spiralR:2,spiralPulse:0}); }
+function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t5,{mv:'vt_ctrlsphere',bx:0,by:1.7,bvx:0,bvy:0,attractX:0,attractY:1.7,attractTimer:0}); }
 
 // Fingertip: tiny movements, small targets
 function spawn_air_angelic() { mkTrackTarget(0,2,-10,tR(0.35),M.t5,{mv:'air_angelic'}); }
 function spawn_cloverraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t3,{mv:'cloverraw'}); }
-function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,tR(0.4),M.t4,{mv:'ctrlsphere_far'}); }
+function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,tR(0.4),M.t4,{mv:'ctrlsphere_far',arcAngle:0,arcDir:1,passY:1.7,passPhase:0}); }
 
 // Blending: mixed movement patterns
 function spawn_pgti() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'pgti'}); }
-function spawn_air_celestial() { mkTrackTarget(0,2,-10,tR(0.45),M.t5,{mv:'air_celestial'}); }
-function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t6,{mv:'whisphere_slow'}); }
+function spawn_air_celestial() { mkTrackTarget(0,2,-10,tR(0.45),M.t5,{mv:'air_celestial',zipX:0,zipY:2,zipVx:0,zipVy:-0.5,zipPhase:'descend',zipDrift:0}); }
+function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t6,{mv:'whisphere_slow',bezPts:null,bezT:0,bezSpeed:0.3}); }
 
 // ═══ REACTIVE TRACKING SPAWNS ═══
 function spawn_ground_plaza() { const d=DIFF[G.diff]; mkTrackTarget(0,0.8,-10,tR(0.5),M.t3,{mv:'ground_plaza',vx:2*d.spd/2.5,vy:0,ct:0,nc:G.diff==='hard'?0.55:0.8}); }
-function spawn_ctrlsphere_ow() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.45),M.t4,{mv:'ctrlsphere_ow',vx:1.5*d.spd/2.5,vy:0.8*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.65:1}); }
+function spawn_ctrlsphere_ow() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.45),M.t4,{mv:'ctrlsphere_ow',vx:1.5*d.spd/2.5,vy:0,ct:0,nc:G.diff==='hard'?0.65:1,crouchState:'stand',crouchTimer:0,crouchY:1.7}); }
 function spawn_flicker_plaza() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:G.diff==='hard'?0.40:0.5}); }
-function spawn_polarized_hell() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.5),M.t1,{mv:'polarized_hell',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.50:0.7}); }
-function spawn_air_pure() { mkTrackTarget(0,2,-10,tR(0.4),M.t5,{mv:'air_pure',vx:1,vy:1,ct:0,nc:G.diff==='hard'?0.75:1.2}); }
-function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.45),M.t4,{mv:'air_voltaic',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.45:0.6}); }
+function spawn_polarized_hell() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.5),M.t1,{mv:'polarized_hell',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.50:0.7,zigAngle:0}); }
+function spawn_air_pure() { mkTrackTarget(0,2,-10,tR(0.4),M.t5,{mv:'air_pure',bx:0,by:2,bvx:1.5,bvy:0,gravity:4.5,bounceE:0.8,ct:0,nc:3}); }
+function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.45),M.t4,{mv:'air_voltaic',dashVx:0,dashVy:0,dashState:'hover',dashTimer:0,hoverX:0,hoverY:2}); }
 
 // ═══ FLICK TECH SPAWNS ═══
 // Pokeball Frenzy: fast random targets, click as many as possible before they expire
@@ -924,29 +924,87 @@ function updateTrackTarget(dt) {
   t.phase = (t.phase||0) + dt;
 
   switch(t.mv) {
-    // Control Tracking - Arm (large, smooth)
+    // ═══ CONTROL TRACKING — ARM ═══
+
     case 'whisphereraw':
-      t.x = Math.sin(t.phase*spd*0.2)*4*tA + Math.sin(t.phase*spd*0.13)*2*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.17)*1.2*tA;
-      t.z = -10 + Math.cos(t.phase*spd*0.1)*1.5*tA;
+      // 3D Elliptical Orbit — target orbits a center point in 3D, radius pulses over time
+      { const orbitSpd = G.diff==='hard'?0.50:G.diff==='easy'?0.22:0.35;
+        const pulseInt = G.diff==='hard'?1.4:G.diff==='easy'?3.2:2.2;
+        const rMin = G.diff==='hard'?3.0:G.diff==='easy'?2.0:2.5;
+        const rMax = G.diff==='hard'?6.0:G.diff==='easy'?4.5:5.5;
+        t.orbitAngle += dt * spd * orbitSpd;
+        t.orbitRTarget = t.orbitRTarget || 4;
+        t.orbitR += (t.orbitRTarget - t.orbitR) * dt * 1.5;
+        t.orbitPulse = (t.orbitPulse||0) + dt;
+        if(t.orbitPulse > pulseInt) { t.orbitPulse = 0; t.orbitRTarget = rand(rMin,rMax)*tA; }
+        const ecc = G.diff==='hard'?0.75:G.diff==='easy'?0.45:0.6;
+        t.x = Math.cos(t.orbitAngle) * t.orbitR * tA;
+        t.z = -10 + Math.sin(t.orbitAngle) * t.orbitR * ecc * tA;
+        t.y = 1.7 + Math.sin(t.orbitAngle * 0.7) * 1.3 * tA + Math.sin(t.phase * spd * 0.12) * 0.5;
+      }
       break;
+
     case 'whisphere':
-      t.x = Math.sin(t.phase*spd*0.25)*5*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1.5*tA;
-      t.z = -10 + Math.cos(t.phase*spd*0.15)*2*tA;
+      // Double Pendulum (chaotic) — simulated, produces unpredictable but smooth motion
+      { const dpSpd = G.diff==='hard'?0.6:G.diff==='easy'?0.25:0.4;
+        const dpAmp = G.diff==='hard'?3.8:G.diff==='easy'?2.6:3.2;
+        const dpYAmp = G.diff==='hard'?1.7:G.diff==='easy'?1.1:1.4;
+        const L1 = G.diff==='hard'?1.1:G.diff==='easy'?0.9:1.0;
+        const L2 = G.diff==='hard'?0.9:G.diff==='easy'?0.7:0.8;
+        t.dpT = (t.dpT||0) + dt * spd * dpSpd;
+        const fm1 = Math.sin(t.dpT * 0.13) * 0.5;
+        const fm2 = Math.cos(t.dpT * 0.09) * 0.7;
+        const a1 = Math.sin(t.dpT * (0.7 + fm1)) * 1.8;
+        const a2 = Math.sin(t.dpT * (1.1 + fm2) + a1 * 0.6) * 1.3;
+        const px = L1 * Math.sin(a1) + L2 * Math.sin(a1 + a2);
+        const py = -L1 * Math.cos(a1) - L2 * Math.cos(a1 + a2);
+        t.x = px * dpAmp * tA;
+        t.y = 1.7 + py * dpYAmp * tA;
+        t.z = -10 + Math.sin(t.dpT * 0.17) * 1.5 * tA;
+      }
       break;
+
     case 'smoothbot':
-      t.x = Math.sin(t.phase*spd*0.22)*4.5*tA + Math.cos(t.phase*spd*0.31)*1.5*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.18)*1.3*tA;
-      t.z = -10 + Math.sin(t.phase*spd*0.12)*1.8*tA;
+      // Realistic AD-AD Strafe — acceleration/deceleration like a real FPS player
+      { const maxSpd = spd * (G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0);
+        const accel = maxSpd * 5.5; // Fast acceleration (like counter-strafe)
+        const decel = maxSpd * 4.0;
+        // Pick a new strafe target periodically
+        t.strafeCd = (t.strafeCd||0) + dt;
+        const cdTime = G.diff==='hard'?0.4:G.diff==='easy'?1.0:0.65;
+        if(t.strafeCd > cdTime + (t.strafeCdExtra||0)) {
+          t.strafeCd = 0;
+          t.strafeCdExtra = rand(0, cdTime * 0.8);
+          // Decide: full reverse, stop, or jiggle
+          const r = Math.random();
+          if(r < 0.5) t.strafeTarget = -Math.sign(t.strafeVx||1) * rand(maxSpd*0.7, maxSpd);
+          else if(r < 0.75) t.strafeTarget = 0; // counter-strafe stop
+          else t.strafeTarget = (t.strafeVx||0) + rand(-maxSpd*0.3, maxSpd*0.3); // jiggle
+          // Occasional crouch
+          if(Math.random() < 0.25) t.crouchTarget = rand(0.8, 1.2);
+          else t.crouchTarget = rand(1.5, 1.9);
+        }
+        // Accelerate toward target velocity (feels like real movement)
+        const diff = (t.strafeTarget||0) - (t.strafeVx||0);
+        if(Math.abs(diff) > 0.1) {
+          t.strafeVx = (t.strafeVx||0) + Math.sign(diff) * Math.min(accel * dt, Math.abs(diff));
+        } else { t.strafeVx = t.strafeTarget||0; }
+        // Crouch interpolation (smooth)
+        t.crouchY = (t.crouchY||1.7) + ((t.crouchTarget||1.7) - (t.crouchY||1.7)) * dt * 6;
+        t.x += (t.strafeVx||0) * dt;
+        t.y = t.crouchY;
+        // Wall bounce
+        if(t.x > 5.5) { t.x = 5.5; t.strafeVx = -Math.abs(t.strafeVx)*0.5; t.strafeTarget = -Math.abs(t.strafeTarget); }
+        if(t.x < -5.5) { t.x = -5.5; t.strafeVx = Math.abs(t.strafeVx)*0.5; t.strafeTarget = Math.abs(t.strafeTarget); }
+      }
       break;
-    // Wrist (tighter, quicker)
+
+    // ═══ CONTROL TRACKING — WRIST ═══
+
     case 'leaptrack':
-      // Leaptrack: sauts soudains vers une position complètement nouvelle, puis légère dérive
+      // Leaptrack: jumps to a new position, then drifts slowly (kept — already unique)
       t.jumpTimer = (t.jumpTimer||0) + dt;
       { const leapInt = G.diff==='hard'?0.65:G.diff==='easy'?1.35:0.95;
-        // easy: large jumps (wide range, must track arm movement)
-        // hard: tighter zone (requires precise micro-adjusts after each jump)
         const xRange = G.diff==='hard'?3.5:G.diff==='easy'?5.5:4.5;
         const yLo   = G.diff==='hard'?1.1:G.diff==='easy'?0.6:0.8;
         const yHi   = G.diff==='hard'?2.8:G.diff==='easy'?3.3:3.0;
@@ -961,42 +1019,108 @@ function updateTrackTarget(dt) {
         t.y = Math.max(0.5, Math.min(3.5, t.y + (t.vy||0)*dt));
       }
       break;
+
     case 'ctrlsphere_aim':
-      t.x = Math.sin(t.phase*spd*0.3)*3*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.25)*1.2*tA;
-      t.z = -10 + Math.sin(t.phase*spd*0.2)*1.5*tA;
+      // Expanding/Contracting Spiral — radius pulses while angle advances, creates hypnotic spiral
+      { const spdMult = G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0;
+        const pulseMult = G.diff==='hard'?0.22:G.diff==='easy'?0.10:0.15;
+        t.spiralAngle += dt * spd * 0.6 * spdMult;
+        t.spiralPulse += dt * spd * pulseMult;
+        // Radius range scales with difficulty: hard = wider swings, easy = tighter
+        const rMin = (G.diff==='hard'?0.3:G.diff==='easy'?0.8:0.5)*tA;
+        const rMax = (G.diff==='hard'?3.8:G.diff==='easy'?2.5:3.2)*tA;
+        t.spiralR = rMin + (rMax-rMin) * (0.5 + 0.5*Math.sin(t.spiralPulse));
+        t.x = Math.cos(t.spiralAngle) * t.spiralR;
+        t.y = 1.7 + Math.sin(t.spiralAngle) * t.spiralR * 0.45;
+        t.z = -10 + Math.sin(t.spiralAngle * 0.5) * 1.5 * tA;
+      }
       break;
+
     case 'vt_ctrlsphere':
-      t.x = Math.sin(t.phase*spd*0.35)*2.5*tA + Math.cos(t.phase*spd*0.5)*1*tA;
-      t.y = 1.7 + Math.cos(t.phase*spd*0.3)*1*tA;
-      t.z = -10 + Math.sin(t.phase*spd*0.25)*1.2*tA;
+      // Guided Brownian Motion — random walk with central attractor (looks organic/alive)
+      { const spdMult = G.diff==='hard'?1.4:G.diff==='easy'?0.65:1.0;
+        const attract = G.diff==='hard'?1.8:G.diff==='easy'?2.8:2.2;
+        // Random impulses at varying intervals
+        t.attractTimer = (t.attractTimer||0) + dt;
+        const impulseRate = G.diff==='hard'?0.08:G.diff==='easy'?0.18:0.12;
+        if(t.attractTimer > impulseRate) {
+          t.attractTimer = 0;
+          // Random nudge
+          t.bvx += rand(-1,1) * spd * spdMult * 0.6;
+          t.bvy += rand(-0.5,0.5) * spd * spdMult * 0.4;
+        }
+        // Attractor pulls back toward a drifting center
+        t.attractX = (t.attractX||0) + Math.sin(t.phase*0.3)*dt*0.5;
+        t.attractY = 1.7 + Math.sin(t.phase*0.2)*0.4;
+        t.bvx += ((t.attractX||0) - (t.bx||0)) * attract * dt;
+        t.bvy += ((t.attractY||1.7) - (t.by||1.7)) * attract * dt;
+        // Damping (friction)
+        t.bvx *= Math.exp(-2.5*dt);
+        t.bvy *= Math.exp(-2.5*dt);
+        // Clamp speed
+        const maxV = spd * 1.5;
+        const curV = Math.sqrt(t.bvx*t.bvx + t.bvy*t.bvy);
+        if(curV > maxV) { t.bvx *= maxV/curV; t.bvy *= maxV/curV; }
+        t.bx = (t.bx||0) + t.bvx * dt;
+        t.by = (t.by||1.7) + t.bvy * dt;
+        // Soft bounds
+        t.bx = Math.max(-4*tA, Math.min(4*tA, t.bx));
+        t.by = Math.max(0.6, Math.min(3.0, t.by));
+        t.x = t.bx; t.y = t.by;
+        t.z = -10 + Math.sin(t.phase*0.25)*(G.diff==='hard'?1.2:G.diff==='easy'?0.4:0.8);
+      }
       break;
-    // Fingertip (micro movements)
+
+    // ═══ CONTROL TRACKING — FINGERTIP ═══
+
     case 'air_angelic':
-      // Angelic Air: slow graceful 3D floating — tiny amplitude, depth variation
-      t.x = Math.sin(t.phase*spd*0.18)*1.8*tA + Math.sin(t.phase*spd*0.31)*0.6*tA;
-      t.y = 2 + Math.sin(t.phase*spd*0.14)*0.7*tA + Math.cos(t.phase*spd*0.22)*0.25*tA;
-      t.z = -10 + Math.cos(t.phase*spd*0.11)*1.6*tA + Math.sin(t.phase*spd*0.19)*0.5*tA;
+      // Air Angelic: graceful 3D floating with 6 independent sine terms — micro-tracking in 3D
+      { const fMult = G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0;  // frequency multiplier
+        const aMult = G.diff==='hard'?1.15:G.diff==='easy'?0.8:1.0; // amplitude multiplier
+        t.x = Math.sin(t.phase*spd*0.18*fMult)*1.8*tA*aMult + Math.sin(t.phase*spd*0.31*fMult)*0.6*tA*aMult;
+        t.y = 2 + Math.sin(t.phase*spd*0.14*fMult)*0.7*tA*aMult + Math.cos(t.phase*spd*0.22*fMult)*0.25*tA;
+        t.z = -10 + Math.cos(t.phase*spd*0.11*fMult)*1.6*tA + Math.sin(t.phase*spd*0.19*fMult)*0.5*tA;
+      }
       break;
+
     case 'cloverraw':
-      // True Lissajous clover: sin(2t)*A, sin(t)*B — creates a proper figure-8/clover shape
-      { const freq = spd*0.22;
-        t.x = Math.sin(2*t.phase*freq)*3.5*tA;
-        t.y = 1.7 + Math.sin(t.phase*freq)*1.4*tA;
+      // Lissajous Clover figure-8 pattern — predictable path but requires smooth tracking
+      { const fMult = G.diff==='hard'?1.25:G.diff==='easy'?0.75:1.0;
+        const xAmp = G.diff==='hard'?4.0:G.diff==='easy'?2.8:3.5;
+        const yAmp = G.diff==='hard'?1.7:G.diff==='easy'?1.1:1.4;
+        const freq = spd*0.22*fMult;
+        t.x = Math.sin(2*t.phase*freq)*xAmp*tA;
+        t.y = 1.7 + Math.sin(t.phase*freq)*yAmp*tA;
         t.z = -10 + Math.cos(t.phase*freq*1.3)*0.6*tA;
       }
       break;
+
     case 'ctrlsphere_far':
-      t.x = Math.sin(t.phase*spd*0.25)*2*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.2)*1*tA;
-      t.z = -14 + Math.sin(t.phase*spd*0.18)*1*tA;
+      // Flyby Arc — target makes wide passes like an aircraft, far away, smooth curves
+      { const arcSpd = spd * (G.diff==='hard'?0.45:G.diff==='easy'?0.25:0.35);
+        t.arcAngle += dt * arcSpd * (t.arcDir||1);
+        // Figure-of-8 flyby at far distance
+        const progress = t.arcAngle;
+        t.x = Math.sin(progress) * 5 * tA;
+        t.passPhase = (t.passPhase||0) + dt * arcSpd * 0.7;
+        t.y = 1.7 + Math.sin(t.passPhase) * 1.2 * tA;
+        // Depth varies — comes closer on passes, farther on turns
+        t.z = -14 + Math.cos(progress * 2) * 3 * tA;
+        // Occasionally reverse direction for unpredictability
+        t.arcRev = (t.arcRev||0) + dt;
+        if(t.arcRev > (G.diff==='hard'?3:G.diff==='easy'?6:4.5)) {
+          t.arcRev = 0;
+          if(Math.random() < 0.4) t.arcDir *= -1;
+        }
+      }
       break;
-    // Blending (mixed)
+
+    // ═══ CONTROL TRACKING — BLENDING ═══
+
     case 'pgti':
-      // PGT Invincible: smooth sinusoidal base + occasional reactive kick (like real KovaaK's)
+      // PGT Invincible: smooth base + reactive kicks (kept — already distinctive)
       { const baseX = Math.sin(t.phase*spd*0.28)*4.2*tA + Math.sin(t.phase*spd*0.47)*0.9*tA;
         const baseY = 1.7 + Math.sin(t.phase*spd*0.22)*1.4*tA;
-        // reactive kick — frequency scales with difficulty
         t.kTimer = (t.kTimer||0) + dt;
         const kBase = G.diff==='hard'?0.7:G.diff==='easy'?2.5:1.5;
         const kRange = G.diff==='hard'?1.1:G.diff==='easy'?2.0:1.5;
@@ -1007,20 +1131,79 @@ function updateTrackTarget(dt) {
         t.z = -10 + Math.cos(t.phase*spd*0.18)*2*tA;
       }
       break;
+
     case 'air_celestial':
-      // Celestial: very slow, wide, graceful arcs — low frequency, large amplitude
-      t.x = Math.sin(t.phase*spd*0.1)*4.5*tA + Math.cos(t.phase*spd*0.17)*1.2*tA;
-      t.y = 2 + Math.sin(t.phase*spd*0.09)*1.6*tA + Math.sin(t.phase*spd*0.19)*0.5*tA;
-      t.z = -10 + Math.cos(t.phase*spd*0.08)*2.2*tA;
+      // Zipline Elevator — rises/descends with lateral drift, like riding a zipline or elevator
+      { const zipSpd = spd * (G.diff==='hard'?1.2:G.diff==='easy'?0.6:0.9);
+        // State machine: descend → drift → ascend → drift
+        t.zipTimer = (t.zipTimer||0) + dt;
+        const driftLen = G.diff==='hard'?1.2:G.diff==='easy'?2.5:1.8;
+        const riseLen = G.diff==='hard'?1.5:G.diff==='easy'?2.8:2.0;
+        switch(t.zipPhase) {
+          case 'descend':
+            t.zipVy = -zipSpd * 0.5;
+            t.zipVx = (t.zipDrift||0);
+            if(t.zipY <= 0.7 || t.zipTimer > riseLen) { t.zipPhase='drift_low'; t.zipTimer=0; t.zipDrift=rand(-1,1)*zipSpd*0.6; }
+            break;
+          case 'drift_low':
+            t.zipVy = Math.sin(t.phase*1.5)*0.15;
+            t.zipVx = (t.zipDrift||0) + Math.sin(t.phase*0.8)*zipSpd*0.3;
+            if(t.zipTimer > driftLen) { t.zipPhase='ascend'; t.zipTimer=0; }
+            break;
+          case 'ascend':
+            t.zipVy = zipSpd * 0.55;
+            t.zipVx = (t.zipDrift||0);
+            if(t.zipY >= 3.2 || t.zipTimer > riseLen) { t.zipPhase='drift_high'; t.zipTimer=0; t.zipDrift=rand(-1,1)*zipSpd*0.6; }
+            break;
+          case 'drift_high':
+            t.zipVy = Math.sin(t.phase*1.2)*0.15;
+            t.zipVx = (t.zipDrift||0) + Math.cos(t.phase*0.9)*zipSpd*0.3;
+            if(t.zipTimer > driftLen) { t.zipPhase='descend'; t.zipTimer=0; }
+            break;
+        }
+        t.zipX = (t.zipX||0) + (t.zipVx||0)*dt;
+        t.zipY = (t.zipY||2) + (t.zipVy||0)*dt;
+        // Bounds
+        t.zipX = Math.max(-5.5*tA, Math.min(5.5*tA, t.zipX));
+        t.zipY = Math.max(0.5, Math.min(3.5, t.zipY));
+        if(Math.abs(t.zipX) >= 5.5*tA) t.zipDrift *= -0.8;
+        t.x = t.zipX; t.y = t.zipY;
+        t.z = -10 + Math.sin(t.phase*0.2)*1.5*tA;
+      }
       break;
+
     case 'whisphere_slow':
-      t.x = Math.sin(t.phase*spd*0.12)*5*tA;
-      t.y = 1.7 + Math.sin(t.phase*spd*0.1)*1.5*tA;
-      t.z = -10 + Math.cos(t.phase*spd*0.08)*2*tA;
+      // Random Bézier Curves — follows randomly generated smooth curves, never the same path twice
+      { const bezSpd = spd * (G.diff==='hard'?0.45:G.diff==='easy'?0.2:0.3);
+        // Generate new Bézier control points when needed
+        if(!t.bezPts || t.bezT >= 1) {
+          const prev = t.bezPts ? { x:t.bezPts.x3, y:t.bezPts.y3 } : { x:0, y:1.7 };
+          const x3 = rand(-5,5)*tA, y3 = rand(0.6,3.2);
+          // Control points create smooth continuation from previous endpoint
+          const cx1 = prev.x + rand(-2,2)*tA, cy1 = prev.y + rand(-0.8,0.8);
+          const cx2 = x3 + rand(-2,2)*tA, cy2 = y3 + rand(-0.8,0.8);
+          t.bezPts = { x0:prev.x, y0:prev.y, cx1, cy1, cx2, cy2, x3, y3 };
+          t.bezT = 0;
+        }
+        t.bezT += dt * bezSpd;
+        if(t.bezT > 1) t.bezT = 1;
+        // Cubic Bézier interpolation
+        const u = t.bezT, u2=u*u, u3=u2*u;
+        const c0=(1-u)*(1-u)*(1-u), c1=3*(1-u)*(1-u)*u, c2=3*(1-u)*u2, c3=u3;
+        const bp = t.bezPts;
+        t.x = c0*bp.x0 + c1*bp.cx1 + c2*bp.cx2 + c3*bp.x3;
+        t.y = c0*bp.y0 + c1*bp.cy1 + c2*bp.cy2 + c3*bp.y3;
+        // Clamp
+        t.x = Math.max(-6*tA, Math.min(6*tA, t.x));
+        t.y = Math.max(0.5, Math.min(3.5, t.y));
+        t.z = -10 + Math.sin(t.phase*0.15)*1.5*tA;
+      }
       break;
-    // Reactive Tracking (sudden direction changes)
+
+    // ═══ REACTIVE TRACKING ═══
+
     case 'ground_plaza':
-      // Ground Plaza: locked at ground/knee level, pure horizontal strafing — simulates a crouching/running enemy
+      // Ground Plaza: ground-level strafing (kept — already unique with locked Y)
       t.ct = (t.ct||0)+dt;
       { const ncMin = G.diff==='hard'?0.5:G.diff==='easy'?1.0:0.6;
         const ncMax = G.diff==='hard'?1.0:G.diff==='easy'?2.0:1.4;
@@ -1036,31 +1219,48 @@ function updateTrackTarget(dt) {
         if(t.x >= 6.5 || t.x <= -6.5) t.vx *= -1;
       }
       break;
+
     case 'ctrlsphere_ow':
-      // Controlsphere OW: smooth OW-style strafe with gentle height floats, moderate direction changes
+      // ADAD + Crouch Spam — realistic OW strafing with sudden crouch dips
       t.ct = (t.ct||0)+dt;
-      { const ncMin = G.diff==='hard'?0.7:G.diff==='easy'?1.5:1.0;
-        const ncMax = G.diff==='hard'?1.3:G.diff==='easy'?2.5:2.0;
+      { const ncMin = G.diff==='hard'?0.35:G.diff==='easy'?0.9:0.55;
+        const ncMax = G.diff==='hard'?0.75:G.diff==='easy'?1.6:1.1;
         if(t.ct >= (t.nc||ncMax)) {
           t.ct=0; t.nc=rand(ncMin,ncMax);
-          const vMult = G.diff==='hard'?0.85:G.diff==='easy'?0.55:0.75;
-          t.vx = rand(-1,1)*spd*vMult;
-          t.vy = rand(-0.3,0.3)*spd*(vMult*0.33);
+          const vMult = G.diff==='hard'?1.1:G.diff==='easy'?0.6:0.85;
+          // ADAD: reverse or change strafe direction
+          const r = Math.random();
+          if(r < 0.6) t.vx = -Math.sign(t.vx||1) * rand(0.5,1)*spd*vMult; // counter-strafe
+          else t.vx = rand(-1,1)*spd*vMult; // random new direction
         }
-        t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
-        t.y += Math.sin(t.phase*spd*0.3)*0.004;
+        // Crouch system: independent timer, sudden dips
+        t.crouchTimer = (t.crouchTimer||0) + dt;
+        const crouchCd = G.diff==='hard'?0.6:G.diff==='easy'?1.5:1.0;
+        if(t.crouchTimer > crouchCd) {
+          t.crouchTimer = 0;
+          if(Math.random() < 0.45) {
+            t.crouchState = 'crouch';
+            t.crouchY = 0.9; // head dips to knee level
+          } else {
+            t.crouchState = 'stand';
+            t.crouchY = 1.7;
+          }
+        }
+        // Smooth crouch interpolation
+        const targetCY = t.crouchState==='crouch' ? 0.9 : 1.7;
+        t.crouchY = t.crouchY + (targetCY - t.crouchY) * Math.min(1, dt * 12);
+        t.x += (t.vx||0)*dt;
+        t.y = t.crouchY;
         t.x = Math.max(-5.5, Math.min(5.5, t.x));
-        t.y = Math.max(1.0, Math.min(3.2, t.y));
         if(t.x >= 5.5 || t.x <= -5.5) t.vx *= -1;
-        if(t.y >= 3.2 || t.y <= 1.0) t.vy *= -1;
       }
       break;
+
     case 'flicker_plaza':
-      // Flicker Plaza: teleports to completely new position at rapid intervals (no smooth movement between)
+      // Flicker Plaza: teleports to new position at rapid intervals (kept — already unique)
       t.ct = (t.ct||0)+dt;
       { const ncMin = G.diff==='hard'?0.22:G.diff==='easy'?0.55:0.3;
         const ncMax = G.diff==='hard'?0.5:G.diff==='easy'?1.0:0.7;
-        // teleport zone: hard=tighter (more micro-adjust), easy=wide
         const xRange = G.diff==='hard'?4.5:G.diff==='easy'?6.0:5.5;
         const yMin  = G.diff==='hard'?1.2:G.diff==='easy'?0.8:1.0;
         const yMax  = G.diff==='hard'?3.0:G.diff==='easy'?3.4:3.2;
@@ -1075,60 +1275,107 @@ function updateTrackTarget(dt) {
         t.y = Math.max(0.4, Math.min(3.6, t.y));
       }
       break;
+
     case 'polarized_hell':
-      // Polarized Hell: extremely rapid direction changes, very aggressive — tests reaction & wrist snap
+      // Zigzag Angular — sharp 45°/90° direction changes instead of random angles, very snappy
       t.ct = (t.ct||0)+dt;
       { const ncMin = G.diff==='hard'?0.15:G.diff==='easy'?0.4:0.18;
         const ncMax = G.diff==='hard'?0.35:G.diff==='easy'?0.75:0.45;
         if(t.ct >= (t.nc||ncMax)) {
           t.ct=0; t.nc=rand(ncMin,ncMax);
-          const ang = Math.random()*Math.PI*2;
-          const mag = spd*(G.diff==='hard'?1.2:G.diff==='easy'?0.65:0.9);
-          t.vx = Math.cos(ang)*mag;
-          t.vy = Math.sin(ang)*mag*0.55;
+          // Pick from fixed angles: 0, 45, 90, 135, 180, 225, 270, 315
+          const angles = [0, Math.PI/4, Math.PI/2, Math.PI*3/4, Math.PI, Math.PI*5/4, Math.PI*3/2, Math.PI*7/4];
+          // Bias toward angles that are 90° or 135° from current (sharp turns)
+          const prevAng = t.zigAngle || 0;
+          const offsets = [Math.PI/2, Math.PI*3/4, -Math.PI/2, -Math.PI*3/4, Math.PI];
+          const newAng = prevAng + offsets[Math.floor(Math.random()*offsets.length)];
+          t.zigAngle = newAng;
+          const mag = spd*(G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0);
+          t.vx = Math.cos(newAng)*mag;
+          t.vy = Math.sin(newAng)*mag*0.55;
         }
         t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
         t.x = Math.max(-6, Math.min(6, t.x));
         t.y = Math.max(0.5, Math.min(3.5, t.y));
-        if(t.x >= 6 || t.x <= -6) t.vx *= -1;
-        if(t.y >= 3.5 || t.y <= 0.5) t.vy *= -1;
+        if(t.x >= 6 || t.x <= -6) { t.vx *= -1; t.zigAngle = Math.PI - t.zigAngle; }
+        if(t.y >= 3.5 || t.y <= 0.5) { t.vy *= -1; t.zigAngle = -t.zigAngle; }
       }
       break;
+
     case 'air_pure':
-      // Air Pure: clean 3D reactive with full height variation — standard reactive air scenario
-      t.ct = (t.ct||0)+dt;
-      { const ncMin = G.diff==='hard'?0.5:G.diff==='easy'?1.2:0.7;
-        const ncMax = G.diff==='hard'?1.1:G.diff==='easy'?2.2:1.5;
-        if(t.ct >= (t.nc||ncMax)) {
-          t.ct=0; t.nc=rand(ncMin,ncMax);
-          const vMult = G.diff==='hard'?0.95:G.diff==='easy'?0.6:0.85;
-          t.vx = rand(-1,1)*spd*vMult;
-          t.vy = rand(-0.6,0.6)*spd*vMult*0.65;
+      // Physics Bounce — real ball physics with gravity, bounces off floor/walls, loses energy then relaunches
+      { const grav = G.diff==='hard'?5.5:G.diff==='easy'?3.5:4.5;
+        const bounceE = G.diff==='hard'?0.82:G.diff==='easy'?0.92:0.85;
+        const maxVx = spd * (G.diff==='hard'?1.8:G.diff==='easy'?1.1:1.5);
+        const launchForce = G.diff==='hard'?1.2:G.diff==='easy'?0.8:1.0;
+        const nudgeInt = G.diff==='hard'?1.5:G.diff==='easy'?4:3;
+        const nudgeStr = G.diff==='hard'?0.6:G.diff==='easy'?0.25:0.4;
+        const xBound = G.diff==='hard'?6.5:G.diff==='easy'?5:6;
+        // Apply gravity
+        t.bvy = (t.bvy||0) - grav * dt;
+        t.bx = (t.bx||0) + (t.bvx||1.5) * dt;
+        t.by = (t.by||2) + t.bvy * dt;
+        // Floor bounce
+        if(t.by <= 0.5) {
+          t.by = 0.5;
+          t.bvy = Math.abs(t.bvy) * bounceE;
+          if(Math.abs(t.bvy) < 0.8) {
+            t.bvy = rand(3,5) * launchForce;
+            t.bvx = rand(-1,1) * spd * 0.8;
+          }
         }
-        t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
-        t.x = Math.max(-6, Math.min(6, t.x));
-        t.y = Math.max(0.5, Math.min(3.6, t.y));
-        if(t.x >= 6 || t.x <= -6) t.vx *= -1;
-        if(t.y >= 3.6 || t.y <= 0.5) t.vy *= -1;
+        // Ceiling bounce
+        if(t.by >= 3.8) { t.by = 3.8; t.bvy = -Math.abs(t.bvy)*bounceE; }
+        // Wall bounce
+        if(t.bx >= xBound) { t.bx = xBound; t.bvx = -Math.abs(t.bvx)*0.95; }
+        if(t.bx <= -xBound) { t.bx = -xBound; t.bvx = Math.abs(t.bvx)*0.95; }
+        // Occasional horizontal nudge
+        t.ct = (t.ct||0)+dt;
+        if(t.ct > (t.nc||nudgeInt)) {
+          t.ct=0; t.nc = rand(nudgeInt*0.6, nudgeInt*1.4);
+          t.bvx += rand(-1,1)*spd*nudgeStr;
+          t.bvx = Math.max(-maxVx, Math.min(maxVx, t.bvx));
+        }
+        t.x = t.bx; t.y = t.by;
       }
       break;
+
     case 'air_voltaic':
-      // Air Voltaic: more aggressive than air_pure — stronger vx, wider height swings, shorter interval
-      t.ct = (t.ct||0)+dt;
-      { const ncMin = G.diff==='hard'?0.35:G.diff==='easy'?0.9:0.45;
-        const ncMax = G.diff==='hard'?0.8:G.diff==='easy'?1.8:1.1;
-        if(t.ct >= (t.nc||ncMax)) {
-          t.ct=0; t.nc=rand(ncMin,ncMax);
-          const ang = Math.random()*Math.PI*2;
-          const mag = spd*(G.diff==='hard'?1.15:G.diff==='easy'?0.7:0.95);
-          t.vx = Math.cos(ang)*mag;
-          t.vy = Math.sin(ang)*mag*0.65;
+      // Dash + Hover — fast dash in a direction, then slow hover/float, then dash again
+      { const dashSpd = spd * (G.diff==='hard'?1.8:G.diff==='easy'?1.0:1.4);
+        const hoverSpd = spd * 0.15;
+        t.dashTimer = (t.dashTimer||0) + dt;
+        const dashDur = G.diff==='hard'?0.18:G.diff==='easy'?0.35:0.25;
+        const hoverDur = G.diff==='hard'?0.5:G.diff==='easy'?1.2:0.8;
+        if(t.dashState === 'dash') {
+          t.x += (t.dashVx||0)*dt;
+          t.y += (t.dashVy||0)*dt;
+          // Decelerate during dash
+          t.dashVx *= Math.exp(-2*dt);
+          t.dashVy *= Math.exp(-2*dt);
+          if(t.dashTimer > dashDur) {
+            t.dashState = 'hover';
+            t.dashTimer = 0;
+            t.hoverX = t.x; t.hoverY = t.y;
+          }
+        } else {
+          // Hover: gentle floating around the dash endpoint
+          t.x = (t.hoverX||0) + Math.sin(t.phase*1.5)*0.4*tA;
+          t.y = (t.hoverY||2) + Math.cos(t.phase*1.2)*0.25*tA;
+          if(t.dashTimer > hoverDur) {
+            t.dashState = 'dash';
+            t.dashTimer = 0;
+            // Pick a new dash direction (away from current position for variety)
+            const ang = Math.random()*Math.PI*2;
+            t.dashVx = Math.cos(ang)*dashSpd;
+            t.dashVy = Math.sin(ang)*dashSpd*0.5;
+          }
         }
-        t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
-        t.x = Math.max(-6.5, Math.min(6.5, t.x));
-        t.y = Math.max(0.4, Math.min(3.8, t.y));
-        if(t.x >= 6.5 || t.x <= -6.5) t.vx *= -1;
-        if(t.y >= 3.8 || t.y <= 0.4) t.vy *= -1;
+        // Bounds
+        t.x = Math.max(-6, Math.min(6, t.x));
+        t.y = Math.max(0.5, Math.min(3.5, t.y));
+        if(Math.abs(t.x) >= 6) { t.dashVx *= -1; t.hoverX = t.x; }
+        if(t.y >= 3.5 || t.y <= 0.5) { t.dashVy *= -1; t.hoverY = t.y; }
       }
       break;
     case 'deadzone_drill':
