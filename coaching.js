@@ -484,6 +484,8 @@ async function globalCheckSession() {
       coachingUser = data.user;
       coachingUserRole = data.user.role;
       showApp();
+      // Cloud sync on session restore
+      if (typeof onLoginSync === 'function') setTimeout(() => onLoginSync(), 500);
     } else {
       localStorage.removeItem('ch_token');
       coachingToken = null;
