@@ -939,6 +939,22 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   gap: 8px;
 }
 
+/* ── Cloud Sync Indicator ── */
+.sync-indicator {
+  font-size: 1.05rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: default;
+  transition: color 0.3s, opacity 0.3s;
+  user-select: none;
+  opacity: 0.5;
+}
+.sync-idle { color: var(--dim); }
+.sync-syncing { color: var(--accent); opacity: 1; animation: syncPulse 1s infinite; }
+.sync-synced { color: #22c55e; opacity: 1; }
+.sync-error { color: #ef4444; opacity: 1; }
+@keyframes syncPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
 .ch-scroll {
   flex: 1;
   overflow-y: auto;

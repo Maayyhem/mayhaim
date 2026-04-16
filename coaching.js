@@ -597,6 +597,8 @@ function authFinalize(token, user) {
   coachingUserRole = user.role;
   localStorage.setItem('ch_token', token);
   showApp();
+  // Cloud sync — pull server data then push local
+  if (typeof onLoginSync === 'function') setTimeout(() => onLoginSync(), 500);
 }
 
 function globalLogout() {
@@ -609,6 +611,7 @@ function globalLogout() {
   clearInterval(_msgPollInterval);
   _msgPollInterval = null;
   _activeRelId = null;
+  if (typeof onLogoutSync === 'function') onLogoutSync();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('auth-screen').classList.add('active');
 }

@@ -1955,6 +1955,9 @@ function endGame() {
   // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
   if (typeof _updateCoachingReturnBtn === 'function') _updateCoachingReturnBtn();
   if (typeof _renderHeatmap === 'function') _renderHeatmap();
+
+  // Cloud sync — debounced push after game end
+  if (typeof debouncedSync === 'function') debouncedSync();
 }
 
 function showScreen(id) {
@@ -2930,4 +2933,129 @@ function _replayDraw(elapsed) {
     }
   });
 }
+
+// ============================================================
+// ═══ CLOUD SYNC — bidirectional localStorage ↔ server ═══
+// ============================================================
+
+let _syncInProgress = false;
+let _syncDebounce = null;
+
+// Collect all localStorage data into one blob
+function _collectLocalData() {
+  const data = {};
+  // Benchmark best scores per tier
+  for (const tier of ['medium', 'hard', 'easier']) {
+    try { data['bench_' + tier] = JSON.parse(localStorage.getItem('visc_bench_' + tier)) || {}; } catch { data['bench_' + tier] = {}; }
+  }
+  // Run history per mode
+  data.runs = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('visc_runs_')) {
+      const mode = k.replace('visc_runs_', '');
+      try { data.runs[mode] = JSON.parse(localStorage.getItem(k)) || []; } catch { data.runs[mode] = []; }
+    }
+  }
+  // Achievement stats & unlocked
+  try { data.ach_stats = JSON.parse(localStorage.getItem('ach_stats')) || {}; } catch { data.ach_stats = {}; }
+  try { data.ach_unlocked = JSON.parse(localStorage.getItem('ach_unlocked')) || []; } catch { data.ach_unlocked = []; }
+  // Weekly challenges
+  try { data.weekly_challenges = JSON.parse(localStorage.getItem('weekly_challenges')) || {}; } catch { data.weekly_challenges = {}; }
+  // XP & missions
+  data.xp = parseInt(localStorage.getItem('valAim3D_xp') || '0', 10);
+  try { data.missions = JSON.parse(localStorage.getItem('valAim3D_missions')) || []; } catch { data.missions = []; }
+  // Settings
+  try { data.settings = JSON.parse(localStorage.getItem('valAim3Dv3_settings')) || {}; } catch { data.settings = {}; }
+  return data;
+}
+
+// Apply merged data back to localStorage
+function _applyMergedData(data) {
+  if (!data || typeof data !== 'object') return;
+  // Benchmark
+  for (const tier of ['medium', 'hard', 'easier']) {
+    if (data['bench_' + tier]) localStorage.setItem('visc_bench_' + tier, JSON.stringify(data['bench_' + tier]));
+  }
+  // Runs
+  if (data.runs) {
+    for (const [mode, arr] of Object.entries(data.runs)) {
+      localStorage.setItem('visc_runs_' + mode, JSON.stringify(arr));
+    }
+  }
+  // Achievements
+  if (data.ach_stats) localStorage.setItem('ach_stats', JSON.stringify(data.ach_stats));
+  if (data.ach_unlocked) localStorage.setItem('ach_unlocked', JSON.stringify(data.ach_unlocked));
+  // Weekly
+  if (data.weekly_challenges) localStorage.setItem('weekly_challenges', JSON.stringify(data.weekly_challenges));
+  // XP
+  if (typeof data.xp === 'number') localStorage.setItem('valAim3D_xp', String(data.xp));
+  // Missions
+  if (data.missions) localStorage.setItem('valAim3D_missions', JSON.stringify(data.missions));
+  // Settings
+  if (data.settings && Object.keys(data.settings).length > 0) {
+    localStorage.setItem('valAim3Dv3_settings', JSON.stringify(data.settings));
+    if (typeof applySettings === 'function') applySettings();
+  }
+}
+
+// Push local data to server, receive merged, apply locally
+async function cloudSync(direction) {
+  if (_syncInProgress) return;
+  const token = (typeof coachingToken !== 'undefined') ? coachingToken : localStorage.getItem('ch_token');
+  if (!token) return;
+  _syncInProgress = true;
+  _updateSyncUI('syncing');
+  try {
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+    if (direction === 'pull') {
+      // Pull only — on login
+      const res = await fetch(apiBase + '/api/sync', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) throw new Error('sync pull failed: ' + res.status);
+      const { data } = await res.json();
+      if (data && Object.keys(data).length > 0) _applyMergedData(data);
+    } else {
+      // Full push+merge
+      const clientData = _collectLocalData();
+      const res = await fetch(apiBase + '/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ client_data: clientData })
+      });
+      if (!res.ok) throw new Error('sync push failed: ' + res.status);
+      const { data } = await res.json();
+      if (data) _applyMergedData(data);
+    }
+    _updateSyncUI('synced');
+  } catch (e) {
+    console.warn('[sync]', e.message);
+    _updateSyncUI('error');
+  } finally {
+    _syncInProgress = false;
+  }
+}
+
+// Debounced sync — called after each game end
+function debouncedSync() {
+  if (_syncDebounce) clearTimeout(_syncDebounce);
+  _syncDebounce = setTimeout(() => cloudSync('push'), 2000);
+}
+
+// UI indicator
+function _updateSyncUI(state) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  el.className = 'sync-indicator sync-' + state;
+  if (state === 'syncing') { el.textContent = '☁ Sync…'; el.title = 'Synchronisation en cours'; }
+  else if (state === 'synced') { el.textContent = '☁ ✓'; el.title = 'Données synchronisées'; setTimeout(() => { if(el.className.includes('synced')) { el.textContent = '☁'; el.title='Synchronisé'; } }, 3000); }
+  else if (state === 'error') { el.textContent = '☁ ✗'; el.title = 'Erreur de synchronisation'; }
+  else { el.textContent = '☁'; el.title = 'Cloud sync'; }
+}
+
+// Called from coaching.js on login
+function onLoginSync() { cloudSync('pull').then(() => cloudSync('push')); }
+// Called from coaching.js on logout — reset indicator
+function onLogoutSync() { _updateSyncUI('idle'); }
 

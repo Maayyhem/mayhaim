@@ -334,9 +334,6 @@
       </div>
 
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-        <a href="https://github.com/Maayyhem/mayhaim" target="_blank" class="btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-          <span>⌥</span> GitHub
-        </a>
         <a href="https://mayhaim.vercel.app" target="_blank" class="btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           <span>🌐</span> Site web
         </a>
