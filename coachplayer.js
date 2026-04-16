@@ -228,7 +228,7 @@ function renderCoachPending(pending) {
   el.innerHTML = `<h3 class="cp-sub-title">Demandes en attente (${pending.length})</h3>
     ${pending.map(r => `
       <div class="cp-pending-card">
-        <span class="cp-pending-name">&#128100; ${r.player_username}</span>
+        <span class="cp-pending-name">${icon('user',16)} ${r.player_username}</span>
         ${r.message ? `<span class="cp-pending-msg">"${r.message}"</span>` : ''}
         <div class="cp-pending-actions">
           <button class="btn-primary" style="font-size:0.75rem;padding:5px 14px"
@@ -397,11 +397,11 @@ async function cpLoadPlayerStats(playerId) {
     </div>
 
     <!-- Activity chart -->
-    <div class="cp-modal-section-title">📈 Activité 30j</div>
+    <div class="cp-modal-section-title">${icon('trending-up',16)} Activité 30j</div>
     <div class="cp-modal-chart-wrap"><canvas id="cp-modal-activity-chart"></canvas></div>
 
     <!-- Recent games -->
-    <div class="cp-modal-section-title" style="margin-top:14px">🕹️ Parties récentes</div>
+    <div class="cp-modal-section-title" style="margin-top:14px">${icon('gamepad',16)} Parties récentes</div>
     <div class="cp-modal-recent">
       ${recent.length === 0
         ? '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucune partie.</p>'
@@ -421,7 +421,7 @@ async function cpLoadPlayerStats(playerId) {
     </div>
 
     <!-- Benchmark bests table (existing) -->
-    <div class="cp-modal-section-title" style="margin-top:14px">📊 Bests Benchmark</div>
+    <div class="cp-modal-section-title" style="margin-top:14px">${icon('chart',16)} Bests Benchmark</div>
     <div id="cp-pt-bm"></div>`;
 
   // Draw activity chart
@@ -523,7 +523,7 @@ function cpRenderPlanForm(playerId) {
     </div>
     <div id="cp-plan-rows" class="cp-plan-rows"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
-      <input id="cp-plan-target-scenario" class="cp-input" placeholder="🎯 Scénario objectif (opt.)">
+      <input id="cp-plan-target-scenario" class="cp-input" placeholder="Scénario objectif (opt.)">
       <input id="cp-plan-target-energy" class="cp-input" type="number" min="0" max="100" placeholder="Energy cible (ex: 75)">
     </div>
     <div id="cp-plan-msg" class="cp-msg"></div>
@@ -587,15 +587,15 @@ function cpRenderFeedbackForm(playerId) {
     <textarea id="cp-fb-content" class="cp-textarea" rows="3" placeholder="Feedback général sur la progression cette semaine..."></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0">
       <div>
-        <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px">&#128994; Points forts</label>
+        <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px"><span style="color:#4ade80">${icon('check-circle',14)}</span> Points forts</label>
         <textarea id="cp-fb-strengths" class="cp-textarea" rows="2" placeholder="Ce qui est bien..."></textarea>
       </div>
       <div>
-        <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px">&#128308; Points à améliorer</label>
+        <label style="font-size:0.75rem;color:var(--dim);display:block;margin-bottom:4px"><span style="color:#ff4655">${icon('alert-triangle',14)}</span> Points à améliorer</label>
         <textarea id="cp-fb-weaknesses" class="cp-textarea" rows="2" placeholder="Ce qui doit progresser..."></textarea>
       </div>
     </div>
-    <textarea id="cp-fb-objective" class="cp-textarea" rows="2" placeholder="&#127945; Objectif pour la semaine prochaine..."></textarea>
+    <textarea id="cp-fb-objective" class="cp-textarea" rows="2" placeholder="Objectif pour la semaine prochaine..."></textarea>
     <div id="cp-fb-msg" class="cp-msg" style="margin-top:8px"></div>
     <button class="btn-primary" style="width:100%;margin-top:10px" onclick="cpSubmitFeedback(${playerId})">Envoyer le feedback</button>
     <div id="cp-fb-history"></div>`;
@@ -640,7 +640,7 @@ async function cpLoadFeedbackHistory(playerId) {
         <p class="cp-fb-content">${san(f.content)}</p>
         ${f.strengths ? `<div class="cp-fb-row"><span style="color:#4ade80">+ </span>${san(f.strengths)}</div>` : ''}
         ${f.weaknesses ? `<div class="cp-fb-row"><span style="color:#f87171">- </span>${san(f.weaknesses)}</div>` : ''}
-        ${f.week_objective ? `<div class="cp-fb-row"><span style="color:var(--accent)">&#127945; </span>${san(f.week_objective)}</div>` : ''}
+        ${f.week_objective ? `<div class="cp-fb-row"><span style="color:var(--accent)">${icon('target',14)} </span>${san(f.week_objective)}</div>` : ''}
       </div>`).join('')}`;
 }
 
@@ -732,7 +732,7 @@ function renderStudentPending(pending) {
   el.innerHTML = `<h3 class="cp-sub-title" style="margin-top:24px">Demandes en attente (${pending.length})</h3>
     ${pending.map(r => `
       <div class="cp-pending-card">
-        <span class="cp-pending-name">&#127942; ${r.coach_username} veut te coacher</span>
+        <span class="cp-pending-name">${icon('trophy',16)} ${r.coach_username} veut te coacher</span>
         ${r.message ? `<span class="cp-pending-msg">"${r.message}"</span>` : ''}
         <div class="cp-pending-actions">
           <button class="btn-primary" style="font-size:0.75rem;padding:5px 14px"
@@ -785,7 +785,7 @@ async function cpLoadPlan() {
   const plan = data.plan;
   if (!plan) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-      <div style="font-size:3rem;margin-bottom:12px">&#128203;</div>
+      <div style="font-size:3rem;margin-bottom:12px">${icon('clipboard',24)}</div>
       <p class="ch-empty">Ton coach n'a pas encore assigné de plan d'entraînement.</p>
     </div>`;
     return;
@@ -813,7 +813,7 @@ async function cpLoadPlan() {
     <div class="cp-progress-bar"><div class="cp-progress-fill" style="width:${pct}%"></div></div>
     ${plan.target_scenario ? `
       <div class="cp-plan-target">
-        &#127945; Objectif : atteindre <strong>${san(plan.target_scenario)}</strong>
+        ${icon('target',14)} Objectif : atteindre <strong>${san(plan.target_scenario)}</strong>
         ${plan.target_energy ? ` avec <strong>${plan.target_energy}</strong> energy` : ''}
       </div>` : ''}
     <div class="cp-scenarios-checklist" id="cp-plan-checklist">
@@ -869,7 +869,7 @@ async function cpLoadFeedbacks() {
   const fbs = data.feedbacks || [];
   if (fbs.length === 0) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-      <div style="font-size:3rem;margin-bottom:12px">&#128172;</div>
+      <div style="font-size:3rem;margin-bottom:12px">${icon('message',24)}</div>
       <p class="ch-empty">Aucun feedback reçu pour l'instant.</p>
     </div>`;
     return;
@@ -889,12 +889,12 @@ async function cpLoadFeedbacks() {
       <p class="cp-fb-content">${san(f.content)}</p>
       ${f.strengths || f.weaknesses ? `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          ${f.strengths ? `<div class="cp-fb-section good"><span>&#128994; Points forts</span><p>${san(f.strengths)}</p></div>` : '<div></div>'}
-          ${f.weaknesses ? `<div class="cp-fb-section bad"><span>&#128308; À améliorer</span><p>${san(f.weaknesses)}</p></div>` : ''}
+          ${f.strengths ? `<div class="cp-fb-section good"><span><span style="color:#4ade80">${icon('check-circle',14)}</span> Points forts</span><p>${san(f.strengths)}</p></div>` : '<div></div>'}
+          ${f.weaknesses ? `<div class="cp-fb-section bad"><span><span style="color:#ff4655">${icon('alert-triangle',14)}</span> À améliorer</span><p>${san(f.weaknesses)}</p></div>` : ''}
         </div>` : ''}
       ${f.week_objective ? `
         <div class="cp-fb-section objective">
-          <span>&#127945; Objectif semaine prochaine</span>
+          <span>${icon('target',14)} Objectif semaine prochaine</span>
           <p>${san(f.week_objective)}</p>
         </div>` : ''}
     </div>`).join('');
@@ -1033,7 +1033,7 @@ async function cpLoadMyVods() {
       ${v.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px">${san(v.notes)}</div>` : ''}
       ${v.coach_feedback ? `
         <div style="margin-top:10px;background:rgba(0,200,136,0.08);border:1px solid rgba(0,200,136,0.2);border-radius:8px;padding:10px">
-          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">💬 Feedback coach</div>
+          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">${icon('message',14)} Feedback coach</div>
           <div style="font-size:0.82rem;color:var(--txt)">${san(v.coach_feedback)}</div>
         </div>` : ''}
     </div>`;
@@ -1095,7 +1095,7 @@ async function cpLoadPlayerVods(playerId) {
       ${v.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px">${san(v.notes)}</div>` : ''}
       ${v.coach_feedback ? `
         <div style="margin-top:10px;background:rgba(0,200,136,0.08);border:1px solid rgba(0,200,136,0.2);border-radius:8px;padding:10px;margin-bottom:8px">
-          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">💬 Mon feedback</div>
+          <div style="font-size:0.72rem;color:var(--accent);font-weight:700;margin-bottom:4px">${icon('message',14)} Mon feedback</div>
           <div style="font-size:0.82rem;color:var(--txt)">${san(v.coach_feedback)}</div>
         </div>` : ''}
       <div style="margin-top:10px" id="vod-fb-wrap-${v.id}">
@@ -1104,7 +1104,7 @@ async function cpLoadPlayerVods(playerId) {
                  background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--txt)"
         >${san(v.coach_feedback || '')}</textarea>
         <button class="btn-primary" style="margin-top:6px;width:100%;font-size:0.8rem"
-          onclick="cpSaveVodFeedback(${v.id}, ${playerId})">💬 Sauvegarder le feedback</button>
+          onclick="cpSaveVodFeedback(${v.id}, ${playerId})">${icon('message',14)} Sauvegarder le feedback</button>
         <div id="vod-fb-msg-${v.id}" class="cp-msg" style="margin-top:4px"></div>
       </div>
     </div>`;

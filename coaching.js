@@ -807,10 +807,10 @@ function renderAnnouncements(list) {
   if (!bar) return;
   if (!list.length) { bar.innerHTML = ''; return; }
   const typeStyle = {
-    info:    { bg:'rgba(96,165,250,0.1)',  border:'#60a5fa', icon:'ℹ️' },
-    warning: { bg:'rgba(251,191,36,0.1)', border:'#fbbf24', icon:'⚠️' },
-    success: { bg:'rgba(74,222,128,0.1)', border:'#4ade80', icon:'✅' },
-    danger:  { bg:'rgba(255,70,85,0.1)',  border:'#ff4655', icon:'🚨' }
+    info:    { bg:'rgba(96,165,250,0.1)',  border:'#60a5fa', icon: icon('info', 16) },
+    warning: { bg:'rgba(251,191,36,0.1)', border:'#fbbf24', icon: icon('alert-triangle', 16) },
+    success: { bg:'rgba(74,222,128,0.1)', border:'#4ade80', icon: icon('check-circle', 16) },
+    danger:  { bg:'rgba(255,70,85,0.1)',  border:'#ff4655', icon: icon('alert-octagon', 16) }
   };
   bar.innerHTML = list.map(a => {
     const s = typeStyle[a.type] || typeStyle.info;
@@ -1001,20 +1001,20 @@ function coachingSwitchTab(tabId) {
 
   // Update topbar title
   const TAB_TITLES = {
-    'hub-home':'🏠 Accueil',
-    'hub-freeplay':'⚡ Free Play',
-    'hub-settings':'⚙️ Paramètres',
-    'hub-viscose':'📊 Viscose Benchmark',
-    'ch-dashboard':'Dashboard','ch-daily-training':'🗓️ Daily Training','ch-daily':'📅 Daily Challenge',
-    'ch-historique':'📈 Historique','ch-leaderboard':'🏆 Classement','ch-achievements':'🏅 Succès',
-    'ch-scenarios':'🎯 Scénarios','ch-agents':'🧠 Agents','ch-vods':'📹 VODs',
-    'ch-cours':'📚 Cours','ch-warmup':'🔥 Échauffement','ch-students':'👥 Élèves',
-    'ch-messages':'💬 Messages','cp-mon-coach':'👨‍🏫 Mon Coach','cp-mon-plan':'🗓️ Mon Plan',
-    'cp-feedbacks':'📝 Feedbacks','ch-map-editor':'🗺️ Map Editor',
-    'ch-manage-scenarios':'🔧 Gestion Scénarios','ch-admin':'⚙️ Admin',
+    'hub-home':icon('home',16)+' Accueil',
+    'hub-freeplay':icon('zap',16)+' Free Play',
+    'hub-settings':icon('settings',16)+' Paramètres',
+    'hub-viscose':icon('chart',16)+' Viscose Benchmark',
+    'ch-dashboard':'Dashboard','ch-daily-training':icon('calendar',16)+' Daily Training','ch-daily':icon('calendar',16)+' Daily Challenge',
+    'ch-historique':icon('trending-up',16)+' Historique','ch-leaderboard':icon('trophy',16)+' Classement','ch-achievements':icon('medal',16)+' Succès',
+    'ch-scenarios':icon('target',16)+' Scénarios','ch-agents':icon('brain',16)+' Agents','ch-vods':icon('video',16)+' VODs',
+    'ch-cours':icon('book',16)+' Cours','ch-warmup':icon('flame',16)+' Échauffement','ch-students':icon('users',16)+' Élèves',
+    'ch-messages':icon('message',16)+' Messages','cp-mon-coach':icon('teacher',16)+' Mon Coach','cp-mon-plan':icon('calendar',16)+' Mon Plan',
+    'cp-feedbacks':icon('feedback',16)+' Feedbacks','ch-map-editor':icon('map',16)+' Map Editor',
+    'ch-manage-scenarios':icon('wrench',16)+' Gestion Scénarios','ch-admin':icon('settings',16)+' Admin',
   };
   const titleEl = document.getElementById('ch-topbar-title');
-  if (titleEl) titleEl.textContent = TAB_TITLES[tabId] || tabId;
+  if (titleEl) titleEl.innerHTML = TAB_TITLES[tabId] || tabId;
 
   if (tabId === 'hub-viscose' && typeof renderBenchmark === 'function') {
     setTimeout(() => renderBenchmark(), 50);
@@ -1107,7 +1107,7 @@ async function coachingRenderDashboard() {
           ${p.description ? `<div class="dash-plan-desc">${san(p.description)}</div>` : ''}
           <div class="dash-plan-progress-bar"><div class="dash-plan-progress-fill" style="width:${pct}%"></div></div>
           <div class="dash-plan-pct">${p.scenarios_done} / ${p.scenarios_total} scénarios &mdash; ${pct}%</div>
-          ${p.target_scenario ? `<div class="dash-plan-target">🎯 Objectif : ${san(p.target_scenario)}</div>` : ''}`;
+          ${p.target_scenario ? `<div class="dash-plan-target">${icon('target',14)} Objectif : ${san(p.target_scenario)}</div>` : ''}`;
       } else {
         planEl.innerHTML = '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucun plan actif</p>';
       }
@@ -1122,7 +1122,7 @@ async function coachingRenderDashboard() {
         fbEl.innerHTML = `
           <div class="dash-fb-coach">Par ${san(f.coach_username)} &middot; <span style="color:var(--dim)">${date}</span></div>
           <p class="dash-fb-content">${san(f.content)}</p>
-          ${f.week_objective ? `<div class="dash-fb-obj">🎯 ${san(f.week_objective)}</div>` : ''}`;
+          ${f.week_objective ? `<div class="dash-fb-obj">${icon('target',14)} ${san(f.week_objective)}</div>` : ''}`;
       } else {
         fbEl.innerHTML = '<p class="ch-empty" style="font-size:0.82rem;padding:8px 0">Aucun feedback reçu</p>';
       }
@@ -1443,8 +1443,8 @@ function _qcmOpenManager(scenarioId) {
               ${q.choices.map((c, ci) => `<span class="qcm-mgr-choice ${ci === q.answer ? 'qcm-mgr-choice--correct' : ''}">${'ABCD'[ci]}. ${san(c)}</span>`).join('')}
             </div>
             <div class="qcm-mgr-actions">
-              <button class="qcm-mgr-btn qcm-mgr-btn-edit" data-idx="${i}">✏️ Modifier</button>
-              <button class="qcm-mgr-btn qcm-mgr-btn-del" data-idx="${i}">🗑️ Supprimer</button>
+              <button class="qcm-mgr-btn qcm-mgr-btn-edit" data-idx="${i}">${icon('edit',14)} Modifier</button>
+              <button class="qcm-mgr-btn qcm-mgr-btn-del" data-idx="${i}">${icon('trash',14)} Supprimer</button>
             </div>
           </div>
         `).join('') : '<p style="color:var(--dim);text-align:center;padding:20px 0">Aucune question pour ce scénario</p>'}
@@ -1472,7 +1472,7 @@ function _qcmOpenManager(scenarioId) {
   render();
 
   showModal({
-    title: `📝 QCM — ${s.title}`,
+    title: `${icon('edit',16)} QCM — ${s.title}`,
     content,
     size: 'lg',
   });
@@ -1519,7 +1519,7 @@ function _qcmOpenEditor(scenarioId, qIndex, onSave) {
   `;
 
   const modal = showModal({
-    title: isNew ? '➕ Nouvelle question' : '✏️ Modifier la question',
+    title: isNew ? icon('plus',16)+' Nouvelle question' : icon('edit',16)+' Modifier la question',
     content: form,
     size: 'md',
   });
@@ -1596,7 +1596,7 @@ function _qcmRender() {
   }
   const item = _qcmFiltered[_qcmIndex];
   const s = item.scenario;
-  const typeLabel = s.type === 'attack' ? '⚔️ Attaque' : s.type === 'defense' ? '🛡️ Défense' : '🔄 Retake';
+  const typeLabel = s.type === 'attack' ? icon('sword',14)+' Attaque' : s.type === 'defense' ? icon('shield',14)+' Défense' : icon('refresh-cw',14)+' Retake';
   const typeClass = s.type === 'attack' ? 'fc-type-attack' : s.type === 'defense' ? 'fc-type-defense' : 'fc-type-retake';
   const rankColor = _fcRankColor(s.rank);
 
@@ -1680,10 +1680,10 @@ function _qcmShowResults() {
   const wrapper = document.getElementById('fc-card-wrapper');
   if (!wrapper) return;
   const pct = _qcmScore.total > 0 ? Math.round((_qcmScore.correct / _qcmScore.total) * 100) : 0;
-  const grade = pct >= 90 ? { label: 'Excellent !', color: '#2dbe73', emoji: '🌟' }
-    : pct >= 70 ? { label: 'Bien joué !', color: '#f0c43f', emoji: '👏' }
-    : pct >= 50 ? { label: 'Peut mieux faire', color: '#ff8c00', emoji: '📚' }
-    : { label: 'À retravailler', color: '#ff4655', emoji: '💪' };
+  const grade = pct >= 90 ? { label: 'Excellent !', color: '#2dbe73', emoji: icon('star',20) }
+    : pct >= 70 ? { label: 'Bien joué !', color: '#f0c43f', emoji: icon('award',20) }
+    : pct >= 50 ? { label: 'Peut mieux faire', color: '#ff8c00', emoji: icon('book',20) }
+    : { label: 'À retravailler', color: '#ff4655', emoji: icon('dumbbell',20) };
 
   wrapper.innerHTML = `
     <div class="qcm-results">
@@ -1697,8 +1697,8 @@ function _qcmShowResults() {
         <div class="qcm-results-bar-fill" style="width:${pct}%;background:${grade.color}"></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:24px">
-        <button class="fc-btn fc-btn-train" onclick="coachingRenderScenarios()">🔄 Recommencer</button>
-        <button class="fc-btn fc-btn-master" onclick="_qcmOpenModal()">📋 Voir les guides</button>
+        <button class="fc-btn fc-btn-train" onclick="coachingRenderScenarios()">${icon('refresh-cw',16)} Recommencer</button>
+        <button class="fc-btn fc-btn-master" onclick="_qcmOpenModal()">${icon('clipboard',16)} Voir les guides</button>
       </div>
     </div>`;
 }
@@ -1986,7 +1986,7 @@ function dailyTrainingLoad() {
   const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
   el.innerHTML = `
-    <h2 class="ch-section-title">🗓️ Daily Training</h2>
+    <h2 class="ch-section-title">${icon('calendar',18)} Daily Training</h2>
     <div class="dt-date">${dateStr}</div>
     <p class="dt-desc">5 exercices du jour — complète les threads du tier recommandé pour progresser&nbsp;!</p>
     <div class="dt-list">
@@ -2021,7 +2021,7 @@ function dailyTrainingLoad() {
         const locked = !vd.isScenarioUnlocked(key, recTier);
         const prevTierLbl = recTier === 'hard' ? 'Medium' : 'Easier';
         const launchBtn = locked
-          ? `<span class="dt-locked-badge" title="Faire au moins 1 session en ${prevTierLbl} pour débloquer">🔒 Verrouillé</span>`
+          ? `<span class="dt-locked-badge" title="Faire au moins 1 session en ${prevTierLbl} pour débloquer">${icon('lock',14)} Verrouillé</span>`
           : `<button class="dt-launch-btn" onclick="dtLaunch('${key}','${recTier}')">▶ Lancer</button>`;
 
         return `<div class="dt-exercise${locked?' dt-exercise-locked':''}">
@@ -2052,7 +2052,7 @@ function dtLaunch(key, tier) {
 
 const WARMUP_ROUTINES = [
   {
-    id: 'debutant', name: '🌱 Débutant', desc: '3 exercices · 45s chacun · Tracking + Précision',
+    id: 'debutant', name: icon('sprout',16)+' Débutant', desc: '3 exercices · 45s chacun · Tracking + Précision',
     exercises: [
       { mode: 'ground_plaza', diff: 'easy',   dur: 45, label: 'Ground Plaza — Tracking sol' },
       { mode: 'pasu_reload',  diff: 'easy',   dur: 45, label: 'Pasu Reload — Clics précis' },
@@ -2060,7 +2060,7 @@ const WARMUP_ROUTINES = [
     ]
   },
   {
-    id: 'intermediaire', name: '⚡ Intermédiaire', desc: '4 exercices · 60s chacun · Mix complet',
+    id: 'intermediaire', name: icon('zap',16)+' Intermédiaire', desc: '4 exercices · 60s chacun · Mix complet',
     exercises: [
       { mode: 'ground_plaza',    diff: 'medium', dur: 60, label: 'Ground Plaza — Tracking sol' },
       { mode: 'pasu_reload',     diff: 'medium', dur: 60, label: 'Pasu Reload — Clics précis' },
@@ -2069,7 +2069,7 @@ const WARMUP_ROUTINES = [
     ]
   },
   {
-    id: 'avance', name: '🔥 Avancé', desc: '5 exercices · 60s chacun · Intensif',
+    id: 'avance', name: icon('flame',16)+' Avancé', desc: '5 exercices · 60s chacun · Intensif',
     exercises: [
       { mode: 'ground_plaza',    diff: 'hard', dur: 60, label: 'Ground Plaza — Tracking sol' },
       { mode: 'pasu_angelic',    diff: 'hard', dur: 60, label: 'Pasu Angelic — Micro précision' },
@@ -2522,7 +2522,7 @@ function adminRenderUsers() {
         <td><span class="admin-badge role-${u.role}">${roleLabel[u.role] || san(u.role)}</span></td>
         <td>${u.current_rank ? rankBadge(u.current_rank) : '<span style="color:var(--dim)">—</span>'}</td>
         <td>${u.mfa_enabled ? '<span class="admin-badge admin-mfa-badge">MFA</span>' : '<span style="color:var(--dim)">—</span>'}</td>
-        <td>${locked ? '<span class="admin-badge admin-locked-badge">&#128274;</span>' : '<span style="color:#4ade80">✓</span>'}</td>
+        <td>${locked ? '<span class="admin-badge admin-locked-badge">'+icon('lock',14)+'</span>' : '<span style="color:#4ade80">✓</span>'}</td>
         <td style="color:var(--dim);font-size:0.75rem">${new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
         <td><div class="admin-actions">
           <select class="admin-btn admin-btn-role" onchange="adminChangeRole(${u.id}, this.value)">
@@ -2531,10 +2531,10 @@ function adminRenderUsers() {
             <option value="admin"${u.role==='admin'?' selected':''}>Admin</option>
           </select>
           ${locked
-            ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">&#128275;</button>`
-            : `<button class="admin-btn admin-btn-lock" onclick="adminLockUser(${u.id},'${san(u.username)}')" title="Verrouiller">&#128274;</button>`}
-          ${u.mfa_enabled ? `<button class="admin-btn admin-btn-mfa" onclick="adminResetMfa(${u.id})" title="Reset MFA">&#128273;</button>` : ''}
-          <button class="admin-btn admin-btn-del" onclick="adminDeleteUser(${u.id},'${san(u.username)}')" title="Supprimer">&#128465;</button>
+            ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">${icon('unlock',14)}</button>`
+            : `<button class="admin-btn admin-btn-lock" onclick="adminLockUser(${u.id},'${san(u.username)}')" title="Verrouiller">${icon('lock',14)}</button>`}
+          ${u.mfa_enabled ? `<button class="admin-btn admin-btn-mfa" onclick="adminResetMfa(${u.id})" title="Reset MFA">${icon('key',14)}</button>` : ''}
+          <button class="admin-btn admin-btn-del" onclick="adminDeleteUser(${u.id},'${san(u.username)}')" title="Supprimer">${icon('trash',14)}</button>
         </div></td>
       </tr>`;
     }).join('')}</tbody>
@@ -2643,7 +2643,7 @@ function adminRenderRelations() {
       <td>${san(r.player_username)}</td>
       <td>${statusBadge[r.status] || san(r.status)}</td>
       <td style="color:var(--dim);font-size:0.75rem">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
-      <td><button class="admin-btn admin-btn-del" onclick="adminDeleteRelation(${r.rel_id})">&#128465; Supprimer</button></td>
+      <td><button class="admin-btn admin-btn-del" onclick="adminDeleteRelation(${r.rel_id})">${icon('trash',14)} Supprimer</button></td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -2678,7 +2678,7 @@ function adminRenderAllAnnouncements(list) {
       <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
         <span style="font-size:0.75rem;color:${a.active?'#4ade80':'var(--dim)'}">${a.active?'● Actif':'○ Inactif'}</span>
         <button class="admin-btn admin-btn-role" onclick="adminToggleAnnouncement(${a.id})">${a.active?'Désactiver':'Activer'}</button>
-        <button class="admin-btn admin-btn-del" onclick="adminDeleteAnnouncement(${a.id})">🗑</button>
+        <button class="admin-btn admin-btn-del" onclick="adminDeleteAnnouncement(${a.id})">${icon('trash',14)}</button>
       </div>
     </div>`;
   }).join('');
@@ -2797,7 +2797,7 @@ async function coachingRenderStudents() {
         <div class="ch-card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${san(s.username)}${rankBadge(s.current_rank)}</div>
         <span class="ch-badge role-${s.role}">${roleLabels[s.role] || san(s.role)}</span>
         <div class="ch-card-meta" style="margin-top:8px">${san(s.email)}</div>
-        ${s.objective ? `<div class="ch-card-desc" style="margin-top:4px">🎯 ${san(s.objective)}</div>` : ''}
+        ${s.objective ? `<div class="ch-card-desc" style="margin-top:4px">${icon('target',14)} ${san(s.objective)}</div>` : ''}
         <div class="ch-card-desc">Inscrit le ${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
         ${coachingUserRole === 'admin' ? `
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
@@ -2901,7 +2901,7 @@ function coachingRenderManageScenarios() {
       <p class="ch-card-desc">${s.description || ''}</p>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn-primary ch-card-btn" style="flex:1">Editer</button>
-        <button class="btn-qcm-scenario" style="padding:8px 14px;background:rgba(240,196,63,0.15);border:1px solid rgba(240,196,63,0.3);color:#f0c43f;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">📝 QCM</button>
+        <button class="btn-qcm-scenario" style="padding:8px 14px;background:rgba(240,196,63,0.15);border:1px solid rgba(240,196,63,0.3);color:#f0c43f;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">${icon('edit',14)} QCM</button>
         <button class="btn-del-scenario" style="padding:8px 14px;background:rgba(255,70,85,0.15);border:1px solid rgba(255,70,85,0.3);color:var(--accent);border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:var(--font);transition:all 0.12s">Supprimer</button>
       </div>
     `;
@@ -3015,7 +3015,7 @@ const COURS_DATA = [
   {
     id: 'warmup',
     title: 'L\'Importance de l\'Échauffement',
-    icon: '&#128293;',
+    icon: icon('flame',18),
     tag: 'Essentiel',
     desc: 'Le warm-up est la différence entre une session frustrante et une session productive. Comprends pourquoi s\'échauffer physiquement, visuellement et en aim est non-négociable.',
     sections: [
@@ -3068,7 +3068,7 @@ const COURS_DATA = [
   {
     id: 'crosshair_placement',
     title: 'Crosshair Placement',
-    icon: '&#10010;',
+    icon: icon('crosshair',18),
     tag: 'Fondamental',
     desc: 'Le placement du viseur est LA skill qui separe les joueurs Gold des Immortal. Apprends a toujours avoir ton crosshair au niveau de la tete, pre-aim les angles, et minimiser tes ajustements.',
     sections: [
@@ -3110,7 +3110,7 @@ const COURS_DATA = [
   {
     id: 'deadzoning',
     title: 'Deadzoning & Tracking',
-    icon: '&#9678;',
+    icon: icon('circle-dot',18),
     tag: 'Avance',
     desc: 'Le deadzoning est la technique de tracking qui te permet de suivre une cible de maniere fluide et precise, en maintenant ton viseur dans une zone optimale autour de la cible.',
     sections: [
@@ -3154,7 +3154,7 @@ const COURS_DATA = [
   {
     id: 'burst_control',
     title: 'Burst & Spray Control',
-    icon: '&#9632;',
+    icon: icon('square',18),
     tag: 'Fondamental',
     desc: 'Maitriser le burst et le spray control est essentiel pour dominer les gunfights. Apprends quand tapper, burster ou sprayer, et comment le counter-strafe change tout.',
     sections: [
@@ -3203,7 +3203,7 @@ const COURS_DATA = [
   {
     id: 'movement',
     title: 'Movement & Peeking',
-    icon: '&#10148;',
+    icon: icon('chevron-right',18),
     tag: 'Intermediaire',
     desc: 'Le mouvement est la base de tout en FPS tactique. Jiggle peek, wide swing, slice the pie — chaque technique a son utilité et sa situation optimale.',
     sections: [
@@ -3246,7 +3246,7 @@ const COURS_DATA = [
   {
     id: 'flick_aim',
     title: 'Flicks & Reactivite',
-    icon: '&#9889;',
+    icon: icon('zap',18),
     tag: 'Intermediaire',
     desc: 'Les flicks sont indispensables dans Valorant — pour repondre a un peek inattendu, un wide swing ennemi, ou un retake rapide. Developpe ta precision et ta vitesse de reaction.',
     sections: [
@@ -3284,7 +3284,7 @@ const COURS_DATA = [
   {
     id: 'game_sense',
     title: 'Game Sense & Info',
-    icon: '&#128065;',
+    icon: icon('eye',18),
     tag: 'stratégique',
     desc: 'L\'aim seul ne suffit pas. Le game sense — savoir ou sont les ennemis, quand pousser, quand rotate — c\'est ce qui fait la difference entre un joueur qui stagne et un joueur qui climb.',
     sections: [
@@ -3994,7 +3994,7 @@ function _aicShowIdle(errorMsg, canGenerate, weekLabel, daysLeft) {
   if (canGenerate) {
     if (btn) {
       btn.style.display = '';
-      btn.textContent = '⚡ Générer le plan de la ' + (weekLabel || 'cette semaine');
+      btn.innerHTML = icon('zap',16) + ' Générer le plan de la ' + san(weekLabel || 'cette semaine');
       btn.onclick = generateWeeklyPlan;
     }
     if (msg) msg.style.display = 'none';
@@ -4020,7 +4020,7 @@ async function _aicLoadHistory() {
     histEl.style.display = '';
     histEl.innerHTML = `
       <div class="aic-card" style="margin-top:16px">
-        <div class="aic-card-label">📅 Semaines précédentes</div>
+        <div class="aic-card-label">${icon('calendar',16)} Semaines précédentes</div>
         <div class="aic-history-list">
           ${rows.map(r => `
             <div class="aic-history-item">
@@ -4146,7 +4146,7 @@ function trackerTabLoad() {
   if (!coachingUser?.riot_gamename) {
     main.innerHTML = `
       <div class="trk-link-screen">
-        <div class="trk-link-icon">🎮</div>
+        <div class="trk-link-icon">${icon('gamepad',20)}</div>
         <div class="trk-link-title">Lie ton compte Riot Games</div>
         <p class="trk-link-desc">Connecte ton Riot ID pour accéder à tes stats Valorant en temps réel — Win Rate, KDA, ACS, headshot %, top agents et dernières parties ranked.</p>
         <div class="trk-link-form">
@@ -4174,7 +4174,7 @@ function _trackerShowAccount() {
       <div class="trk-hero-content">
         <div class="trk-hero-left">
           <div class="trk-rank-emblem">
-            ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">🎯</span>'}
+            ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">'+icon('target',18)+'</span>'}
           </div>
           <div class="trk-hero-info">
             <div class="trk-hero-name">${san(u.riot_gamename)}<span class="trk-tag">#${san(u.riot_tagline)}</span></div>
@@ -4185,8 +4185,8 @@ function _trackerShowAccount() {
           </div>
         </div>
         <div class="trk-hero-actions">
-          <button class="trk-btn trk-btn-primary" onclick="trackerSyncRank(this)">🔄 Sync</button>
-          <button class="trk-btn trk-btn-ghost" onclick="trackerLoadStats(this)">📊 Stats</button>
+          <button class="trk-btn trk-btn-primary" onclick="trackerSyncRank(this)">${icon('refresh-cw',14)} Sync</button>
+          <button class="trk-btn trk-btn-ghost" onclick="trackerLoadStats(this)">${icon('chart',14)} Stats</button>
           <button class="trk-btn trk-btn-ghost" onclick="trackerUnlink()">Délier</button>
         </div>
       </div>
@@ -4252,7 +4252,7 @@ async function trackerLoadStats(btn) {
   if (!wrap) return;
   if (btn) btn.disabled = true;
   wrap.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--dim);font-size:0.85rem">
-    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">📊</div>Chargement des statistiques…</div>`;
+    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('chart',24)}</div>Chargement des statistiques…</div>`;
   try {
     const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
@@ -4291,7 +4291,7 @@ async function trackerSearchPlayer() {
   if (mainEl) mainEl.style.display = 'none';
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:0.85rem">
-    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">🔍</div>Recherche de <strong>${san(name)}#${san(tag)}</strong>…</div>`;
+    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('search',24)}</div>Recherche de <strong>${san(name)}#${san(tag)}</strong>…</div>`;
 
   try {
     const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
@@ -4311,7 +4311,7 @@ async function trackerSearchPlayer() {
         <div class="trk-hero-content">
           <div class="trk-hero-left">
             <div class="trk-rank-emblem">
-              ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">🎯</span>'}
+              ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">'+icon('target',18)+'</span>'}
             </div>
             <div class="trk-hero-info">
               <div class="trk-hero-name">${san(acct.gamename || name)}<span class="trk-tag">#${san(acct.tagline || tag)}</span></div>
@@ -4380,7 +4380,7 @@ function trackerRender(data, el) {
     const c = wr >= 50 ? '#2dbe73' : '#ff4655';
     const icon = AGENT_ICONS[a.agent.toLowerCase()];
     return `<div class="trk-agent-row">
-      <div class="trk-agent-icon">${icon ? `<img src="${icon}" alt="">` : `<span style="font-size:1.1rem;display:flex;align-items:center;justify-content:center;height:100%">🎯</span>`}</div>
+      <div class="trk-agent-icon">${icon ? `<img src="${icon}" alt="">` : `<span style="font-size:1.1rem;display:flex;align-items:center;justify-content:center;height:100%">${window.icon('target',18)}</span>`}</div>
       <div class="trk-agent-info">
         <div class="trk-agent-name">${san(a.agent)}</div>
         <div class="trk-agent-games">${a.games} partie${a.games>1?'s':''}</div>
@@ -4395,7 +4395,7 @@ function trackerRender(data, el) {
     const wr = m.games > 0 ? Math.round(m.wins / m.games * 100) : 0;
     const c = wr >= 50 ? '#2dbe73' : '#ff4655';
     return `<div class="trk-map-row">
-      <div class="trk-agent-icon"><span style="font-size:0.9rem;display:flex;align-items:center;justify-content:center;height:100%">🗺️</span></div>
+      <div class="trk-agent-icon"><span style="font-size:0.9rem;display:flex;align-items:center;justify-content:center;height:100%">${icon('map',16)}</span></div>
       <div class="trk-agent-info">
         <div class="trk-agent-name">${san(m.map)}</div>
         <div class="trk-agent-games">${m.games} partie${m.games>1?'s':''}</div>
@@ -4412,7 +4412,7 @@ function trackerRender(data, el) {
     const dateStr = m.date ? new Date(m.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
     const agentIcon = AGENT_ICONS[(m.agent||'').toLowerCase()];
     return `<div class="trk-match ${rc}">
-      <div class="trk-match-agent">${agentIcon ? `<img src="${agentIcon}" alt="">` : `<span style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">🎯</span>`}</div>
+      <div class="trk-match-agent">${agentIcon ? `<img src="${agentIcon}" alt="">` : `<span style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">${icon('target',18)}</span>`}</div>
       <div class="trk-match-main">
         <div class="trk-match-map">${san(m.map)}</div>
         <div class="trk-match-meta">${san(m.agent)} · ${dateStr}</div>
@@ -4508,7 +4508,7 @@ async function renderProfile() {
   const roleEl    = document.getElementById('pf-role');
   if (avatarEl && u?.username) avatarEl.textContent = u.username[0].toUpperCase();
   if (nameEl   && u?.username) nameEl.textContent   = u.username;
-  if (roleEl) roleEl.textContent = u?.role === 'coach' ? '🎓 Coach' : u?.role === 'admin' ? '⚙️ Admin' : '🎮 Joueur';
+  if (roleEl) roleEl.innerHTML = u?.role === 'coach' ? icon('graduation-cap',14)+' Coach' : u?.role === 'admin' ? icon('settings',14)+' Admin' : icon('gamepad',14)+' Joueur';
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();
@@ -4650,7 +4650,7 @@ function _pfRenderTrophies() {
   grid.innerHTML = ACHIEVEMENTS.map(a => {
     const done = unlocked.includes(a.id);
     return `<div class="pf-trophy ${done ? '' : 'pf-trophy-locked'}" title="${san(a.desc)}">
-      <div class="pf-trophy-icon">${done ? a.icon : '🔒'}</div>
+      <div class="pf-trophy-icon">${done ? a.icon : icon('lock',20)}</div>
       <div class="pf-trophy-name">${san(a.name)}</div>
     </div>`;
   }).join('');
@@ -5068,12 +5068,12 @@ async function sendMessage() {
 window._coachLaunchSource = null;
 
 const _COACH_LAUNCH_LABELS = {
-  'ch-warmup':        '🔥 Continuer le Warmup',
-  'ch-scenarios':     '🎯 Retour aux Scénarios',
-  'ch-cours':         '📚 Retour au Cours',
-  'ch-daily':         '⚡ Retour au Daily',
-  'ch-daily-training':'🗓️ Retour au Daily Training',
-  'ch-dashboard':     '🏠 Retour au Dashboard'
+  'ch-warmup':        icon('flame',16)+' Continuer le Warmup',
+  'ch-scenarios':     icon('target',16)+' Retour aux Scénarios',
+  'ch-cours':         icon('book',16)+' Retour au Cours',
+  'ch-daily':         icon('zap',16)+' Retour au Daily',
+  'ch-daily-training':icon('calendar',16)+' Retour au Daily Training',
+  'ch-dashboard':     icon('home',16)+' Retour au Dashboard'
 };
 
 function _setCoachLaunchSource(tab) {
@@ -5113,7 +5113,7 @@ function _updateCoachingReturnBtn() {
     return;
   }
 
-  btn.textContent = _COACH_LAUNCH_LABELS[src.tab] || '← Retour au Coaching';
+  btn.innerHTML = _COACH_LAUNCH_LABELS[src.tab] || '← Retour au Coaching';
   btn.style.display = '';
   btn.onclick = () => {
     window._coachLaunchSource = null;
@@ -5283,7 +5283,7 @@ function renderDailyLeaderboard(board) {
   const el = document.getElementById('daily-leaderboard');
   if (!el) return;
   if (!board.length) { el.innerHTML = '<p class="ch-empty">Aucun score encore aujourd\'hui — sois le premier !</p>'; return; }
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = [icon('medal',16), icon('medal',16), icon('medal',16)];
   el.innerHTML = `<table class="admin-table">
     <thead><tr><th>#</th><th>Joueur</th><th>Score</th><th>Précision</th><th>Essais</th></tr></thead>
     <tbody>${board.map((r, i) => {
@@ -5332,7 +5332,7 @@ async function loadGlobalLeaderboard() {
       el.innerHTML = '<p class="ch-empty">Aucun joueur dans le classement.</p>';
       return;
     }
-    const medals = ['🥇','🥈','🥉'];
+    const medals = [icon('medal',16), icon('medal',16), icon('medal',16)];
     el.innerHTML = `<div style="overflow-x:auto"><table class="lb-table" style="width:100%">
       <thead><tr><th>#</th><th>Joueur</th><th>Score total</th><th>Parties</th><th>Préc. moy.</th><th>Meilleure partie</th></tr></thead>
       <tbody>${leaderboard.map((p, i) => {
@@ -5365,7 +5365,7 @@ async function loadLeaderboard() {
       return;
     }
     el.innerHTML = rows.map((row, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+      const medal = i === 0 ? icon('medal',16) : i === 1 ? icon('medal',16) : i === 2 ? icon('medal',16) : `${i+1}.`;
       const accColor = row.accuracy >= 80 ? '#4ade80' : row.accuracy >= 60 ? '#facc15' : '#f87171';
       return `<tr class="lb-row ${i < 3 ? 'lb-top3' : ''}">
         <td class="lb-rank">${medal}</td>
@@ -5384,18 +5384,18 @@ async function loadLeaderboard() {
 // Deterministic 3 challenges per ISO week, client-side, stored in localStorage.
 
 const WEEKLY_CHALLENGE_POOL = [
-  { type:'score',    target:5000,  mode:null,          icon:'🎯', title:'Score 5 000',           desc:'Atteindre 5 000 pts en une partie' },
-  { type:'score',    target:8000,  mode:null,          icon:'🔥', title:'Score 8 000',           desc:'Atteindre 8 000 pts en une partie' },
-  { type:'acc',      target:90,    mode:null,          icon:'🎖️', title:'90% Précision',         desc:'Finir avec 90%+ de précision' },
-  { type:'acc',      target:95,    mode:null,          icon:'💎', title:'95% Précision',         desc:'Finir avec 95%+ de précision' },
-  { type:'combo',    target:25,    mode:null,          icon:'🌊', title:'Combo x25',             desc:'Atteindre un combo de 25' },
-  { type:'combo',    target:40,    mode:null,          icon:'⚡', title:'Combo x40',             desc:'Atteindre un combo de 40' },
-  { type:'games',    target:5,     mode:null,          icon:'🏋️', title:'5 Parties',              desc:'Jouer 5 parties cette semaine' },
-  { type:'games',    target:15,    mode:null,          icon:'💪', title:'15 Parties',             desc:'Jouer 15 parties cette semaine' },
-  { type:'bench',    target:3,     mode:null,          icon:'📊', title:'3 Benchmarks',          desc:'Jouer 3 scénarios Viscose' },
-  { type:'bench',    target:8,     mode:null,          icon:'📈', title:'8 Benchmarks',          desc:'Jouer 8 scénarios Viscose' },
-  { type:'hits',     target:200,   mode:null,          icon:'🔫', title:'200 Hits',              desc:'Cumuler 200 hits cette semaine' },
-  { type:'hits',     target:500,   mode:null,          icon:'💣', title:'500 Hits',              desc:'Cumuler 500 hits cette semaine' },
+  { type:'score',    target:5000,  mode:null,          icon:icon('target',20), title:'Score 5 000',           desc:'Atteindre 5 000 pts en une partie' },
+  { type:'score',    target:8000,  mode:null,          icon:icon('flame',20), title:'Score 8 000',           desc:'Atteindre 8 000 pts en une partie' },
+  { type:'acc',      target:90,    mode:null,          icon:icon('award',20), title:'90% Précision',         desc:'Finir avec 90%+ de précision' },
+  { type:'acc',      target:95,    mode:null,          icon:icon('gem',20), title:'95% Précision',         desc:'Finir avec 95%+ de précision' },
+  { type:'combo',    target:25,    mode:null,          icon:icon('waves',20), title:'Combo x25',             desc:'Atteindre un combo de 25' },
+  { type:'combo',    target:40,    mode:null,          icon:icon('zap',20), title:'Combo x40',             desc:'Atteindre un combo de 40' },
+  { type:'games',    target:5,     mode:null,          icon:icon('dumbbell',20), title:'5 Parties',              desc:'Jouer 5 parties cette semaine' },
+  { type:'games',    target:15,    mode:null,          icon:icon('dumbbell',20), title:'15 Parties',             desc:'Jouer 15 parties cette semaine' },
+  { type:'bench',    target:3,     mode:null,          icon:icon('chart',20), title:'3 Benchmarks',          desc:'Jouer 3 scénarios Viscose' },
+  { type:'bench',    target:8,     mode:null,          icon:icon('trending-up',20), title:'8 Benchmarks',          desc:'Jouer 8 scénarios Viscose' },
+  { type:'hits',     target:200,   mode:null,          icon:icon('crosshair',20), title:'200 Hits',              desc:'Cumuler 200 hits cette semaine' },
+  { type:'hits',     target:500,   mode:null,          icon:icon('rocket',20), title:'500 Hits',              desc:'Cumuler 500 hits cette semaine' },
 ];
 
 function _getISOWeek() {
@@ -5477,49 +5477,49 @@ function renderWeeklyChallenges() {
 
 const ACHIEVEMENTS = [
   // ─── GAMES PLAYED ───
-  { id:'first_game',  icon:'🎯', name:'Premier Sang',       desc:'Joue ta première partie',         check: s => s.totalGames >= 1,                          progress: s => ({ cur: s.totalGames||0, max: 1 }) },
-  { id:'ten_games',   icon:'🔥', name:'Sur la lancée',       desc:'Joue 10 parties',                 check: s => s.totalGames >= 10,                         progress: s => ({ cur: Math.min(s.totalGames||0,10), max: 10 }) },
-  { id:'fifty_games', icon:'💪', name:'Assidu',              desc:'Joue 50 parties',                 check: s => s.totalGames >= 50,                         progress: s => ({ cur: Math.min(s.totalGames||0,50), max: 50 }) },
-  { id:'hundred',     icon:'💯', name:'Centurion',           desc:'Joue 100 parties',                check: s => s.totalGames >= 100,                        progress: s => ({ cur: Math.min(s.totalGames||0,100), max: 100 }) },
-  { id:'five_hundred',icon:'👑', name:'Vétéran',             desc:'Joue 500 parties',                check: s => s.totalGames >= 500,                        progress: s => ({ cur: Math.min(s.totalGames||0,500), max: 500 }) },
+  { id:'first_game',  icon:icon('target',20), name:'Premier Sang',       desc:'Joue ta première partie',         check: s => s.totalGames >= 1,                          progress: s => ({ cur: s.totalGames||0, max: 1 }) },
+  { id:'ten_games',   icon:icon('flame',20), name:'Sur la lancée',       desc:'Joue 10 parties',                 check: s => s.totalGames >= 10,                         progress: s => ({ cur: Math.min(s.totalGames||0,10), max: 10 }) },
+  { id:'fifty_games', icon:icon('dumbbell',20), name:'Assidu',              desc:'Joue 50 parties',                 check: s => s.totalGames >= 50,                         progress: s => ({ cur: Math.min(s.totalGames||0,50), max: 50 }) },
+  { id:'hundred',     icon:icon('check-circle',20), name:'Centurion',           desc:'Joue 100 parties',                check: s => s.totalGames >= 100,                        progress: s => ({ cur: Math.min(s.totalGames||0,100), max: 100 }) },
+  { id:'five_hundred',icon:icon('crown',20), name:'Vétéran',             desc:'Joue 500 parties',                check: s => s.totalGames >= 500,                        progress: s => ({ cur: Math.min(s.totalGames||0,500), max: 500 }) },
   // ─── ACCURACY ───
-  { id:'acc80',       icon:'🎯', name:'Tireur Confirmé',    desc:'80%+ de précision en une partie', check: s => s.bestAccuracy >= 80,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,80), max: 80, unit:'%' }) },
-  { id:'acc90',       icon:'🎖️', name:'Tireur d\'Élite',   desc:'90%+ de précision en une partie', check: s => s.bestAccuracy >= 90,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,90), max: 90, unit:'%' }) },
-  { id:'acc95',       icon:'⚡', name:'Sniper Mode',         desc:'95%+ de précision en une partie', check: s => s.bestAccuracy >= 95,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,95), max: 95, unit:'%' }) },
-  { id:'acc100',      icon:'💎', name:'Perfection',          desc:'100% de précision en une partie', check: s => s.bestAccuracy >= 100,                      progress: s => ({ cur: Math.min(s.bestAccuracy||0,100), max: 100, unit:'%' }) },
+  { id:'acc80',       icon:icon('target',20), name:'Tireur Confirmé',    desc:'80%+ de précision en une partie', check: s => s.bestAccuracy >= 80,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,80), max: 80, unit:'%' }) },
+  { id:'acc90',       icon:icon('award',20), name:'Tireur d\'Élite',   desc:'90%+ de précision en une partie', check: s => s.bestAccuracy >= 90,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,90), max: 90, unit:'%' }) },
+  { id:'acc95',       icon:icon('zap',20), name:'Sniper Mode',         desc:'95%+ de précision en une partie', check: s => s.bestAccuracy >= 95,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,95), max: 95, unit:'%' }) },
+  { id:'acc100',      icon:icon('gem',20), name:'Perfection',          desc:'100% de précision en une partie', check: s => s.bestAccuracy >= 100,                      progress: s => ({ cur: Math.min(s.bestAccuracy||0,100), max: 100, unit:'%' }) },
   // ─── COMBOS ───
-  { id:'combo10',     icon:'🔗', name:'Enchaîneur',          desc:'Enchaîner x10 en une partie',     check: s => s.bestCombo >= 10,                          progress: s => ({ cur: Math.min(s.bestCombo||0,10), max: 10, unit:'x' }) },
-  { id:'combo20',     icon:'🌊', name:'Combo King',          desc:'Enchaîner x20 en une partie',     check: s => s.bestCombo >= 20,                          progress: s => ({ cur: Math.min(s.bestCombo||0,20), max: 20, unit:'x' }) },
-  { id:'combo50',     icon:'🌪️', name:'Flow State',          desc:'Enchaîner x50 en une partie',     check: s => s.bestCombo >= 50,                          progress: s => ({ cur: Math.min(s.bestCombo||0,50), max: 50, unit:'x' }) },
-  { id:'combo100',    icon:'☄️', name:'Inarrêtable',         desc:'Enchaîner x100 en une partie',    check: s => s.bestCombo >= 100,                         progress: s => ({ cur: Math.min(s.bestCombo||0,100), max: 100, unit:'x' }) },
+  { id:'combo10',     icon:icon('link',20), name:'Enchaîneur',          desc:'Enchaîner x10 en une partie',     check: s => s.bestCombo >= 10,                          progress: s => ({ cur: Math.min(s.bestCombo||0,10), max: 10, unit:'x' }) },
+  { id:'combo20',     icon:icon('waves',20), name:'Combo King',          desc:'Enchaîner x20 en une partie',     check: s => s.bestCombo >= 20,                          progress: s => ({ cur: Math.min(s.bestCombo||0,20), max: 20, unit:'x' }) },
+  { id:'combo50',     icon:icon('wind',20), name:'Flow State',          desc:'Enchaîner x50 en une partie',     check: s => s.bestCombo >= 50,                          progress: s => ({ cur: Math.min(s.bestCombo||0,50), max: 50, unit:'x' }) },
+  { id:'combo100',    icon:icon('zap',20), name:'Inarrêtable',         desc:'Enchaîner x100 en une partie',    check: s => s.bestCombo >= 100,                         progress: s => ({ cur: Math.min(s.bestCombo||0,100), max: 100, unit:'x' }) },
   // ─── SCORE ───
-  { id:'score1k',     icon:'📈', name:'Décollage',           desc:'1 000+ points en une partie',     check: s => s.bestScore >= 1000,                        progress: s => ({ cur: Math.min(s.bestScore||0,1000), max: 1000, unit:' pts' }) },
-  { id:'score5k',     icon:'⭐', name:'Pointeur',            desc:'5 000+ points en une partie',     check: s => s.bestScore >= 5000,                        progress: s => ({ cur: Math.min(s.bestScore||0,5000), max: 5000, unit:' pts' }) },
-  { id:'score10k',    icon:'🌟', name:'Légende',             desc:'10 000+ points en une partie',    check: s => s.bestScore >= 10000,                       progress: s => ({ cur: Math.min(s.bestScore||0,10000), max: 10000, unit:' pts' }) },
-  { id:'score20k',    icon:'💫', name:'Transcendant',        desc:'20 000+ points en une partie',    check: s => s.bestScore >= 20000,                       progress: s => ({ cur: Math.min(s.bestScore||0,20000), max: 20000, unit:' pts' }) },
+  { id:'score1k',     icon:icon('trending-up',20), name:'Décollage',           desc:'1 000+ points en une partie',     check: s => s.bestScore >= 1000,                        progress: s => ({ cur: Math.min(s.bestScore||0,1000), max: 1000, unit:' pts' }) },
+  { id:'score5k',     icon:icon('star',20), name:'Pointeur',            desc:'5 000+ points en une partie',     check: s => s.bestScore >= 5000,                        progress: s => ({ cur: Math.min(s.bestScore||0,5000), max: 5000, unit:' pts' }) },
+  { id:'score10k',    icon:icon('star',20), name:'Légende',             desc:'10 000+ points en une partie',    check: s => s.bestScore >= 10000,                       progress: s => ({ cur: Math.min(s.bestScore||0,10000), max: 10000, unit:' pts' }) },
+  { id:'score20k',    icon:icon('sparkles',20), name:'Transcendant',        desc:'20 000+ points en une partie',    check: s => s.bestScore >= 20000,                       progress: s => ({ cur: Math.min(s.bestScore||0,20000), max: 20000, unit:' pts' }) },
   // ─── REACTION TIME ───
   { id:'react300',    icon:'⏱️', name:'Réflexes OK',         desc:'Réaction moyenne < 300ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 300, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,300), max: 300, invert:true, unit:'ms' } : { cur:0, max:300 } },
-  { id:'react200',    icon:'⚡', name:'Réflexes Vifs',       desc:'Réaction moyenne < 250ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 250, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,250), max: 250, invert:true, unit:'ms' } : { cur:0, max:250 } },
-  { id:'react150',    icon:'🚀', name:'Flash',               desc:'Réaction moyenne < 150ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 150, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,150), max: 150, invert:true, unit:'ms' } : { cur:0, max:150 } },
+  { id:'react200',    icon:icon('zap',20), name:'Réflexes Vifs',       desc:'Réaction moyenne < 250ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 250, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,250), max: 250, invert:true, unit:'ms' } : { cur:0, max:250 } },
+  { id:'react150',    icon:icon('rocket',20), name:'Flash',               desc:'Réaction moyenne < 150ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 150, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,150), max: 150, invert:true, unit:'ms' } : { cur:0, max:150 } },
   // ─── HITS ───
-  { id:'hits500',     icon:'🔫', name:'500 Balles',          desc:'500 hits cumulés',                check: s => s.totalHits >= 500,                         progress: s => ({ cur: Math.min(s.totalHits||0,500), max: 500 }) },
-  { id:'hits2k',      icon:'💣', name:'Artilleur',           desc:'2 000 hits cumulés',              check: s => s.totalHits >= 2000,                        progress: s => ({ cur: Math.min(s.totalHits||0,2000), max: 2000 }) },
-  { id:'hits10k',     icon:'🏆', name:'Machine de Guerre',   desc:'10 000 hits cumulés',             check: s => s.totalHits >= 10000,                       progress: s => ({ cur: Math.min(s.totalHits||0,10000), max: 10000 }) },
+  { id:'hits500',     icon:icon('crosshair',20), name:'500 Balles',          desc:'500 hits cumulés',                check: s => s.totalHits >= 500,                         progress: s => ({ cur: Math.min(s.totalHits||0,500), max: 500 }) },
+  { id:'hits2k',      icon:icon('rocket',20), name:'Artilleur',           desc:'2 000 hits cumulés',              check: s => s.totalHits >= 2000,                        progress: s => ({ cur: Math.min(s.totalHits||0,2000), max: 2000 }) },
+  { id:'hits10k',     icon:icon('trophy',20), name:'Machine de Guerre',   desc:'10 000 hits cumulés',             check: s => s.totalHits >= 10000,                       progress: s => ({ cur: Math.min(s.totalHits||0,10000), max: 10000 }) },
   // ─── BENCHMARK ───
-  { id:'bench1',      icon:'📊', name:'Premier Benchmark',   desc:'Jouer un scénario Viscose',       check: s => s.benchGames >= 1,                          progress: s => ({ cur: s.benchGames||0, max: 1 }) },
-  { id:'bench10',     icon:'📈', name:'Grimpeur',            desc:'10 scénarios Viscose joués',      check: s => s.benchGames >= 10,                         progress: s => ({ cur: Math.min(s.benchGames||0,10), max: 10 }) },
+  { id:'bench1',      icon:icon('chart',20), name:'Premier Benchmark',   desc:'Jouer un scénario Viscose',       check: s => s.benchGames >= 1,                          progress: s => ({ cur: s.benchGames||0, max: 1 }) },
+  { id:'bench10',     icon:icon('trending-up',20), name:'Grimpeur',            desc:'10 scénarios Viscose joués',      check: s => s.benchGames >= 10,                         progress: s => ({ cur: Math.min(s.benchGames||0,10), max: 10 }) },
   { id:'thread8',     icon:'🧵', name:'Thread Master',       desc:'Atteindre 8 threads sur un scénario',  check: s => s.maxThreads >= 8,                     progress: s => ({ cur: Math.min(s.maxThreads||0,8), max: 8 }) },
-  { id:'thread6h',    icon:'💎', name:'Thread Master Hard',  desc:'Atteindre 6 threads Hard',        check: s => s.maxThreadsHard >= 6,                      progress: s => ({ cur: Math.min(s.maxThreadsHard||0,6), max: 6 }) },
+  { id:'thread6h',    icon:icon('gem',20), name:'Thread Master Hard',  desc:'Atteindre 6 threads Hard',        check: s => s.maxThreadsHard >= 6,                      progress: s => ({ cur: Math.min(s.maxThreadsHard||0,6), max: 6 }) },
   // ─── DAILY / STREAKS ───
-  { id:'daily',       icon:'📅', name:'Daily Warrior',       desc:'Jouer le Daily Challenge',        check: s => s.playedDaily,                              progress: s => ({ cur: s.playedDaily?1:0, max:1 }) },
-  { id:'daily5',      icon:'🗓️', name:'5 Dailies',           desc:'Compléter 5 Daily Challenges',    check: s => (s.dailyCount||0) >= 5,                     progress: s => ({ cur: Math.min(s.dailyCount||0,5), max:5 }) },
-  { id:'routine',     icon:'🏋️', name:'Routine Master',     desc:'Compléter une routine complète',  check: s => s.routineCompleted,                         progress: s => ({ cur: s.routineCompleted?1:0, max:1 }) },
-  { id:'streak3',     icon:'🔥', name:'3 jours de suite',    desc:'3 jours consécutifs de jeu',      check: s => s.streak >= 3,                              progress: s => ({ cur: Math.min(s.streak||0,3), max:3, unit:'j' }) },
-  { id:'streak7',     icon:'🔑', name:'Hebdomadaire',        desc:'7 jours consécutifs de jeu',      check: s => s.streak >= 7,                              progress: s => ({ cur: Math.min(s.streak||0,7), max:7, unit:'j' }) },
-  { id:'streak30',    icon:'👑', name:'Mois de Feu',         desc:'30 jours consécutifs de jeu',     check: s => s.streak >= 30,                             progress: s => ({ cur: Math.min(s.streak||0,30), max:30, unit:'j' }) },
+  { id:'daily',       icon:icon('calendar',20), name:'Daily Warrior',       desc:'Jouer le Daily Challenge',        check: s => s.playedDaily,                              progress: s => ({ cur: s.playedDaily?1:0, max:1 }) },
+  { id:'daily5',      icon:icon('calendar',20), name:'5 Dailies',           desc:'Compléter 5 Daily Challenges',    check: s => (s.dailyCount||0) >= 5,                     progress: s => ({ cur: Math.min(s.dailyCount||0,5), max:5 }) },
+  { id:'routine',     icon:icon('dumbbell',20), name:'Routine Master',     desc:'Compléter une routine complète',  check: s => s.routineCompleted,                         progress: s => ({ cur: s.routineCompleted?1:0, max:1 }) },
+  { id:'streak3',     icon:icon('flame',20), name:'3 jours de suite',    desc:'3 jours consécutifs de jeu',      check: s => s.streak >= 3,                              progress: s => ({ cur: Math.min(s.streak||0,3), max:3, unit:'j' }) },
+  { id:'streak7',     icon:icon('key',20), name:'Hebdomadaire',        desc:'7 jours consécutifs de jeu',      check: s => s.streak >= 7,                              progress: s => ({ cur: Math.min(s.streak||0,7), max:7, unit:'j' }) },
+  { id:'streak30',    icon:icon('crown',20), name:'Mois de Feu',         desc:'30 jours consécutifs de jeu',     check: s => s.streak >= 30,                             progress: s => ({ cur: Math.min(s.streak||0,30), max:30, unit:'j' }) },
   // ─── SPECIAL ───
-  { id:'night_owl',   icon:'🦉', name:'Oiseau de Nuit',     desc:'Jouer après minuit',              check: s => s.nightGames >= 1,                          progress: s => ({ cur: s.nightGames||0, max:1 }) },
-  { id:'speed_demon', icon:'🏎️', name:'Speed Demon',        desc:'Score > 3000 en 30s de jeu',      check: s => s.speedDemon,                               progress: s => ({ cur: s.speedDemon?1:0, max:1 }) },
+  { id:'night_owl',   icon:icon('moon',20), name:'Oiseau de Nuit',     desc:'Jouer après minuit',              check: s => s.nightGames >= 1,                          progress: s => ({ cur: s.nightGames||0, max:1 }) },
+  { id:'speed_demon', icon:icon('rocket',20), name:'Speed Demon',        desc:'Score > 3000 en 30s de jeu',      check: s => s.speedDemon,                               progress: s => ({ cur: s.speedDemon?1:0, max:1 }) },
 ];
 
 function loadAchievementStats() {
@@ -5576,7 +5576,7 @@ function checkAndUnlockAchievements(gameData) {
 function _showAchievementToast(a) {
   const toast = document.createElement('div');
   toast.className = 'ach-toast';
-  toast.innerHTML = `<span class="ach-toast-icon">${a.icon}</span><div><div class="ach-toast-name">🔓 ${san(a.name)}</div><div class="ach-toast-desc">${san(a.desc)}</div></div>`;
+  toast.innerHTML = `<span class="ach-toast-icon">${a.icon}</span><div><div class="ach-toast-name">${icon('unlock',20)} ${san(a.name)}</div><div class="ach-toast-desc">${san(a.desc)}</div></div>`;
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('ach-toast-show'), 50);
   setTimeout(() => { toast.classList.remove('ach-toast-show'); setTimeout(() => toast.remove(), 400); }, 3500);
@@ -5596,7 +5596,7 @@ function renderAchievements() {
       ? `${prog.cur}${prog.unit||''} (objectif ≤ ${prog.max}${prog.unit||''})`
       : `${typeof prog.cur === 'number' && prog.cur > 999 ? prog.cur.toLocaleString() : prog.cur}${prog.unit||''} / ${typeof prog.max === 'number' && prog.max > 999 ? prog.max.toLocaleString() : prog.max}${prog.unit||''}`) : '';
     return `<div class="ach-card ${done ? 'ach-done' : 'ach-locked'}">
-      <div class="ach-icon">${done ? a.icon : '🔒'}</div>
+      <div class="ach-icon">${done ? a.icon : icon('lock',20)}</div>
       <div class="ach-name">${san(a.name)}</div>
       <div class="ach-desc">${san(a.desc)}</div>
       ${!done && prog ? `
@@ -5798,7 +5798,7 @@ function settMfaRefresh() {
     status.style.color      = enabled ? '#4ade80' : 'var(--dim)';
     status.style.border     = enabled ? '1px solid rgba(74,222,128,0.3)' : '1px solid var(--border)';
   }
-  if (btn) btn.textContent = enabled ? '🔓 Désactiver le MFA' : '🔐 Activer le MFA';
+  if (btn) btn.innerHTML = enabled ? icon('unlock',16)+' Désactiver le MFA' : icon('lock',16)+' Activer le MFA';
   // Masquer les deux sous-formulaires
   const ew = document.getElementById('sett-mfa-enable-wrap');
   const dw = document.getElementById('sett-mfa-disable-wrap');

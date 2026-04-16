@@ -73,7 +73,7 @@
 
           <!-- MFA : saisie du code (login) -->
           <div id="auth-mfa-form" style="display:none">
-            <div style="text-align:center;font-size:2rem;margin-bottom:8px">&#128274;</div>
+            <div style="text-align:center;font-size:2rem;margin-bottom:8px"><span data-icon="lock"></span></div>
             <h2 style="text-align:center;margin-bottom:6px">Authentification</h2>
             <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Entre le code à 6 chiffres de ton application</p>
             <div class="ch-auth-field">
@@ -87,7 +87,7 @@
 
           <!-- MFA : configuration initiale (scan QR) -->
           <div id="auth-mfa-setup-form" style="display:none">
-            <div style="text-align:center;font-size:2rem;margin-bottom:8px">&#128737;</div>
+            <div style="text-align:center;font-size:2rem;margin-bottom:8px"><span data-icon="shield"></span></div>
             <h2 style="text-align:center;margin-bottom:6px">Configurer le MFA</h2>
             <p style="text-align:center;color:var(--dim);font-size:0.83rem;margin-bottom:16px">Scanne ce QR avec <strong>Google Authenticator</strong> ou <strong>Authy</strong></p>
             <div style="text-align:center;margin-bottom:14px">
@@ -152,11 +152,11 @@
             <span id="pause-time">Temps: 60s</span>
           </div>
           <div class="pause-buttons">
-            <button id="pause-resume" class="btn-primary pause-btn">&#9654; Reprendre</button>
-            <button id="pause-restart" class="pause-btn btn-outline">&#8635; Recommencer</button>
-            <button id="pause-settings" class="pause-btn btn-outline">&#9881; Sensibilite &amp; Crosshair</button>
-            <button id="pause-benchmark" class="pause-btn btn-outline">&#128202; Benchmark</button>
-            <button id="pause-menu-btn" class="pause-btn btn-quit">&#10005; Quitter au Menu</button>
+            <button id="pause-resume" class="btn-primary pause-btn"><span data-icon="play"></span> Reprendre</button>
+            <button id="pause-restart" class="pause-btn btn-outline"><span data-icon="refresh-cw"></span> Recommencer</button>
+            <button id="pause-settings" class="pause-btn btn-outline"><span data-icon="settings"></span> Sensibilite &amp; Crosshair</button>
+            <button id="pause-benchmark" class="pause-btn btn-outline"><span data-icon="chart"></span> Benchmark</button>
+            <button id="pause-menu-btn" class="pause-btn btn-quit"><span data-icon="x"></span> Quitter au Menu</button>
           </div>
         </div>
       </div>
@@ -234,7 +234,7 @@
 
         <!-- Heatmap -->
         <div id="heatmap-wrap" class="heatmap-wrap res-chart-card" style="display:none">
-          <div class="res-chart-title">🎯 Carte des clics</div>
+          <div class="res-chart-title"><span data-icon="target"></span> Carte des clics</div>
           <canvas id="heatmap-canvas" width="480" height="270"></canvas>
           <div class="heatmap-legend">
             <span class="heatmap-hit">● Hit</span>
@@ -244,7 +244,7 @@
 
         <div class="results-actions">
           <button id="btn-retry" class="btn-primary">↺ Rejouer</button>
-          <button id="btn-replay" class="btn-secondary" style="display:none" onclick="showReplay()">🎬 Replay</button>
+          <button id="btn-replay" class="btn-secondary" style="display:none" onclick="showReplay()"><span data-icon="film"></span> Replay</button>
           <button id="btn-back-coaching" class="btn-primary" style="display:none"></button>
           <button id="btn-menu" class="btn-secondary">Menu</button>
         </div>
@@ -409,7 +409,7 @@
 
         <div class="ch-sidebar-footer">
           <div class="ch-sidebar-user">
-            <div class="ch-sidebar-avatar" id="ch-sidebar-avatar">👤</div>
+            <div class="ch-sidebar-avatar" id="ch-sidebar-avatar"><span data-icon="user"></span></div>
             <div class="ch-sidebar-user-info">
               <div class="ch-sidebar-username" id="ch-sidebar-username">—</div>
               <span class="ch-sidebar-role role-student" id="ch-sidebar-role">Joueur</span>
@@ -441,7 +441,7 @@
           <div class="ch-topbar-title" id="ch-topbar-title">Dashboard</div>
           <div class="ch-topbar-actions">
             <div id="ch-notif-wrap" style="position:relative">
-              <button id="ch-notif-btn" class="btn-back" style="padding:6px 10px;font-size:1rem" onclick="toggleCoachNotifPanel()">🔔<span id="ch-notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px" id="ch-notif-badge-btn"></span></button>
+              <button id="ch-notif-btn" class="btn-back" style="padding:6px 10px;font-size:1rem" onclick="toggleCoachNotifPanel()"><span data-icon="bell"></span><span id="ch-notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px" id="ch-notif-badge-btn"></span></button>
               <div id="ch-notif-panel" class="notif-panel" style="display:none">
                 <div class="notif-panel-header">
                   <span style="font-weight:700;font-size:0.88rem">Notifications</span>
@@ -450,8 +450,8 @@
                 <div id="ch-notif-list"></div>
               </div>
             </div>
-            <span id="sync-indicator" class="sync-indicator sync-idle" title="Cloud sync">☁</span>
-            <button class="btn-back" onclick="coachingSwitchTab('hub-freeplay')" style="padding:6px 12px;font-size:0.8rem">🎮 Jouer</button>
+            <span id="sync-indicator" class="sync-indicator sync-idle" title="Cloud sync"><span data-icon="cloud"></span></span>
+            <button class="btn-back" onclick="coachingSwitchTab('hub-freeplay')" style="padding:6px 12px;font-size:0.8rem"><span data-icon="gamepad"></span> Jouer</button>
           </div>
         </div>
 
@@ -472,7 +472,7 @@
               </div>
               <div class="home-hero-rank">
                 <div class="home-rank-badge" id="home-rank-badge">
-                  <span class="home-rank-icon">🎯</span>
+                  <span class="home-rank-icon"><span data-icon="target"></span></span>
                   <div class="home-rank-info">
                     <div class="home-rank-label">Rang Viscose</div>
                     <div class="home-rank-value" id="home-rank-value">Unranked</div>
@@ -486,7 +486,7 @@
           <div class="home-stats-row">
             <div class="home-stat-card home-stat-accent">
               <div class="home-stat-top">
-                <span class="home-stat-icon">🏆</span>
+                <span class="home-stat-icon"><span data-icon="trophy"></span></span>
                 <span class="home-stat-trend" id="home-trend-score"></span>
               </div>
               <div class="home-stat-val" id="menu-best">—</div>
@@ -494,7 +494,7 @@
             </div>
             <div class="home-stat-card">
               <div class="home-stat-top">
-                <span class="home-stat-icon">🎯</span>
+                <span class="home-stat-icon"><span data-icon="target"></span></span>
                 <span class="home-stat-trend" id="home-trend-acc"></span>
               </div>
               <div class="home-stat-val" id="menu-acc">—</div>
@@ -502,7 +502,7 @@
             </div>
             <div class="home-stat-card">
               <div class="home-stat-top">
-                <span class="home-stat-icon">🎮</span>
+                <span class="home-stat-icon"><span data-icon="gamepad"></span></span>
                 <span class="home-stat-trend" id="home-trend-games"></span>
               </div>
               <div class="home-stat-val" id="menu-games">—</div>
@@ -510,7 +510,7 @@
             </div>
             <div class="home-stat-card">
               <div class="home-stat-top">
-                <span class="home-stat-icon">⚡</span>
+                <span class="home-stat-icon"><span data-icon="zap"></span></span>
               </div>
               <div class="home-stat-val" id="home-streak">0</div>
               <div class="home-stat-lbl">Streak du jour</div>
@@ -533,7 +533,7 @@
           <div class="home-play-grid">
             <button class="home-play-card home-play-benchmark" onclick="coachingSwitchTab('hub-viscose')">
               <div class="home-play-glow"></div>
-              <div class="home-play-icon">📊</div>
+              <div class="home-play-icon"><span data-icon="chart"></span></div>
               <div class="home-play-info">
                 <div class="home-play-name">Viscose Benchmark</div>
                 <div class="home-play-desc">Mesure ton niveau avec les 18 scénarios</div>
@@ -542,7 +542,7 @@
             </button>
             <button class="home-play-card home-play-free" onclick="coachingSwitchTab('hub-freeplay')">
               <div class="home-play-glow"></div>
-              <div class="home-play-icon">⚡</div>
+              <div class="home-play-icon"><span data-icon="zap"></span></div>
               <div class="home-play-info">
                 <div class="home-play-name">Free Play</div>
                 <div class="home-play-desc">14 exercices libres, à ton rythme</div>
@@ -551,7 +551,7 @@
             </button>
             <button class="home-play-card home-play-daily" onclick="coachingSwitchTab('ch-daily')">
               <div class="home-play-glow"></div>
-              <div class="home-play-icon">📅</div>
+              <div class="home-play-icon"><span data-icon="calendar"></span></div>
               <div class="home-play-info">
                 <div class="home-play-name">Daily Challenge</div>
                 <div class="home-play-desc">Défi quotidien avec classement global</div>
@@ -560,7 +560,7 @@
             </button>
             <button class="home-play-card home-play-warmup" onclick="coachingSwitchTab('ch-warmup')">
               <div class="home-play-glow"></div>
-              <div class="home-play-icon">🔥</div>
+              <div class="home-play-icon"><span data-icon="flame"></span></div>
               <div class="home-play-info">
                 <div class="home-play-name">Échauffement</div>
                 <div class="home-play-desc">Routine guidée en 6 phases</div>
@@ -574,12 +574,12 @@
             <div class="home-section-title">Accès rapide</div>
           </div>
           <div class="home-quick-row">
-            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-daily-training')"><span>🗓️</span> Daily Training</button>
-            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-ai-coach')"><span>🤖</span> Coach IA</button>
-            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-profile')"><span>👤</span> Profil</button>
-            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-leaderboard')"><span>🏆</span> Classement</button>
-            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-achievements')"><span>🏅</span> Succès</button>
-            <button class="home-quick-btn" onclick="coachingSwitchTab('hub-settings')"><span>⚙️</span> Paramètres</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-daily-training')"><span><span data-icon="calendar"></span></span> Daily Training</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-ai-coach')"><span><span data-icon="bot"></span></span> Coach IA</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-profile')"><span><span data-icon="user"></span></span> Profil</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-leaderboard')"><span><span data-icon="trophy"></span></span> Classement</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-achievements')"><span><span data-icon="medal"></span></span> Succès</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('hub-settings')"><span><span data-icon="settings"></span></span> Paramètres</button>
           </div>
 
           <!-- Missions -->
@@ -597,16 +597,16 @@
           </div>
           <div style="font-size:0.72rem;color:var(--dim);margin-bottom:12px;padding:0 2px">Clique sur un mode pour lancer la partie. Ajuste la durée et la difficulté ci-dessus.</div>
           <div class="mode-grid">
-            <button class="mode-card" data-mode="gridshot"><div class="mode-icon">⚡</div><h3>Gridshot</h3><p>Clique sur des sphères qui apparaissent en grille. Mode idéal pour débuter.</p><span class="mode-tag">Vitesse</span></button>
-            <button class="mode-card" data-mode="speedflick"><div class="mode-icon">🚀</div><h3>Flick rapide</h3><p>Une cible apparaît n'importe où — déplace ta mire le plus vite possible dessus.</p><span class="mode-tag">Flick</span></button>
-            <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon">💥</div><h3>Cibles fuyantes</h3><p>Des cibles apparaissent et disparaissent rapidement. Clique avant qu'elles s'effacent.</p><span class="mode-tag">Flick</span></button>
-            <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon">🎯</div><h3>Clique précis</h3><p>Enchaîne des clics sur des cibles diagonales. Travaille la précision du poignet.</p><span class="mode-tag">Précision</span></button>
-            <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon">🔀</div><h3>Switch de cibles</h3><p>Plusieurs cibles actives en même temps — passe de l'une à l'autre sans perdre le rythme.</p><span class="mode-tag">Switch</span></button>
-            <button class="mode-card" data-mode="whisphere"><div class="mode-icon">🔄</div><h3>Tracking doux</h3><p>Garde ta mire sur une cible qui se déplace lentement et régulièrement.</p><span class="mode-tag">Tracking</span></button>
-            <button class="mode-card" data-mode="air_angelic"><div class="mode-icon">🌤️</div><h3>Tracking aérien</h3><p>Suit une cible qui se déplace en l'air avec des changements de trajectoire.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="gridshot"><div class="mode-icon"><span data-icon="zap"></span></div><h3>Gridshot</h3><p>Clique sur des sphères qui apparaissent en grille. Mode idéal pour débuter.</p><span class="mode-tag">Vitesse</span></button>
+            <button class="mode-card" data-mode="speedflick"><div class="mode-icon"><span data-icon="rocket"></span></div><h3>Flick rapide</h3><p>Une cible apparaît n'importe où — déplace ta mire le plus vite possible dessus.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="pokeball_frenzy"><div class="mode-icon"><span data-icon="zap"></span></div><h3>Cibles fuyantes</h3><p>Des cibles apparaissent et disparaissent rapidement. Clique avant qu'elles s'effacent.</p><span class="mode-tag">Flick</span></button>
+            <button class="mode-card" data-mode="pasu_reload"><div class="mode-icon"><span data-icon="target"></span></div><h3>Clique précis</h3><p>Enchaîne des clics sur des cibles diagonales. Travaille la précision du poignet.</p><span class="mode-tag">Précision</span></button>
+            <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon"><span data-icon="shuffle"></span></div><h3>Switch de cibles</h3><p>Plusieurs cibles actives en même temps — passe de l'une à l'autre sans perdre le rythme.</p><span class="mode-tag">Switch</span></button>
+            <button class="mode-card" data-mode="whisphere"><div class="mode-icon"><span data-icon="refresh-cw"></span></div><h3>Tracking doux</h3><p>Garde ta mire sur une cible qui se déplace lentement et régulièrement.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="air_angelic"><div class="mode-icon"><span data-icon="cloud-sun"></span></div><h3>Tracking aérien</h3><p>Suit une cible qui se déplace en l'air avec des changements de trajectoire.</p><span class="mode-tag">Tracking</span></button>
             <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">↑</div><h3>Tracking saccadé</h3><p>La cible fait des sauts brusques — réajuste ta mire à chaque déplacement.</p><span class="mode-tag">Tracking</span></button>
-            <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon">✚</div><h3>Placement mire</h3><p>Entraîne-toi à garder ta mire à hauteur de tête, là où les ennemis apparaissent.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon">🖱️</div><h3>Réactivité</h3><p>Des cibles apparaissent très brièvement — clique le plus vite possible avant qu'elles disparaissent.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon"><span data-icon="crosshair"></span></div><h3>Placement mire</h3><p>Entraîne-toi à garder ta mire à hauteur de tête, là où les ennemis apparaissent.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon"><span data-icon="mouse-pointer"></span></div><h3>Réactivité</h3><p>Des cibles apparaissent très brièvement — clique le plus vite possible avant qu'elles disparaissent.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">↔</div><h3>Tracking latéral</h3><p>Suit une cible qui se déplace horizontalement, comme un ennemi qui strafe.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro précision</h3><p>Des cibles très petites aux angles clés. Pour progresser sur les duels serrés.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Rafales</h3><p>Des groupes de cibles proches apparaissent ensemble — nettoie-les rapidement.</p><span class="mode-tag">Drill</span></button>
@@ -623,7 +623,7 @@
 
       <!-- Apparence -->
       <div class="sett-card">
-        <div class="sett-card-title">🎨 Apparence</div>
+        <div class="sett-card-title"><span data-icon="palette"></span> Apparence</div>
 
         <div class="sett-field-label">Thème interface</div>
         <div class="sett-theme-grid" id="ui-theme-chips">
@@ -666,7 +666,7 @@
 
       <!-- Son -->
       <div class="sett-card">
-        <div class="sett-card-title">🔊 Son</div>
+        <div class="sett-card-title"><span data-icon="volume-2"></span> Son</div>
         <div class="sett-row">
           <span class="sett-row-label">Sons de jeu</span>
           <label class="sett-toggle">
@@ -682,32 +682,32 @@
         <div class="sett-field-label" style="margin-top:12px">Pack de sons</div>
         <div class="sett-sound-pack-grid" id="sound-pack-chips">
           <button class="sett-sound-chip active" data-pack="clean">
-            <span class="sett-sound-chip-icon">🔔</span>
+            <span class="sett-sound-chip-icon"><span data-icon="bell"></span></span>
             <span class="sett-sound-chip-name">Clean</span>
             <span class="sett-sound-chip-desc">Son par défaut, clair et net</span>
           </button>
           <button class="sett-sound-chip" data-pack="retro">
-            <span class="sett-sound-chip-icon">👾</span>
+            <span class="sett-sound-chip-icon"><span data-icon="gamepad"></span></span>
             <span class="sett-sound-chip-name">Retro</span>
             <span class="sett-sound-chip-desc">Sons 8-bit arcade</span>
           </button>
           <button class="sett-sound-chip" data-pack="soft">
-            <span class="sett-sound-chip-icon">🌊</span>
+            <span class="sett-sound-chip-icon"><span data-icon="waves"></span></span>
             <span class="sett-sound-chip-name">Soft</span>
             <span class="sett-sound-chip-desc">Sons doux et discrets</span>
           </button>
           <button class="sett-sound-chip" data-pack="mechanical">
-            <span class="sett-sound-chip-icon">⚙️</span>
+            <span class="sett-sound-chip-icon"><span data-icon="settings"></span></span>
             <span class="sett-sound-chip-name">Mechanical</span>
             <span class="sett-sound-chip-desc">Sons tranchants, métalliques</span>
           </button>
         </div>
-        <button class="sett-sound-test-btn" id="sound-test-btn">🔊 Tester le son</button>
+        <button class="sett-sound-test-btn" id="sound-test-btn"><span data-icon="volume-2"></span> Tester le son</button>
       </div>
 
       <!-- Sensibilité -->
       <div class="sett-card">
-        <div class="sett-card-title">🖱️ Sensibilité</div>
+        <div class="sett-card-title"><span data-icon="mouse-pointer"></span> Sensibilité</div>
         <div class="sett-row">
           <span class="sett-row-label">DPI souris</span>
           <input type="number" id="opt-dpi" class="sett-input" min="100" max="32000" value="800" step="50" style="width:80px">
@@ -732,7 +732,7 @@
 
       <!-- Jeu -->
       <div class="sett-card">
-        <div class="sett-card-title">🎮 Jeu</div>
+        <div class="sett-card-title"><span data-icon="gamepad"></span> Jeu</div>
         <div class="sett-row">
           <span class="sett-row-label">Durée par défaut</span>
           <select id="opt-duration" class="sett-select">
@@ -758,7 +758,7 @@
 
       <!-- Sécurité -->
       <div class="sett-card">
-        <div class="sett-card-title">🔐 Sécurité</div>
+        <div class="sett-card-title"><span data-icon="lock"></span> Sécurité</div>
         <div class="sett-row">
           <div>
             <span class="sett-row-label">Double authentification (MFA)</span>
@@ -792,7 +792,7 @@
     <!-- ─── COLONNE DROITE : Crosshair ────────────────── -->
     <div class="sett-right">
       <div class="sett-card">
-        <div class="sett-card-title">✚ Crosshair</div>
+        <div class="sett-card-title"><span data-icon="crosshair"></span> Crosshair</div>
 
         <!-- Présets -->
         <div class="sett-field-label">Présets</div>
@@ -929,10 +929,10 @@
 
           <!-- État idle : pas encore de plan cette semaine -->
           <div id="ai-coach-idle" class="aic-idle">
-            <div class="aic-idle-icon">🤖</div>
+            <div class="aic-idle-icon"><span data-icon="bot"></span></div>
             <h2 class="aic-idle-title">Coach IA — Plan Hebdomadaire</h2>
             <p class="aic-idle-desc">Claude analyse tes stats, tendances et benchmark pour générer un plan d'entraînement personnalisé pour la semaine. Un nouveau plan disponible chaque lundi.</p>
-            <button class="aic-generate-btn" id="aic-generate-btn" onclick="generateWeeklyPlan()">⚡ Générer le plan de cette semaine</button>
+            <button class="aic-generate-btn" id="aic-generate-btn" onclick="generateWeeklyPlan()"><span data-icon="zap"></span> Générer le plan de cette semaine</button>
             <p class="aic-cooldown" id="aic-cooldown-msg" style="display:none"></p>
           </div>
 
@@ -949,7 +949,7 @@
             <!-- Header semaine -->
             <div class="aic-header">
               <div class="aic-header-left">
-                <div class="aic-badge">🤖 Coach IA</div>
+                <div class="aic-badge"><span data-icon="bot"></span> Coach IA</div>
                 <div class="aic-week-badge" id="aic-week-badge"></div>
                 <h2 class="aic-title" id="aic-titre">—</h2>
               </div>
@@ -961,43 +961,43 @@
 
             <!-- Objectif de la semaine -->
             <div class="aic-card aic-card-objectif">
-              <div class="aic-card-label">🎯 Objectif de la semaine</div>
+              <div class="aic-card-label"><span data-icon="target"></span> Objectif de la semaine</div>
               <p class="aic-objectif-text" id="aic-objectif">—</p>
             </div>
 
             <!-- Diagnostic -->
             <div class="aic-card aic-card-diagnostic">
-              <div class="aic-card-label">📋 Diagnostic</div>
+              <div class="aic-card-label"><span data-icon="clipboard"></span> Diagnostic</div>
               <p class="aic-diagnostic-text" id="aic-diagnostic">—</p>
             </div>
 
             <!-- Forces / Axes -->
             <div class="aic-two-col">
               <div class="aic-card aic-card-forces">
-                <div class="aic-card-label">💪 Points forts</div>
+                <div class="aic-card-label"><span data-icon="dumbbell"></span> Points forts</div>
                 <ul class="aic-list" id="aic-forces"></ul>
               </div>
               <div class="aic-card aic-card-axes">
-                <div class="aic-card-label">📈 Axes d'amélioration</div>
+                <div class="aic-card-label"><span data-icon="trending-up"></span> Axes d'amélioration</div>
                 <ul class="aic-list" id="aic-axes"></ul>
               </div>
             </div>
 
             <!-- Focus technique -->
             <div class="aic-card aic-card-focus">
-              <div class="aic-card-label">⚡ Focus de la semaine</div>
+              <div class="aic-card-label"><span data-icon="zap"></span> Focus de la semaine</div>
               <p class="aic-focus-text" id="aic-focus">—</p>
             </div>
 
             <!-- Plan 4 scénarios -->
             <div class="aic-card">
-              <div class="aic-card-label">📅 Programme — 4 scénarios pour la semaine</div>
+              <div class="aic-card-label"><span data-icon="calendar"></span> Programme — 4 scénarios pour la semaine</div>
               <div class="aic-plan-list" id="aic-plan"></div>
             </div>
 
             <!-- Motivation -->
             <div class="aic-card aic-card-motivation">
-              <div class="aic-motivation-icon">🔥</div>
+              <div class="aic-motivation-icon"><span data-icon="flame"></span></div>
               <p class="aic-motivation-text" id="aic-motivation">—</p>
             </div>
 
@@ -1034,7 +1034,7 @@
               <div class="ch-stat-val" id="ch-dash-rank">—</div>
             </div>
             <div class="ch-stat-card">
-              <h3>Streak &#128293;</h3>
+              <h3>Streak <span data-icon="flame"></span></h3>
               <div class="ch-stat-val" id="ch-dash-streak">—</div>
             </div>
           </div>
@@ -1044,20 +1044,20 @@
 
             <!-- Activité 7j sparkline -->
             <div class="dash-widget">
-              <div class="dash-widget-title">&#128202; Activité — 7 derniers jours</div>
+              <div class="dash-widget-title"><span data-icon="chart"></span> Activité — 7 derniers jours</div>
               <div class="dash-sparkline-wrap"><canvas id="dash-sparkline"></canvas></div>
               <div id="dash-last-game" class="dash-last-game"></div>
             </div>
 
             <!-- Plan actif -->
             <div class="dash-widget">
-              <div class="dash-widget-title">&#128203; Plan d'entraînement</div>
+              <div class="dash-widget-title"><span data-icon="clipboard"></span> Plan d'entraînement</div>
               <div id="dash-plan-content"><p class="ch-empty" style="font-size:0.82rem;padding:12px 0">Chargement…</p></div>
             </div>
 
             <!-- Dernier feedback -->
             <div class="dash-widget">
-              <div class="dash-widget-title">&#128172; Dernier feedback coach</div>
+              <div class="dash-widget-title"><span data-icon="message"></span> Dernier feedback coach</div>
               <div id="dash-feedback-content"><p class="ch-empty" style="font-size:0.82rem;padding:12px 0">Chargement…</p></div>
             </div>
 
@@ -1138,7 +1138,7 @@
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">01</span>
                 <div>
-                  <div class="warmup-phase-title">🫀 Physique — 5 min</div>
+                  <div class="warmup-phase-title"><span data-icon="heart-pulse"></span> Physique — 5 min</div>
                   <div class="warmup-phase-sub">Préparer le corps avant de toucher la souris</div>
                 </div>
               </div>
@@ -1147,7 +1147,7 @@
                 <div class="warmup-step"><strong>Doigts :</strong> Ouvre et ferme le poing 10 fois. Étire chaque doigt individuellement.</div>
                 <div class="warmup-step"><strong>Cou :</strong> Rotations lentes. Incline droite/gauche, maintiens 10s chaque côté.</div>
                 <div class="warmup-step"><strong>Épaules :</strong> Cercles vers l'arrière x10. Relève les épaules puis relâche brusquement.</div>
-                <div class="warmup-tip">💡 Oblivity insiste : une blessure de poignet peut te mettre hors jeu plusieurs semaines. Ces 5 minutes sont non-négociables.</div>
+                <div class="warmup-tip"><span data-icon="lightbulb"></span> Oblivity insiste : une blessure de poignet peut te mettre hors jeu plusieurs semaines. Ces 5 minutes sont non-négociables.</div>
               </div>
             </div>
 
@@ -1156,7 +1156,7 @@
               <div class="warmup-phase-header">
                 <span class="warmup-phase-num">02</span>
                 <div>
-                  <div class="warmup-phase-title">👁️ Visuel — 5 min</div>
+                  <div class="warmup-phase-title"><span data-icon="eye"></span> Visuel — 5 min</div>
                   <div class="warmup-phase-sub">Réveiller les yeux et la coordination œil-main</div>
                 </div>
               </div>

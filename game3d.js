@@ -1825,10 +1825,10 @@ function endGame() {
     if(pbWrap) {
       pbWrap.style.display = '';
       if(prevPB === 0) {
-        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-first">🎯 Premier score enregistré !</div>`;
+        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-first">${icon('target',16)} Premier score enregistré !</div>`;
       } else if(G.score > prevPB) {
         const delta = G.score - prevPB;
-        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-new">🏆 NOUVEAU RECORD &nbsp;+${delta.toLocaleString()} pts</div>`;
+        pbWrap.innerHTML = `<div class="res-pb-badge res-pb-new">${icon('trophy',16)} NOUVEAU RECORD &nbsp;+${delta.toLocaleString()} pts</div>`;
       } else {
         const delta = G.score - prevPB;
         pbWrap.innerHTML = `<div class="res-pb-badge res-pb-below">Record : ${prevPB.toLocaleString()} pts &nbsp;<span>${delta >= 0 ? '+' : ''}${delta.toLocaleString()}</span></div>`;
@@ -1853,7 +1853,7 @@ function endGame() {
     // Return destination depends on launch source
     const _src = window._coachLaunchSource;
     if (_src && _src.tab === 'ch-daily-training') {
-      $('#btn-menu').textContent = '🗓️ Daily Training';
+      $('#btn-menu').innerHTML = `${icon('calendar',16)} Daily Training`;
       $('#btn-menu').onclick = () => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('coaching-screen')?.classList.add('active');
@@ -1931,7 +1931,7 @@ function endGame() {
       .then(d => {
         if (!d || !percEl || d.total < 2) return;
         const p = d.percentile;
-        percEl.textContent = `🌍 Top ${p}% mondial (${d.total} joueurs)`;
+        percEl.innerHTML = `${icon('globe',16)} Top ${p}% mondial (${d.total} joueurs)`;
         if (p <= 1) percEl.classList.add('top1');
         else if (p <= 5) percEl.classList.add('top5');
         percEl.style.display = '';
@@ -2259,27 +2259,27 @@ function renderRunsSparkline(mode) {
 
 // ---- IN-RUN TROPHY TOASTS ----
 // Fires on specific milestones during a run. State is cleared at startGame.
-function _trophy(msg, icon) {
+function _trophy(msg, ico) {
   if (!window.showToast) return;
   try {
-    const el = window.showToast(msg, { type: 'info', icon: icon || '🏆', duration: 1600 });
+    const el = window.showToast(msg, { type: 'info', icon: ico || icon('trophy',18), duration: 1600 });
     if (el && el.classList) { el.classList.remove('toast--info'); el.classList.add('toast--trophy'); }
   } catch {}
 }
 function checkInRunTrophies() {
   if (!G._trophies) G._trophies = {};
   const T = G._trophies;
-  if (!T.c10 && G.combo === 10) { T.c10 = 1; _trophy('Combo x10 !', '🔥'); }
-  if (!T.c20 && G.combo === 20) { T.c20 = 1; _trophy('Combo x20 !', '💯'); }
-  if (!T.c30 && G.combo === 30) { T.c30 = 1; _trophy('Combo x30 — insane !', '⚡'); }
-  if (!T.c50 && G.combo === 50) { T.c50 = 1; _trophy('Combo x50 — GOD MODE', '👑'); }
-  if (!T.h50 && G.hits === 50) { T.h50 = 1; _trophy('50 hits !', '🎯'); }
-  if (!T.h100 && G.hits === 100) { T.h100 = 1; _trophy('100 hits !', '🎯'); }
-  if (!T.h200 && G.hits === 200) { T.h200 = 1; _trophy('200 hits — monstre', '💥'); }
+  if (!T.c10 && G.combo === 10) { T.c10 = 1; _trophy('Combo x10 !', icon('flame',18)); }
+  if (!T.c20 && G.combo === 20) { T.c20 = 1; _trophy('Combo x20 !', icon('check-circle',18)); }
+  if (!T.c30 && G.combo === 30) { T.c30 = 1; _trophy('Combo x30 — insane !', icon('zap',18)); }
+  if (!T.c50 && G.combo === 50) { T.c50 = 1; _trophy('Combo x50 — GOD MODE', icon('crown',18)); }
+  if (!T.h50 && G.hits === 50) { T.h50 = 1; _trophy('50 hits !', icon('target',18)); }
+  if (!T.h100 && G.hits === 100) { T.h100 = 1; _trophy('100 hits !', icon('target',18)); }
+  if (!T.h200 && G.hits === 200) { T.h200 = 1; _trophy('200 hits — monstre', icon('zap',18)); }
   // Sub-200ms rush: 5 reactions in a row below 200ms
   if (!T.rush && G.reactionTimes.length >= 5) {
     const last5 = G.reactionTimes.slice(-5);
-    if (last5.every(v => v < 200)) { T.rush = 1; _trophy('Flash rush — 5× <200ms', '⚡'); }
+    if (last5.every(v => v < 200)) { T.rush = 1; _trophy('Flash rush — 5× <200ms', icon('zap',18)); }
   }
 }
 
@@ -2439,7 +2439,7 @@ function renderLevelUI() {
 function showLevelUp(level) {
   const n = document.createElement('div');
   n.className = 'levelup-notif';
-  n.innerHTML = '&#127942; Niveau ' + level + ' — ' + (LEVEL_NAMES[level - 1] || '') + ' !';
+  n.innerHTML = icon('trophy',20) + ' Niveau ' + level + ' — ' + (LEVEL_NAMES[level - 1] || '') + ' !';
   document.body.appendChild(n);
   setTimeout(() => n.remove(), 3500);
 }
@@ -2495,7 +2495,7 @@ function renderBenchmark() {
           const lbl = t==='easier'?'E':t==='medium'?'M':'H';
           if (!unlocked) {
             const prev = t==='hard'?'medium':'easier';
-            return `<span class="bsc-chip locked" title="Obtenir au moins 1 thread en ${prev} pour débloquer">🔒</span>`;
+            return `<span class="bsc-chip locked" title="Obtenir au moins 1 thread en ${prev} pour débloquer">${icon('lock',14)}</span>`;
           }
           const active = t === currentTier;
           return `<span class="bsc-chip${active?' active':''} tier-${t}" data-key="${key}" data-tier="${t}" title="${t} · ${thT}/${mtT} threads">${lbl}<sub>${thT}</sub></span>`;
@@ -2504,7 +2504,7 @@ function renderBenchmark() {
         const rowLocked = !isScenarioUnlocked(key, currentTier);
         const row=document.createElement('div'); row.className='bench-scenario' + (rowLocked ? ' bench-scenario-locked' : '');
         row.innerHTML=`
-          <span class="bench-scenario-name">${rowLocked?'🔒 ':''}${getLabel(key)}</span>
+          <span class="bench-scenario-name">${rowLocked?icon('lock',14)+' ':''}${getLabel(key)}</span>
           <span class="bsc-chips">${tierChipsHtml}</span>
           <span class="bench-scenario-score ${best>0?'has-score':''}">${best>0?best.toLocaleString():'-'}</span>
           <div class="bench-thread-bar"><div class="bench-thread-fill" style="width:${pct}%;background:${RANK_COLORS[Math.min(threads,7)]}"></div></div>
@@ -3099,10 +3099,10 @@ function _updateSyncUI(state) {
   const el = document.getElementById('sync-indicator');
   if (!el) return;
   el.className = 'sync-indicator sync-' + state;
-  if (state === 'syncing') { el.textContent = '☁ Sync…'; el.title = 'Synchronisation en cours'; }
-  else if (state === 'synced') { el.textContent = '☁ ✓'; el.title = 'Données synchronisées'; setTimeout(() => { if(el.className.includes('synced')) { el.textContent = '☁'; el.title='Synchronisé'; } }, 3000); }
-  else if (state === 'error') { el.textContent = '☁ ✗'; el.title = 'Erreur de synchronisation'; }
-  else { el.textContent = '☁'; el.title = 'Cloud sync'; }
+  if (state === 'syncing') { el.innerHTML = `${icon('cloud',14)} Sync…`; el.title = 'Synchronisation en cours'; }
+  else if (state === 'synced') { el.innerHTML = `${icon('cloud',14)} ✓`; el.title = 'Données synchronisées'; setTimeout(() => { if(el.className.includes('synced')) { el.innerHTML = icon('cloud',14); el.title='Synchronisé'; } }, 3000); }
+  else if (state === 'error') { el.innerHTML = `${icon('cloud',14)} ✗`; el.title = 'Erreur de synchronisation'; }
+  else { el.innerHTML = icon('cloud',14); el.title = 'Cloud sync'; }
 }
 
 // Called from coaching.js on login
