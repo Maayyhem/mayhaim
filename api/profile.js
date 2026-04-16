@@ -134,9 +134,25 @@ module.exports = async function handler(req, res) {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
 
+  // Auto-create sync table
+  await sql`CREATE TABLE IF NOT EXISTS user_sync_data (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    data JSONB NOT NULL DEFAULT '{}',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
   // ── GET ────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     const { action } = req.query || {};
+
+    // Cloud sync — pull server data
+    if (action === 'sync-pull') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      const rows = await sql`SELECT data, updated_at FROM user_sync_data WHERE user_id = ${decoded.id} LIMIT 1`;
+      if (rows.length === 0) return res.status(200).json({ data: {}, updated_at: null });
+      return res.status(200).json({ data: rows[0].data, updated_at: rows[0].updated_at });
+    }
 
     // MFA setup : génère secret + QR — partial token accepté
     if (action === 'mfa-setup') {
@@ -554,8 +570,58 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // Cloud sync — push + merge
+    if (action === 'sync-push') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      const { client_data } = req.body || {};
+      if (!client_data || typeof client_data !== 'object') return res.status(400).json({ error: 'client_data requis' });
+      const rows = await sql`SELECT data FROM user_sync_data WHERE user_id = ${decoded.id} LIMIT 1`;
+      const serverData = rows.length > 0 ? rows[0].data : {};
+      const merged = _mergeSync(serverData, client_data);
+      const result = await sql`
+        INSERT INTO user_sync_data (user_id, data, updated_at) VALUES (${decoded.id}, ${JSON.stringify(merged)}::jsonb, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET data = ${JSON.stringify(merged)}::jsonb, updated_at = NOW()
+        RETURNING updated_at
+      `;
+      return res.status(200).json({ data: merged, updated_at: result[0].updated_at });
+    }
+
     return res.status(400).json({ error: 'Action inconnue' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
 };
+
+function _mergeSync(server, client) {
+  const merged = {};
+  for (const tier of ['bench_medium', 'bench_hard', 'bench_easier']) {
+    const s = server[tier] || {}, c = client[tier] || {};
+    merged[tier] = { ...s };
+    for (const [k, v] of Object.entries(c)) {
+      if (!merged[tier][k] || (v.score || 0) > (merged[tier][k].score || 0)) merged[tier][k] = v;
+    }
+  }
+  const sRuns = server.runs || {}, cRuns = client.runs || {};
+  merged.runs = {};
+  for (const mode of new Set([...Object.keys(sRuns), ...Object.keys(cRuns)])) {
+    const map = new Map();
+    for (const r of [...(sRuns[mode]||[]), ...(cRuns[mode]||[])]) {
+      const key = r.date || r.ts || JSON.stringify(r);
+      if (!map.has(key) || (r.score||0) > (map.get(key).score||0)) map.set(key, r);
+    }
+    merged.runs[mode] = [...map.values()].sort((a,b) => new Date(b.date||b.ts||0) - new Date(a.date||a.ts||0)).slice(0, 50);
+  }
+  const sAch = server.ach_stats || {}, cAch = client.ach_stats || {};
+  merged.ach_stats = { ...sAch };
+  for (const [k, v] of Object.entries(cAch)) merged.ach_stats[k] = Math.max(merged.ach_stats[k] || 0, v || 0);
+  merged.ach_unlocked = [...new Set([...(server.ach_unlocked || []), ...(client.ach_unlocked || [])])];
+  const sWk = server.weekly_challenges || {}, cWk = client.weekly_challenges || {};
+  const sT = (sWk.challenges || []).reduce((s,c) => s + (c.progress||0), 0);
+  const cT = (cWk.challenges || []).reduce((s,c) => s + (c.progress||0), 0);
+  merged.weekly_challenges = cT >= sT ? cWk : sWk;
+  merged.xp = Math.max(server.xp || 0, client.xp || 0);
+  merged.missions = (client.missions||[]).length >= (server.missions||[]).length ? client.missions||[] : server.missions||[];
+  merged.settings = client.settings || server.settings || {};
+  return merged;
+}

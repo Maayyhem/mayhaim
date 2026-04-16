@@ -3010,7 +3010,7 @@ async function cloudSync(direction) {
     const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
     if (direction === 'pull') {
       // Pull only — on login
-      const res = await fetch(apiBase + '/api/sync', {
+      const res = await fetch(apiBase + '/api/profile?action=sync-pull', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) throw new Error('sync pull failed: ' + res.status);
@@ -3019,10 +3019,10 @@ async function cloudSync(direction) {
     } else {
       // Full push+merge
       const clientData = _collectLocalData();
-      const res = await fetch(apiBase + '/api/sync', {
+      const res = await fetch(apiBase + '/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ client_data: clientData })
+        body: JSON.stringify({ action: 'sync-push', client_data: clientData })
       });
       if (!res.ok) throw new Error('sync push failed: ' + res.status);
       const { data } = await res.json();
