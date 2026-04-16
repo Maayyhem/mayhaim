@@ -1646,10 +1646,15 @@ function endGame() {
   // Check achievements
   if (typeof checkAndUnlockAchievements === 'function') {
     const avgR = G.reactionTimes.length > 0 ? Math.round(G.reactionTimes.reduce((a,b)=>a+b,0)/G.reactionTimes.length) : 0;
-    checkAndUnlockAchievements({
-      score: G.score, accuracy: acc, bestCombo: G.bestCombo,
-      avgReaction: avgR, isDaily: G.benchmarkMode && G.mode === window._dailyMode
-    });
+    const _bmThreads = (G.benchmarkMode && SCENARIOS[G.mode]) ? calcThreads(G.mode, getBenchmarkScore()) : 0;
+    const _gameEndData = {
+      score: G.score, accuracy: acc, bestCombo: G.bestCombo, hits: G.hits,
+      avgReaction: avgR, isDaily: G.benchmarkMode && G.mode === window._dailyMode,
+      isBenchmark: !!(G.benchmarkMode && SCENARIOS[G.mode]),
+      threads: _bmThreads, tier: currentTier, duration: G.duration,
+    };
+    checkAndUnlockAchievements(_gameEndData);
+    if (typeof updateWeeklyChallenges === 'function') updateWeeklyChallenges(_gameEndData);
   }
   // Save replay
   try {
@@ -1661,6 +1666,23 @@ function endGame() {
   } catch(e) {}
   const replayBtn = $('#btn-replay');
   if(replayBtn) replayBtn.style.display = G.trailLog.length > 5 ? '' : 'none';
+
+  // ─── BATCH B: World percentile ───
+  const percEl = document.getElementById('res-percentile');
+  if (percEl) { percEl.style.display = 'none'; percEl.className = 'res-percentile'; }
+  try {
+    const _apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+    fetch(`${_apiBase}/api/coaching?view=percentile&mode=${encodeURIComponent(G.mode)}&score=${G.score}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || !percEl || d.total < 2) return;
+        const p = d.percentile;
+        percEl.textContent = `🌍 Top ${p}% mondial (${d.total} joueurs)`;
+        if (p <= 1) percEl.classList.add('top1');
+        else if (p <= 5) percEl.classList.add('top5');
+        percEl.style.display = '';
+      }).catch(() => {});
+  } catch {}
 
   // ─── BATCH A: analytics (gauges, histogram, sparkline, run history) ───
   try {

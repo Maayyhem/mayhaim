@@ -178,6 +178,7 @@
             <span class="res-score-lbl">Score</span>
           </div>
           <div id="res-pb-wrap" class="res-pb-wrap" style="display:none"></div>
+          <div id="res-percentile" class="res-percentile" style="display:none"></div>
           <div class="res-sparkline-wrap" id="res-sparkline-wrap" style="display:none">
             <div class="res-spark-lbl">5 dernières runs</div>
             <canvas id="res-runs-spark" width="380" height="52"></canvas>
@@ -1456,6 +1457,20 @@
             </div>
           </div>
 
+          <!-- Skill radar chart -->
+          <div class="pf-section">
+            <div class="pf-section-title">🕸️ Profil de compétences</div>
+            <div class="pf-radar-wrap">
+              <canvas id="pf-radar-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Trophy showcase -->
+          <div class="pf-section">
+            <div class="pf-section-title">🏆 Trophées <span id="pf-trophy-count" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div id="pf-trophy-grid" class="pf-trophy-grid"></div>
+          </div>
+
           <!-- 30-day activity chart -->
           <div class="pf-section">
             <div class="pf-section-title">📈 Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
@@ -1510,6 +1525,12 @@
         <!-- DAILY TRAINING -->
         <div id="ch-daily-training" class="ch-panel">
           <div id="dt-content"></div>
+          <!-- Weekly Challenges -->
+          <div class="weekly-challenges-section" style="margin-top:24px;">
+            <h3 class="ch-section-title">📆 Défis de la semaine</h3>
+            <p style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">3 défis renouvelés chaque lundi. Complète-les tous pour le badge hebdomadaire !</p>
+            <div id="weekly-challenges-grid" class="weekly-grid"></div>
+          </div>
         </div>
 
         <!-- LEADERBOARD -->

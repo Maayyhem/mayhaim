@@ -471,6 +471,16 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .res-score-lbl { font-size: var(--fs-xs); color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
 @keyframes scorePop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 
+/* ── Percentile badge ── */
+.res-percentile {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 18px; border-radius: 8px; margin-bottom: 8px;
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px;
+  background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.4); color: var(--blue);
+}
+.res-percentile.top5 { background: rgba(227,179,65,0.12); border-color: rgba(227,179,65,0.5); color: var(--gold); text-shadow: 0 0 12px rgba(227,179,65,0.3); }
+.res-percentile.top1 { background: rgba(255,70,85,0.12); border-color: rgba(255,70,85,0.5); color: var(--accent); text-shadow: 0 0 12px var(--red-g); }
+
 .res-sparkline-wrap { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); position: relative; }
 .res-spark-lbl { font-size: var(--fs-xs); color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
 #res-runs-spark { display: block; margin: 0 auto; max-width: 100%; height: 52px; }
@@ -1520,6 +1530,41 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ach-toast-icon { font-size: 2rem; flex-shrink: 0; }
 .ach-toast-name { font-weight: 700; font-size: 0.85rem; color: var(--accent); margin-bottom: 2px; }
 .ach-toast-desc { font-size: 0.75rem; color: var(--dim); }
+
+/* ═══════════ WEEKLY CHALLENGES ═══════════ */
+.weekly-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.weekly-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.weekly-card:hover { transform: translateY(-2px); }
+.weekly-card.wk-done { border-color: rgba(0,200,130,0.5); background: rgba(0,200,130,0.04); }
+.wk-icon { font-size: 1.5rem; }
+.wk-title { font-weight: 700; font-size: 0.88rem; color: var(--txt); }
+.wk-desc { font-size: 0.78rem; color: var(--dim); line-height: 1.4; }
+.wk-prog-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.wk-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ff8c94); border-radius: 3px; transition: width 0.5s ease; }
+.wk-prog-fill.wk-complete { background: linear-gradient(90deg, #00c882, #34d399); }
+.wk-prog-label { font-size: 0.72rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* ═══════════ PROFILE RADAR + TROPHIES ═══════════ */
+.pf-radar-wrap { max-width: 380px; margin: 0 auto; height: 300px; }
+.pf-trophy-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+}
+.pf-trophy {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 6px; text-align: center;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.pf-trophy:hover { transform: translateY(-2px); border-color: var(--accent); }
+.pf-trophy-icon { font-size: 1.6rem; }
+.pf-trophy-name { font-size: 0.62rem; color: var(--dim); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pf-trophy.pf-trophy-locked { opacity: 0.3; filter: grayscale(1); }
+.pf-trophy.pf-trophy-locked .pf-trophy-icon { font-size: 1.2rem; }
 
 
 /* ═══════════ VISUAL POLISH ═══════════ */

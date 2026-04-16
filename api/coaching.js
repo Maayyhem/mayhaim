@@ -181,6 +181,27 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ rows });
   }
 
+  // ── Percentile (public) — "Top X%" for a given mode + score ──
+  if (req.method === 'GET' && req.query?.view === 'percentile') {
+    const mode = req.query?.mode;
+    const score = parseInt(req.query?.score);
+    if (!mode || isNaN(score)) return res.status(400).json({ error: 'mode + score required' });
+    // Count how many distinct users have a best score for this mode, and how many scored ≤ this score
+    const [{ total, below }] = await sql`
+      WITH bests AS (
+        SELECT user_id, MAX(score) AS best
+        FROM game_history WHERE mode = ${mode}
+        GROUP BY user_id
+      )
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE best <= ${score})::int AS below
+      FROM bests
+    `;
+    const percentile = total > 0 ? Math.round((1 - below / total) * 100) : 0;
+    return res.status(200).json({ percentile, total, score });
+  }
+
   const decoded = verifyToken(req);
   if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 

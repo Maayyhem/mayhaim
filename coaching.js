@@ -865,7 +865,7 @@ function coachingSwitchTab(tabId) {
     }
     switchLbTab(_lbActiveTab || 'global');
   }
-  if (tabId === 'ch-daily-training') dailyTrainingLoad();
+  if (tabId === 'ch-daily-training') { dailyTrainingLoad(); renderWeeklyChallenges(); }
   if (tabId === 'ch-warmup') initWarmupPanel();
   if (tabId === 'hub-settings') settMfaRefresh();
   if (tabId === 'ch-tracker')   trackerTabLoad();
@@ -3605,6 +3605,8 @@ async function renderProfile() {
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();
+  _pfRenderRadar();
+  _pfRenderTrophies();
 
   // Fetch rich stats
   if (!coachingToken) return;
@@ -3646,6 +3648,105 @@ async function renderProfile() {
 function _pfSet(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
+}
+
+// ── Skill Radar Chart (6 axes) ──
+let _pfRadarChart = null;
+function _pfRenderRadar() {
+  const canvas = document.getElementById('pf-radar-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  // Compute axes from localStorage run history + achievement stats
+  const stats = loadAchievementStats();
+  const SCENARIOS_LOCAL = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
+
+  // Precision: best accuracy
+  const precision = Math.min(stats.bestAccuracy || 0, 100);
+  // Speed: map best reaction (300→0, 150→100)
+  const speed = stats.bestReaction > 0 ? Math.round(Math.max(0, Math.min(100, (300 - stats.bestReaction) / 1.5))) : 0;
+  // Consistency: best combo scaled (0→0, 50→100)
+  const consistency = Math.round(Math.min((stats.bestCombo || 0) / 50 * 100, 100));
+  // Tracking: count tracking scenarios with >=1 thread (medium tier)
+  let trackTotal = 0, trackDone = 0;
+  try {
+    const bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}');
+    Object.entries(SCENARIOS_LOCAL).forEach(([k, v]) => {
+      if (v.type === 'track' || v.type === 'track_pct') {
+        trackTotal++;
+        if (bench[k] && v.th && bench[k] >= v.th[0]) trackDone++;
+      }
+    });
+  } catch {}
+  const tracking = trackTotal > 0 ? Math.round(trackDone / trackTotal * 100) : 0;
+  // Clicking: same for click scenarios
+  let clickTotal = 0, clickDone = 0;
+  try {
+    const bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}');
+    Object.entries(SCENARIOS_LOCAL).forEach(([k, v]) => {
+      if (v.type === 'click') {
+        clickTotal++;
+        if (bench[k] && v.th && bench[k] >= v.th[0]) clickDone++;
+      }
+    });
+  } catch {}
+  const clicking = clickTotal > 0 ? Math.round(clickDone / clickTotal * 100) : 0;
+  // Endurance: total games scaled (0→0, 100→100)
+  const endurance = Math.round(Math.min((stats.totalGames || 0) / 100 * 100, 100));
+
+  const data = [precision, speed, consistency, tracking, clicking, endurance];
+  const labels = ['Précision', 'Vitesse', 'Régularité', 'Tracking', 'Clicking', 'Endurance'];
+
+  if (_pfRadarChart) { _pfRadarChart.destroy(); _pfRadarChart = null; }
+
+  const css = getComputedStyle(document.documentElement);
+  const accent = css.getPropertyValue('--accent').trim() || '#ff4655';
+
+  _pfRadarChart = new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: accent + '33',
+        borderColor: accent,
+        borderWidth: 2,
+        pointBackgroundColor: accent,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false, stepSize: 25 },
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          angleLines: { color: 'rgba(255,255,255,0.08)' },
+          pointLabels: { color: css.getPropertyValue('--dim').trim() || '#8b949e', font: { size: 11, weight: '600' } }
+        }
+      }
+    }
+  });
+}
+
+// ── Trophy Showcase ──
+function _pfRenderTrophies() {
+  const grid = document.getElementById('pf-trophy-grid');
+  const countEl = document.getElementById('pf-trophy-count');
+  if (!grid) return;
+  const unlocked = getUnlocked();
+  const total = ACHIEVEMENTS.length;
+  if (countEl) countEl.textContent = `(${unlocked.length}/${total})`;
+
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const done = unlocked.includes(a.id);
+    return `<div class="pf-trophy ${done ? '' : 'pf-trophy-locked'}" title="${san(a.desc)}">
+      <div class="pf-trophy-icon">${done ? a.icon : '🔒'}</div>
+      <div class="pf-trophy-name">${san(a.name)}</div>
+    </div>`;
+  }).join('');
 }
 
 function _pfRenderBench() {
@@ -4372,24 +4473,146 @@ async function loadLeaderboard() {
   }
 }
 
+// ============ WEEKLY CHALLENGES ============
+// Deterministic 3 challenges per ISO week, client-side, stored in localStorage.
+
+const WEEKLY_CHALLENGE_POOL = [
+  { type:'score',    target:5000,  mode:null,          icon:'🎯', title:'Score 5 000',           desc:'Atteindre 5 000 pts en une partie' },
+  { type:'score',    target:8000,  mode:null,          icon:'🔥', title:'Score 8 000',           desc:'Atteindre 8 000 pts en une partie' },
+  { type:'acc',      target:90,    mode:null,          icon:'🎖️', title:'90% Précision',         desc:'Finir avec 90%+ de précision' },
+  { type:'acc',      target:95,    mode:null,          icon:'💎', title:'95% Précision',         desc:'Finir avec 95%+ de précision' },
+  { type:'combo',    target:25,    mode:null,          icon:'🌊', title:'Combo x25',             desc:'Atteindre un combo de 25' },
+  { type:'combo',    target:40,    mode:null,          icon:'⚡', title:'Combo x40',             desc:'Atteindre un combo de 40' },
+  { type:'games',    target:5,     mode:null,          icon:'🏋️', title:'5 Parties',              desc:'Jouer 5 parties cette semaine' },
+  { type:'games',    target:15,    mode:null,          icon:'💪', title:'15 Parties',             desc:'Jouer 15 parties cette semaine' },
+  { type:'bench',    target:3,     mode:null,          icon:'📊', title:'3 Benchmarks',          desc:'Jouer 3 scénarios Viscose' },
+  { type:'bench',    target:8,     mode:null,          icon:'📈', title:'8 Benchmarks',          desc:'Jouer 8 scénarios Viscose' },
+  { type:'hits',     target:200,   mode:null,          icon:'🔫', title:'200 Hits',              desc:'Cumuler 200 hits cette semaine' },
+  { type:'hits',     target:500,   mode:null,          icon:'💣', title:'500 Hits',              desc:'Cumuler 500 hits cette semaine' },
+];
+
+function _getISOWeek() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const w1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7);
+}
+function _weekSeed() { const d = new Date(); return d.getFullYear() * 100 + _getISOWeek(); }
+
+function getWeeklyChallenges() {
+  const seed = _weekSeed();
+  const stored = (() => { try { return JSON.parse(localStorage.getItem('weekly_challenges')); } catch { return null; } })();
+  if (stored && stored.seed === seed) return stored;
+  // Deterministic pick: use seed to shuffle and pick 3
+  const pool = WEEKLY_CHALLENGE_POOL.slice();
+  const rng = (s) => { s = Math.imul(s ^ (s >>> 16), 0x45d9f3b); s = Math.imul(s ^ (s >>> 13), 0x45d9f3b); return ((s ^ (s >>> 16)) >>> 0) / 4294967296; };
+  let s = seed;
+  for (let i = pool.length - 1; i > 0; i--) { s++; const j = Math.floor(rng(s) * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const picked = pool.slice(0, 3).map((c, i) => ({ ...c, id: `wk_${seed}_${i}`, progress: 0, done: false }));
+  const data = { seed, challenges: picked };
+  try { localStorage.setItem('weekly_challenges', JSON.stringify(data)); } catch {}
+  return data;
+}
+
+function updateWeeklyChallenges(gameData) {
+  const wk = getWeeklyChallenges();
+  if (!wk || !gameData) return;
+  let changed = false;
+  wk.challenges.forEach(c => {
+    if (c.done) return;
+    let prev = c.progress;
+    switch (c.type) {
+      case 'score': if (gameData.score >= c.target) { c.progress = c.target; c.done = true; } break;
+      case 'acc':   if (gameData.accuracy >= c.target) { c.progress = c.target; c.done = true; } break;
+      case 'combo': if (gameData.bestCombo >= c.target) { c.progress = c.target; c.done = true; } break;
+      case 'games': c.progress = Math.min((c.progress||0) + 1, c.target); if (c.progress >= c.target) c.done = true; break;
+      case 'bench': if (gameData.isBenchmark) { c.progress = Math.min((c.progress||0) + 1, c.target); if (c.progress >= c.target) c.done = true; } break;
+      case 'hits':  c.progress = Math.min((c.progress||0) + (gameData.hits||0), c.target); if (c.progress >= c.target) c.done = true; break;
+    }
+    if (c.progress !== prev) changed = true;
+  });
+  if (changed) {
+    try { localStorage.setItem('weekly_challenges', JSON.stringify(wk)); } catch {}
+    renderWeeklyChallenges();
+    // Check if all 3 done
+    if (wk.challenges.every(c => c.done)) {
+      const stats = loadAchievementStats();
+      stats.weeklyCompleted = (stats.weeklyCompleted || 0) + 1;
+      saveAchievementStats(stats);
+      if (window.showToast) window.showToast('Tous les défis de la semaine complétés ! 🎉', { type: 'success', duration: 4000 });
+    }
+  }
+}
+
+function renderWeeklyChallenges() {
+  const el = document.getElementById('weekly-challenges-grid');
+  if (!el) return;
+  const wk = getWeeklyChallenges();
+  if (!wk) { el.innerHTML = ''; return; }
+  el.innerHTML = wk.challenges.map(c => {
+    const pct = c.type === 'score' || c.type === 'acc' || c.type === 'combo'
+      ? (c.done ? 100 : 0)
+      : Math.round((c.progress || 0) / c.target * 100);
+    const label = c.type === 'score' || c.type === 'acc' || c.type === 'combo'
+      ? (c.done ? '✓ Complété' : 'En attente')
+      : `${c.progress || 0} / ${c.target}`;
+    return `<div class="weekly-card ${c.done ? 'wk-done' : ''}">
+      <div class="wk-icon">${c.icon}</div>
+      <div class="wk-title">${san(c.title)}</div>
+      <div class="wk-desc">${san(c.desc)}</div>
+      <div class="wk-prog-bar"><div class="wk-prog-fill ${c.done ? 'wk-complete' : ''}" style="width:${pct}%"></div></div>
+      <div class="wk-prog-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
 // ============ ACHIEVEMENTS ============
 
 const ACHIEVEMENTS = [
-  { id:'first_game',  icon:'🎯', name:'Premier Sang',     desc:'Joue ta première partie',         check: s => s.totalGames >= 1,                          progress: s => ({ cur: s.totalGames||0, max: 1 }) },
-  { id:'ten_games',   icon:'🔥', name:'Sur la lancée',     desc:'Joue 10 parties',                 check: s => s.totalGames >= 10,                         progress: s => ({ cur: Math.min(s.totalGames||0,10), max: 10 }) },
-  { id:'hundred',     icon:'💯', name:'Centurion',         desc:'Joue 100 parties',                check: s => s.totalGames >= 100,                        progress: s => ({ cur: Math.min(s.totalGames||0,100), max: 100 }) },
-  { id:'acc90',       icon:'🎖️', name:'Tireur d\'Élite',  desc:'90%+ de précision en une partie', check: s => s.bestAccuracy >= 90,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,90), max: 90, unit:'%' }) },
-  { id:'acc95',       icon:'⚡', name:'Sniper Mode',       desc:'95%+ de précision en une partie', check: s => s.bestAccuracy >= 95,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,95), max: 95, unit:'%' }) },
-  { id:'combo20',     icon:'🌊', name:'Combo King',        desc:'Enchaîner x20 en une partie',     check: s => s.bestCombo >= 20,                          progress: s => ({ cur: Math.min(s.bestCombo||0,20), max: 20, unit:'x' }) },
-  { id:'combo50',     icon:'🌪️', name:'Flow State',        desc:'Enchaîner x50 en une partie',     check: s => s.bestCombo >= 50,                          progress: s => ({ cur: Math.min(s.bestCombo||0,50), max: 50, unit:'x' }) },
-  { id:'score5k',     icon:'⭐', name:'Pointeur',          desc:'5 000+ points en une partie',     check: s => s.bestScore >= 5000,                        progress: s => ({ cur: Math.min(s.bestScore||0,5000), max: 5000, unit:' pts' }) },
-  { id:'score10k',    icon:'🌟', name:'Légende',           desc:'10 000+ points en une partie',    check: s => s.bestScore >= 10000,                       progress: s => ({ cur: Math.min(s.bestScore||0,10000), max: 10000, unit:' pts' }) },
-  { id:'react200',    icon:'⚡', name:'Réflexes Vifs',     desc:'Réaction moyenne < 250ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 250, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,250), max: 250, invert:true, unit:'ms' } : { cur:0, max:250 } },
-  { id:'react150',    icon:'🚀', name:'Flash',             desc:'Réaction moyenne < 150ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 150, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,150), max: 150, invert:true, unit:'ms' } : { cur:0, max:150 } },
-  { id:'daily',       icon:'📅', name:'Daily Warrior',     desc:'Jouer le Daily Challenge',        check: s => s.playedDaily,                              progress: s => ({ cur: s.playedDaily?1:0, max:1 }) },
-  { id:'routine',     icon:'🏋️', name:'Routine Master',   desc:'Compléter une routine complète',  check: s => s.routineCompleted,                         progress: s => ({ cur: s.routineCompleted?1:0, max:1 }) },
-  { id:'streak3',     icon:'🗓️', name:'Assidu',            desc:'3 jours consécutifs de jeu',      check: s => s.streak >= 3,                              progress: s => ({ cur: Math.min(s.streak||0,3), max:3, unit:'j' }) },
-  { id:'streak7',     icon:'🔑', name:'Hebdomadaire',      desc:'7 jours consécutifs de jeu',      check: s => s.streak >= 7,                              progress: s => ({ cur: Math.min(s.streak||0,7), max:7, unit:'j' }) },
+  // ─── GAMES PLAYED ───
+  { id:'first_game',  icon:'🎯', name:'Premier Sang',       desc:'Joue ta première partie',         check: s => s.totalGames >= 1,                          progress: s => ({ cur: s.totalGames||0, max: 1 }) },
+  { id:'ten_games',   icon:'🔥', name:'Sur la lancée',       desc:'Joue 10 parties',                 check: s => s.totalGames >= 10,                         progress: s => ({ cur: Math.min(s.totalGames||0,10), max: 10 }) },
+  { id:'fifty_games', icon:'💪', name:'Assidu',              desc:'Joue 50 parties',                 check: s => s.totalGames >= 50,                         progress: s => ({ cur: Math.min(s.totalGames||0,50), max: 50 }) },
+  { id:'hundred',     icon:'💯', name:'Centurion',           desc:'Joue 100 parties',                check: s => s.totalGames >= 100,                        progress: s => ({ cur: Math.min(s.totalGames||0,100), max: 100 }) },
+  { id:'five_hundred',icon:'👑', name:'Vétéran',             desc:'Joue 500 parties',                check: s => s.totalGames >= 500,                        progress: s => ({ cur: Math.min(s.totalGames||0,500), max: 500 }) },
+  // ─── ACCURACY ───
+  { id:'acc80',       icon:'🎯', name:'Tireur Confirmé',    desc:'80%+ de précision en une partie', check: s => s.bestAccuracy >= 80,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,80), max: 80, unit:'%' }) },
+  { id:'acc90',       icon:'🎖️', name:'Tireur d\'Élite',   desc:'90%+ de précision en une partie', check: s => s.bestAccuracy >= 90,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,90), max: 90, unit:'%' }) },
+  { id:'acc95',       icon:'⚡', name:'Sniper Mode',         desc:'95%+ de précision en une partie', check: s => s.bestAccuracy >= 95,                       progress: s => ({ cur: Math.min(s.bestAccuracy||0,95), max: 95, unit:'%' }) },
+  { id:'acc100',      icon:'💎', name:'Perfection',          desc:'100% de précision en une partie', check: s => s.bestAccuracy >= 100,                      progress: s => ({ cur: Math.min(s.bestAccuracy||0,100), max: 100, unit:'%' }) },
+  // ─── COMBOS ───
+  { id:'combo10',     icon:'🔗', name:'Enchaîneur',          desc:'Enchaîner x10 en une partie',     check: s => s.bestCombo >= 10,                          progress: s => ({ cur: Math.min(s.bestCombo||0,10), max: 10, unit:'x' }) },
+  { id:'combo20',     icon:'🌊', name:'Combo King',          desc:'Enchaîner x20 en une partie',     check: s => s.bestCombo >= 20,                          progress: s => ({ cur: Math.min(s.bestCombo||0,20), max: 20, unit:'x' }) },
+  { id:'combo50',     icon:'🌪️', name:'Flow State',          desc:'Enchaîner x50 en une partie',     check: s => s.bestCombo >= 50,                          progress: s => ({ cur: Math.min(s.bestCombo||0,50), max: 50, unit:'x' }) },
+  { id:'combo100',    icon:'☄️', name:'Inarrêtable',         desc:'Enchaîner x100 en une partie',    check: s => s.bestCombo >= 100,                         progress: s => ({ cur: Math.min(s.bestCombo||0,100), max: 100, unit:'x' }) },
+  // ─── SCORE ───
+  { id:'score1k',     icon:'📈', name:'Décollage',           desc:'1 000+ points en une partie',     check: s => s.bestScore >= 1000,                        progress: s => ({ cur: Math.min(s.bestScore||0,1000), max: 1000, unit:' pts' }) },
+  { id:'score5k',     icon:'⭐', name:'Pointeur',            desc:'5 000+ points en une partie',     check: s => s.bestScore >= 5000,                        progress: s => ({ cur: Math.min(s.bestScore||0,5000), max: 5000, unit:' pts' }) },
+  { id:'score10k',    icon:'🌟', name:'Légende',             desc:'10 000+ points en une partie',    check: s => s.bestScore >= 10000,                       progress: s => ({ cur: Math.min(s.bestScore||0,10000), max: 10000, unit:' pts' }) },
+  { id:'score20k',    icon:'💫', name:'Transcendant',        desc:'20 000+ points en une partie',    check: s => s.bestScore >= 20000,                       progress: s => ({ cur: Math.min(s.bestScore||0,20000), max: 20000, unit:' pts' }) },
+  // ─── REACTION TIME ───
+  { id:'react300',    icon:'⏱️', name:'Réflexes OK',         desc:'Réaction moyenne < 300ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 300, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,300), max: 300, invert:true, unit:'ms' } : { cur:0, max:300 } },
+  { id:'react200',    icon:'⚡', name:'Réflexes Vifs',       desc:'Réaction moyenne < 250ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 250, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,250), max: 250, invert:true, unit:'ms' } : { cur:0, max:250 } },
+  { id:'react150',    icon:'🚀', name:'Flash',               desc:'Réaction moyenne < 150ms',        check: s => s.bestReaction > 0 && s.bestReaction <= 150, progress: s => s.bestReaction > 0 ? { cur: Math.min(s.bestReaction,150), max: 150, invert:true, unit:'ms' } : { cur:0, max:150 } },
+  // ─── HITS ───
+  { id:'hits500',     icon:'🔫', name:'500 Balles',          desc:'500 hits cumulés',                check: s => s.totalHits >= 500,                         progress: s => ({ cur: Math.min(s.totalHits||0,500), max: 500 }) },
+  { id:'hits2k',      icon:'💣', name:'Artilleur',           desc:'2 000 hits cumulés',              check: s => s.totalHits >= 2000,                        progress: s => ({ cur: Math.min(s.totalHits||0,2000), max: 2000 }) },
+  { id:'hits10k',     icon:'🏆', name:'Machine de Guerre',   desc:'10 000 hits cumulés',             check: s => s.totalHits >= 10000,                       progress: s => ({ cur: Math.min(s.totalHits||0,10000), max: 10000 }) },
+  // ─── BENCHMARK ───
+  { id:'bench1',      icon:'📊', name:'Premier Benchmark',   desc:'Jouer un scénario Viscose',       check: s => s.benchGames >= 1,                          progress: s => ({ cur: s.benchGames||0, max: 1 }) },
+  { id:'bench10',     icon:'📈', name:'Grimpeur',            desc:'10 scénarios Viscose joués',      check: s => s.benchGames >= 10,                         progress: s => ({ cur: Math.min(s.benchGames||0,10), max: 10 }) },
+  { id:'thread8',     icon:'🧵', name:'Thread Master',       desc:'Atteindre 8 threads sur un scénario',  check: s => s.maxThreads >= 8,                     progress: s => ({ cur: Math.min(s.maxThreads||0,8), max: 8 }) },
+  { id:'thread6h',    icon:'💎', name:'Thread Master Hard',  desc:'Atteindre 6 threads Hard',        check: s => s.maxThreadsHard >= 6,                      progress: s => ({ cur: Math.min(s.maxThreadsHard||0,6), max: 6 }) },
+  // ─── DAILY / STREAKS ───
+  { id:'daily',       icon:'📅', name:'Daily Warrior',       desc:'Jouer le Daily Challenge',        check: s => s.playedDaily,                              progress: s => ({ cur: s.playedDaily?1:0, max:1 }) },
+  { id:'daily5',      icon:'🗓️', name:'5 Dailies',           desc:'Compléter 5 Daily Challenges',    check: s => (s.dailyCount||0) >= 5,                     progress: s => ({ cur: Math.min(s.dailyCount||0,5), max:5 }) },
+  { id:'routine',     icon:'🏋️', name:'Routine Master',     desc:'Compléter une routine complète',  check: s => s.routineCompleted,                         progress: s => ({ cur: s.routineCompleted?1:0, max:1 }) },
+  { id:'streak3',     icon:'🔥', name:'3 jours de suite',    desc:'3 jours consécutifs de jeu',      check: s => s.streak >= 3,                              progress: s => ({ cur: Math.min(s.streak||0,3), max:3, unit:'j' }) },
+  { id:'streak7',     icon:'🔑', name:'Hebdomadaire',        desc:'7 jours consécutifs de jeu',      check: s => s.streak >= 7,                              progress: s => ({ cur: Math.min(s.streak||0,7), max:7, unit:'j' }) },
+  { id:'streak30',    icon:'👑', name:'Mois de Feu',         desc:'30 jours consécutifs de jeu',     check: s => s.streak >= 30,                             progress: s => ({ cur: Math.min(s.streak||0,30), max:30, unit:'j' }) },
+  // ─── SPECIAL ───
+  { id:'night_owl',   icon:'🦉', name:'Oiseau de Nuit',     desc:'Jouer après minuit',              check: s => s.nightGames >= 1,                          progress: s => ({ cur: s.nightGames||0, max:1 }) },
+  { id:'speed_demon', icon:'🏎️', name:'Speed Demon',        desc:'Score > 3000 en 30s de jeu',      check: s => s.speedDemon,                               progress: s => ({ cur: s.speedDemon?1:0, max:1 }) },
 ];
 
 function loadAchievementStats() {
@@ -4407,12 +4630,25 @@ function checkAndUnlockAchievements(gameData) {
   const stats = loadAchievementStats();
   if (gameData) {
     stats.totalGames = (stats.totalGames || 0) + 1;
+    stats.totalHits  = (stats.totalHits  || 0) + (gameData.hits || 0);
     stats.bestAccuracy = Math.max(stats.bestAccuracy || 0, gameData.accuracy || 0);
     stats.bestCombo = Math.max(stats.bestCombo || 0, gameData.bestCombo || 0);
     stats.bestScore = Math.max(stats.bestScore || 0, gameData.score || 0);
     if (gameData.avgReaction > 0) stats.bestReaction = stats.bestReaction > 0 ? Math.min(stats.bestReaction, gameData.avgReaction) : gameData.avgReaction;
-    if (gameData.isDaily) stats.playedDaily = true;
+    if (gameData.isDaily) { stats.playedDaily = true; stats.dailyCount = (stats.dailyCount || 0) + 1; }
     if (gameData.routineCompleted) stats.routineCompleted = true;
+    if (gameData.isBenchmark) {
+      stats.benchGames = (stats.benchGames || 0) + 1;
+      if (gameData.threads) {
+        stats.maxThreads = Math.max(stats.maxThreads || 0, gameData.threads);
+        if (gameData.tier === 'hard') stats.maxThreadsHard = Math.max(stats.maxThreadsHard || 0, gameData.threads);
+      }
+    }
+    // Night owl: game between 00:00 and 05:00
+    const h = new Date().getHours();
+    if (h >= 0 && h < 5) stats.nightGames = (stats.nightGames || 0) + 1;
+    // Speed demon: >3000 pts in a 30s game
+    if (gameData.score > 3000 && gameData.duration <= 30) stats.speedDemon = true;
   }
   saveAchievementStats(stats);
 
