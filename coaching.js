@@ -1015,11 +1015,125 @@ function markScenarioCompleted(id) {
   if (!list.includes(id)) { list.push(id); localStorage.setItem('valAim_completedScenarios', JSON.stringify(list)); }
 }
 
-// ── Flashcard state ──
-let _fcFiltered = [];
-let _fcIndex = 0;
+// ══════════════════════════════════════════════════════════════════
+// QCM FLASHCARD QUIZ SYSTEM
+// ══════════════════════════════════════════════════════════════════
+
+// Generate 2-3 QCM questions per scenario from guide + tips
+const SCENARIO_QCM = {};
+function _qcmBuild() {
+  if (Object.keys(SCENARIO_QCM).length) return;
+  // Hand-crafted questions per scenario ID
+  const Q = {
+    1: [
+      { q: "Lors d'un B execute via Hookah sur Bind, quel est le premier angle à smoker ?", choices: ["CT (sortie hookah)", "B main", "U-Hall", "Le mid"], answer: 0 },
+      { q: "En sortant de hookah sur Bind, quel est le premier réflexe ?", choices: ["Regarder à gauche", "Pre-aim CT immédiatement", "Planter le spike", "Rotater vers A"], answer: 1 },
+      { q: "Quel est le meilleur spot de plant sur B Bind ?", choices: ["Au centre du site", "Derrière la grande boîte", "Dans hookah", "À l'entrée CT"], answer: 1 },
+    ],
+    2: [
+      { q: "En défense A Short sur Bind, quelle est la position la plus forte ?", choices: ["Showers", "Le coin CT", "A main", "B site"], answer: 1 },
+      { q: "Quand faut-il peeker en défense A sur Bind ?", choices: ["Dès le début du round", "Quand on entend des pas", "Attendre le crossfire short + elbow", "Après le plant"], answer: 2 },
+      { q: "Où le sentinel doit-il placer son trip sur A Bind ?", choices: ["Au pied de short A", "Dans showers", "En CT", "Sur B site"], answer: 0 },
+    ],
+    3: [
+      { q: "Pour le retake B sur Bind, quel est l'atout principal ?", choices: ["Le smoke CT", "Le TP showers", "Le flash B main", "L'ulti du duelist"], answer: 1 },
+      { q: "Que faut-il smoker pendant le retake B Bind ?", choices: ["B main", "CT", "U-Hall (hookah)", "Le mid"], answer: 2 },
+      { q: "Quand peut-on defuser sur un retake B Bind ?", choices: ["Dès qu'on arrive sur site", "Après avoir posé le smoke", "Une fois le site entièrement clear", "Pendant le flash"], answer: 2 },
+    ],
+    4: [
+      { q: "Sur C Haven, quel est l'unique angle vraiment dangereux à smoker ?", choices: ["C long", "CT", "Garage", "C right"], answer: 1 },
+      { q: "Pourquoi faut-il planter vite sur C Haven ?", choices: ["Le spike a un timer court", "Les rotations depuis A sont rapides", "Le site est petit", "Il n'y a pas de couverture"], answer: 1 },
+      { q: "Quel coin est souvent oublié par les attaquants sur C Haven ?", choices: ["CT", "C long", "C right", "Garage"], answer: 2 },
+    ],
+    5: [
+      { q: "Qui contrôle les rotations sur Haven ?", choices: ["Celui qui tient A", "Celui qui contrôle mid", "Celui qui défend C", "Le sentinel"], answer: 1 },
+      { q: "Où le sentinel doit-il placer son trip pour contrôler mid Haven ?", choices: ["Garage", "Sur la porte B mid", "Window", "C long"], answer: 1 },
+      { q: "Quand utiliser la smoke d'urgence en défense mid Haven ?", choices: ["En début de round", "Quand le controller le décide", "En urgence uniquement", "Après chaque kill"], answer: 2 },
+    ],
+    6: [
+      { q: "Pour le retake A Haven, par quels chemins faut-il pincer ?", choices: ["Long A + Short A", "CT + Mid", "Garage + C", "B + Mid"], answer: 0 },
+      { q: "Quel est l'angle de post-plant le plus utilisé sur A Haven ?", choices: ["Short A", "Long A", "CT box", "Garage"], answer: 1 },
+      { q: "Quelle est la clé du retake A sur Haven ?", choices: ["La quantité d'utils", "La coordination timing entre les deux joueurs", "L'aim individuel", "Le nombre de joueurs"], answer: 1 },
+    ],
+    7: [
+      { q: "Sur B Split, quelle smoke est non-négociable pour monter heaven ?", choices: ["B main", "B window", "B heaven", "CT"], answer: 2 },
+      { q: "Depuis heaven sur B Split, que doit faire le joueur ?", choices: ["Planter immédiatement", "Caller chaque position", "Peeker seul", "Rotater mid"], answer: 1 },
+      { q: "Quel angle est souvent oublié par les attaquants sur B Split ?", choices: ["CT", "Heaven", "Back-B", "Mid"], answer: 2 },
+    ],
+    8: [
+      { q: "Quel crossfire rend l'entrée A Split quasiment impossible ?", choices: ["CT + Mid", "Ropes + Main", "Heaven + CT", "Screen + Ramp"], answer: 1 },
+      { q: "Que faire si une flash est détectée en position ropes sur A Split ?", choices: ["Peeker immédiatement", "Reculer", "Rester immobile", "Smoker"], answer: 1 },
+      { q: "Quel est le flank le plus dangereux sur A Split ?", choices: ["B main", "Mid", "Heaven", "Sewer"], answer: 2 },
+    ],
+    9: [
+      { q: "Quel est le spot de post-plant préféré sur B Split ?", choices: ["CT", "Back-B", "Heaven", "Mid"], answer: 1 },
+      { q: "Depuis où window donne un angle surprenant sur B Split ?", choices: ["Mid", "CT", "B main", "Heaven"], answer: 0 },
+      { q: "Quand ne faut-il jamais defuser sur B Split ?", choices: ["Si CT n'est pas clear", "Si back-B n'est pas confirmé clear", "Si heaven est pris", "Si mid est ouvert"], answer: 1 },
+    ],
+    10: [
+      { q: "Quel est l'angle le plus mortel de A Lotus ?", choices: ["Root", "La porte", "Tree", "Stone"], answer: 2 },
+      { q: "Que doit TOUJOURS smoker en premier le controller sur A Lotus ?", choices: ["Root", "CT", "Tree", "La porte"], answer: 2 },
+      { q: "Pourquoi casser la porte sur A Lotus est stratégique ?", choices: ["Ça fait des dégâts", "Le bruit peut masquer le timing d'entrée", "Ça bloque le passage", "Ça donne de l'info"], answer: 1 },
+    ],
+    11: [
+      { q: "Quelle est la position dominante de C Lotus ?", choices: ["C link", "C main", "Mound", "CT"], answer: 2 },
+      { q: "Que faire après avoir tiré depuis mound sur C Lotus ?", choices: ["Rester en place", "Se repositionner", "Planter", "Rotater"], answer: 1 },
+      { q: "Quelle est l'info la plus précieuse en défense C Lotus ?", choices: ["Le call du mid", "Le trip sentinel à l'entrée C", "Les pas ennemis", "Le son du spike"], answer: 1 },
+    ],
+    12: [
+      { q: "Par quel chemin inattendu retake B Lotus ?", choices: ["C connection", "B main", "A link", "CT"], answer: 2 },
+      { q: "Quel est le meilleur spot de défense post-plant sur B Lotus ?", choices: ["B main", "Le rocher central", "CT", "C connection"], answer: 1 },
+    ],
+    13: [
+      { q: "En sortie de tunnel sur B Breeze, quel angle est le plus dangereux ?", choices: ["Arco", "Mid B", "CT", "Le centre du site"], answer: 2 },
+      { q: "Quel coin est souvent oublié mais fréquemment tenu sur B Breeze ?", choices: ["CT", "Mid", "Arco", "Tunnel"], answer: 2 },
+    ],
+    14: [
+      { q: "Quel setup défensif est un des plus forts du jeu sur A Breeze ?", choices: ["Trip sur main", "Le mur Viper en diagonale", "L'orbe Sage", "La smoke Brimstone"], answer: 1 },
+      { q: "Quel avantage donne le mur Viper sur A Breeze ?", choices: ["Il bloque les balles", "Un avantage informationnel (one-way)", "Il fait des dégâts", "Il ralentit les ennemis"], answer: 1 },
+    ],
+    15: [
+      { q: "Quel est l'angle de retake le plus rapide et inattendu sur A Breeze ?", choices: ["CT", "Main", "Cave", "Mid"], answer: 2 },
+      { q: "Quelle est la seule couverture sur A Breeze pour le défuse ?", choices: ["Le mur", "Le pilier", "La caisse", "La porte"], answer: 1 },
+    ],
+    16: [
+      { q: "Quelle position est très agressive sur B Fracture et doit être smokée ?", choices: ["CT B", "Arcade", "Dish", "Escaliers"], answer: 2 },
+      { q: "Quel coin est souvent oublié mais régulièrement tenu sur B Fracture ?", choices: ["CT", "Dish", "Le coin escaliers", "Arcade"], answer: 2 },
+    ],
+    17: [
+      { q: "Quelle est la meilleure position offensive de A Fracture ?", choices: ["A main", "CT", "Dish", "Heaven"], answer: 2 },
+      { q: "Quelle est l'info la plus précieuse en défense A Fracture ?", choices: ["Les pas mid", "Le trip sentinel sur arcade", "Le son de la rope", "La call B"], answer: 1 },
+    ],
+    18: [
+      { q: "Qu'est-ce qui rend l'entrée par la corde sur B Fracture efficace en retake ?", choices: ["La vitesse", "L'effet de surprise total", "La hauteur", "La couverture"], answer: 1 },
+      { q: "Quel est le spot de post-plant le plus utilisé sur B Fracture ?", choices: ["Arcade", "Rope side", "CT B", "Dish"], answer: 2 },
+    ],
+    19: [
+      { q: "Quel est l'unique angle vraiment dangereux en entrant B Pearl ?", choices: ["B screens", "La colonne", "CT B", "B main"], answer: 2 },
+      { q: "Quelle est la meilleure couverture pour planter sur B Pearl ?", choices: ["B screens", "La colonne centrale", "Le mur", "L'entrée"], answer: 1 },
+    ],
+    20: [
+      { q: "Quelle est la position la plus forte de A Pearl ?", choices: ["Art", "Link", "CT", "Mid"], answer: 2 },
+      { q: "Que donne gratuitement le trip sur link en défense A Pearl ?", choices: ["Du temps", "De l'info dès le début du round", "Des dégâts", "Un avantage numérique"], answer: 1 },
+    ],
+    21: [
+      { q: "Quel est l'angle de post-plant le plus populaire sur A Pearl ?", choices: ["Art", "CT", "Link", "Mid"], answer: 1 },
+      { q: "Que faut-il faire avant d'approcher CT en retake A Pearl ?", choices: ["Planter", "Smoker", "Flash", "Run"], answer: 2 },
+    ],
+  };
+  for (const [id, questions] of Object.entries(Q)) {
+    SCENARIO_QCM[+id] = questions;
+  }
+}
+
+// ── Quiz state ──
+let _qcmFiltered = [];
+let _qcmIndex = 0;
+let _qcmScore = { correct: 0, total: 0 };
+let _qcmAnswered = false;
 
 function coachingRenderScenarios() {
+  _qcmBuild();
   const rank = document.getElementById('ch-rank-filter')?.value || '';
   const map = document.getElementById('ch-map-filter')?.value || '';
   const type = document.getElementById('ch-type-filter')?.value || '';
@@ -1031,88 +1145,160 @@ function coachingRenderScenarios() {
   if (type) filtered = filtered.filter(s => s.type === type);
   filtered = [...filtered].sort((a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank));
 
-  _fcFiltered = filtered;
-  _fcIndex = 0;
-  _fcRenderCard();
-  _fcRenderDots();
-  _fcUpdateCounter();
+  // Build flat list of all QCM questions from filtered scenarios
+  _qcmFiltered = [];
+  filtered.forEach(s => {
+    const qs = SCENARIO_QCM[s.id] || [];
+    qs.forEach((q, qi) => _qcmFiltered.push({ ...q, scenario: s, qIndex: qi }));
+  });
+  _qcmIndex = 0;
+  _qcmScore = { correct: 0, total: 0 };
+  _qcmAnswered = false;
+  _qcmRender();
+  _qcmUpdateProgress();
 }
 
-function _fcRenderCard() {
+function _qcmRender() {
   const wrapper = document.getElementById('fc-card-wrapper');
   if (!wrapper) return;
-  if (!_fcFiltered.length) {
-    wrapper.innerHTML = '<p class="ch-empty" style="padding:60px 0">Aucun scénario trouvé.</p>';
+  if (!_qcmFiltered.length) {
+    wrapper.innerHTML = '<p class="ch-empty" style="padding:60px 0">Aucune question trouvée.</p>';
     return;
   }
-  const s = _fcFiltered[_fcIndex];
-  const completed = getCompletedscenarios();
-  const done = completed.includes(s.id);
+  const item = _qcmFiltered[_qcmIndex];
+  const s = item.scenario;
   const typeLabel = s.type === 'attack' ? '⚔️ Attaque' : s.type === 'defense' ? '🛡️ Défense' : '🔄 Retake';
   const typeClass = s.type === 'attack' ? 'fc-type-attack' : s.type === 'defense' ? 'fc-type-defense' : 'fc-type-retake';
   const rankColor = _fcRankColor(s.rank);
-  const diffStars = '★'.repeat(s.difficulty || 1) + '☆'.repeat(5 - (s.difficulty || 1));
 
   wrapper.innerHTML = `
-    <div class="fc-card ${done ? 'fc-card--done' : ''}" id="fc-active-card" onclick="_fcFlip()">
-      <!-- FRONT -->
-      <div class="fc-face fc-front">
-        <div class="fc-front-header">
-          <span class="fc-rank-pill" style="background:${rankColor}">${s.rank}</span>
-          <span class="fc-type-pill ${typeClass}">${typeLabel}</span>
-          ${done ? '<span class="fc-done-pill">✓ Maîtrisé</span>' : ''}
-        </div>
-        <div class="fc-front-body">
-          <div class="fc-map-name">${san(s.map || '')}</div>
-          <h3 class="fc-title">${san(s.title)}</h3>
-          <div class="fc-difficulty">${diffStars}</div>
-          <p class="fc-desc">${san(s.description || '')}</p>
-        </div>
-        <div class="fc-front-footer">
-          <span class="fc-flip-hint">🔄 Retourner pour voir le guide</span>
-        </div>
+    <div class="qcm-card" id="qcm-active-card">
+      <div class="qcm-header">
+        <span class="fc-rank-pill" style="background:${rankColor}">${s.rank}</span>
+        <span class="fc-type-pill ${typeClass}">${typeLabel}</span>
+        <span class="qcm-map-pill">${san(s.map)}</span>
       </div>
-      <!-- BACK -->
-      <div class="fc-face fc-back">
-        <div class="fc-back-header">
-          <h4 class="fc-back-title">${san(s.title)}</h4>
-          <span class="fc-rank-pill fc-rank-pill--sm" style="background:${rankColor}">${s.rank}</span>
-        </div>
-        <div class="fc-back-body">
-          <div class="fc-section">
-            <div class="fc-section-label">📋 Guide étape par étape</div>
-            <div class="fc-guide">${_fcFormatGuide(s.guide)}</div>
-          </div>
-          ${s.tips ? `<div class="fc-section">
-            <div class="fc-section-label">💡 Tips</div>
-            <p class="fc-tips">${san(s.tips)}</p>
-          </div>` : ''}
-          <div id="fc-map-container" style="margin-top:8px"></div>
-        </div>
-        <div class="fc-back-footer">
-          <button class="fc-btn fc-btn-train" onclick="event.stopPropagation();_fcTrain(${_fcIndex})">🎮 S'entraîner</button>
-          <button class="fc-btn fc-btn-master ${done ? 'fc-btn--done' : ''}" onclick="event.stopPropagation();_fcMarkDone(${_fcIndex})">${done ? '✓ Maîtrisé' : 'Marquer maîtrisé'}</button>
-        </div>
+      <div class="qcm-question">${san(item.q)}</div>
+      <div class="qcm-choices" id="qcm-choices">
+        ${item.choices.map((c, i) => `
+          <button class="qcm-choice" data-idx="${i}" onclick="_qcmAnswer(${i})">
+            <span class="qcm-choice-letter">${'ABCD'[i]}</span>
+            <span class="qcm-choice-text">${san(c)}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="qcm-feedback" id="qcm-feedback" style="display:none"></div>
+      <div class="qcm-footer" id="qcm-footer" style="display:none">
+        <button class="fc-btn fc-btn-train" onclick="_qcmNext()">Suivant →</button>
       </div>
     </div>`;
-
-  // Render map if available (after DOM insert)
-  setTimeout(() => {
-    if (typeof renderTacticalMap === 'function' && (getCustomScenarioMap(s.id) || typeof SCENARIO_ANNOTATIONS !== 'undefined' && SCENARIO_ANNOTATIONS[s.id])) {
-      renderTacticalMap('fc-map-container', s.id, 0);
-    } else if (typeof renderBlankMap === 'function' && s.map) {
-      renderBlankMap('fc-map-container', s.map);
-    }
-  }, 50);
+  _qcmAnswered = false;
 }
 
-function _fcFormatGuide(guide) {
-  if (!guide) return '<p style="color:var(--dim)">Guide non disponible.</p>';
-  return san(guide).split('\n').map(line => {
-    const m = line.match(/^(\d+)\.\s*(.*)/);
-    if (m) return `<div class="fc-step"><span class="fc-step-num">${m[1]}</span><span>${m[2]}</span></div>`;
-    return `<p>${line}</p>`;
-  }).join('');
+function _qcmAnswer(chosen) {
+  if (_qcmAnswered) return;
+  _qcmAnswered = true;
+  _qcmScore.total++;
+  const item = _qcmFiltered[_qcmIndex];
+  const correct = item.answer;
+  const isCorrect = chosen === correct;
+  if (isCorrect) _qcmScore.correct++;
+
+  // Highlight choices
+  const btns = document.querySelectorAll('.qcm-choice');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('qcm-choice--correct');
+    if (i === chosen && !isCorrect) btn.classList.add('qcm-choice--wrong');
+  });
+
+  // Show feedback
+  const fb = document.getElementById('qcm-feedback');
+  if (fb) {
+    fb.style.display = 'block';
+    if (isCorrect) {
+      fb.className = 'qcm-feedback qcm-feedback--correct';
+      fb.innerHTML = `<span class="qcm-fb-icon">✓</span> Correct !`;
+    } else {
+      fb.className = 'qcm-feedback qcm-feedback--wrong';
+      fb.innerHTML = `<span class="qcm-fb-icon">✕</span> La bonne réponse était : <strong>${san(item.choices[correct])}</strong>`;
+    }
+  }
+
+  // Show next button (or finish)
+  const footer = document.getElementById('qcm-footer');
+  if (footer) {
+    footer.style.display = 'flex';
+    if (_qcmIndex >= _qcmFiltered.length - 1) {
+      footer.innerHTML = `<button class="fc-btn fc-btn-train" onclick="_qcmShowResults()">Voir les résultats 🏆</button>`;
+    }
+  }
+
+  // Mark scenario as completed if all questions for it answered correctly
+  if (isCorrect) markScenarioCompleted(item.scenario.id);
+  _qcmUpdateProgress();
+}
+
+function _qcmNext() {
+  if (_qcmIndex < _qcmFiltered.length - 1) {
+    _qcmIndex++;
+    _qcmRender();
+    _qcmUpdateProgress();
+  }
+}
+
+function _qcmShowResults() {
+  const wrapper = document.getElementById('fc-card-wrapper');
+  if (!wrapper) return;
+  const pct = _qcmScore.total > 0 ? Math.round((_qcmScore.correct / _qcmScore.total) * 100) : 0;
+  const grade = pct >= 90 ? { label: 'Excellent !', color: '#2dbe73', emoji: '🌟' }
+    : pct >= 70 ? { label: 'Bien joué !', color: '#f0c43f', emoji: '👏' }
+    : pct >= 50 ? { label: 'Peut mieux faire', color: '#ff8c00', emoji: '📚' }
+    : { label: 'À retravailler', color: '#ff4655', emoji: '💪' };
+
+  wrapper.innerHTML = `
+    <div class="qcm-results">
+      <div class="qcm-results-emoji">${grade.emoji}</div>
+      <h3 class="qcm-results-title" style="color:${grade.color}">${grade.label}</h3>
+      <div class="qcm-results-score">
+        <span class="qcm-results-pct" style="color:${grade.color}">${pct}%</span>
+        <span class="qcm-results-detail">${_qcmScore.correct} / ${_qcmScore.total} bonnes réponses</span>
+      </div>
+      <div class="qcm-results-bar">
+        <div class="qcm-results-bar-fill" style="width:${pct}%;background:${grade.color}"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="fc-btn fc-btn-train" onclick="coachingRenderScenarios()">🔄 Recommencer</button>
+        <button class="fc-btn fc-btn-master" onclick="_qcmOpenModal()">📋 Voir les guides</button>
+      </div>
+    </div>`;
+}
+
+function _qcmOpenModal() {
+  // Open the scenario modal for study
+  if (_qcmFiltered.length && typeof coachingOpenScenarioModal === 'function') {
+    coachingOpenScenarioModal(_qcmFiltered[_qcmIndex]?.scenario || _qcmFiltered[0].scenario);
+  }
+}
+
+function _qcmNav(dir) {
+  if (!_qcmFiltered.length) return;
+  const next = _qcmIndex + dir;
+  if (next < 0 || next >= _qcmFiltered.length) return;
+  _qcmIndex = next;
+  _qcmAnswered = false;
+  _qcmRender();
+  _qcmUpdateProgress();
+}
+
+function _qcmUpdateProgress() {
+  const counter = document.getElementById('fc-counter');
+  const masteredEl = document.getElementById('fc-mastered-count');
+  if (counter) counter.textContent = _qcmFiltered.length ? `Question ${_qcmIndex + 1} / ${_qcmFiltered.length}` : '0 / 0';
+  if (masteredEl) {
+    const pct = _qcmScore.total > 0 ? Math.round((_qcmScore.correct / _qcmScore.total) * 100) : 0;
+    masteredEl.textContent = _qcmScore.total > 0 ? `${_qcmScore.correct}/${_qcmScore.total} (${pct}%)` : 'Pas encore répondu';
+  }
 }
 
 function _fcRankColor(rank) {
@@ -1120,82 +1306,24 @@ function _fcRankColor(rank) {
   return colors[rank] || 'var(--dim)';
 }
 
-function _fcFlip() {
-  const card = document.getElementById('fc-active-card');
-  if (card) card.classList.toggle('fc-flipped');
-}
-
-function _fcNav(dir) {
-  if (!_fcFiltered.length) return;
-  _fcIndex = (_fcIndex + dir + _fcFiltered.length) % _fcFiltered.length;
-  _fcRenderCard();
-  _fcUpdateDots();
-  _fcUpdateCounter();
-}
-
-function _fcRenderDots() {
-  const dots = document.getElementById('fc-dots');
-  if (!dots) return;
-  if (_fcFiltered.length <= 1 || _fcFiltered.length > 30) { dots.innerHTML = ''; return; }
-  dots.innerHTML = _fcFiltered.map((_, i) =>
-    `<span class="fc-dot ${i === _fcIndex ? 'fc-dot--active' : ''}" onclick="_fcIndex=${i};_fcRenderCard();_fcUpdateDots();_fcUpdateCounter()"></span>`
-  ).join('');
-}
-
-function _fcUpdateDots() {
-  const dots = document.querySelectorAll('.fc-dot');
-  dots.forEach((d, i) => d.classList.toggle('fc-dot--active', i === _fcIndex));
-}
-
-function _fcUpdateCounter() {
-  const counter = document.getElementById('fc-counter');
-  const masteredEl = document.getElementById('fc-mastered-count');
-  if (counter) counter.textContent = _fcFiltered.length ? `${_fcIndex + 1} / ${_fcFiltered.length}` : '0 / 0';
-  if (masteredEl) {
-    const completed = getCompletedscenarios();
-    const n = _fcFiltered.filter(s => completed.includes(s.id)).length;
-    masteredEl.textContent = `${n} maîtrisé${n > 1 ? 's' : ''}`;
-  }
-}
-
-function _fcTrain(idx) {
-  const s = _fcFiltered[idx];
-  if (!s) return;
-  markScenarioCompleted(s.id);
-  incrementSessions();
-  _setCoachLaunchSource('ch-scenarios');
-  coachingSwitchTab('hub-home');
-  const aimMode = s.aim_mode || s.aimMode;
-  const aimDiff = s.aim_diff || s.aimDiff;
-  if (aimDiff) document.getElementById('opt-diff').value = aimDiff;
-  setTimeout(() => { const btn = document.querySelector(`.mode-card[data-mode="${aimMode}"]`); if (btn) btn.click(); }, 100);
-}
-
-function _fcMarkDone(idx) {
-  const s = _fcFiltered[idx];
-  if (!s) return;
-  markScenarioCompleted(s.id);
-  _fcRenderCard();
-  _fcUpdateCounter();
-  showToast.success('Scénario marqué comme maîtrisé !');
-}
-
-// Keyboard navigation for flashcards
+// Keyboard navigation for QCM
 document.addEventListener('keydown', (e) => {
   const scenPanel = document.getElementById('ch-scenarios');
   if (!scenPanel || scenPanel.style.display === 'none' || !scenPanel.offsetParent) return;
-  if (e.key === 'ArrowLeft') { e.preventDefault(); _fcNav(-1); }
-  if (e.key === 'ArrowRight') { e.preventDefault(); _fcNav(1); }
-  if (e.key === ' ' || e.key === 'Enter') {
-    const card = document.getElementById('fc-active-card');
-    if (card && document.activeElement?.tagName !== 'BUTTON') { e.preventDefault(); _fcFlip(); }
+  if (e.key === 'ArrowRight' && _qcmAnswered) { e.preventDefault(); _qcmNext(); }
+  if (['1','2','3','4','a','b','c','d'].includes(e.key.toLowerCase()) && !_qcmAnswered) {
+    const map = { '1':0,'a':0, '2':1,'b':1, '3':2,'c':2, '4':3,'d':3 };
+    const idx = map[e.key.toLowerCase()];
+    if (idx !== undefined && idx < (_qcmFiltered[_qcmIndex]?.choices.length || 0)) {
+      e.preventDefault(); _qcmAnswer(idx);
+    }
   }
 });
 
 // Nav button listeners
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fc-prev')?.addEventListener('click', () => _fcNav(-1));
-  document.getElementById('fc-next')?.addEventListener('click', () => _fcNav(1));
+  document.getElementById('fc-prev')?.addEventListener('click', () => _qcmNav(-1));
+  document.getElementById('fc-next')?.addEventListener('click', () => _qcmNav(1));
 });
 
 function coachingOpenScenarioModal(s) {
