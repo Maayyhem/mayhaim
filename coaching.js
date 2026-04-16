@@ -492,7 +492,7 @@ async function fetchScenariosFromDB() {
 
 async function fetchAgentEditsFromDB() {
   try {
-    const res = await fetch(`${API_BASE}/coach-data?type=agent`, {
+    const res = await fetch(`${API_BASE}/coaching?view=coach-data&type=agent`, {
       headers: coachingToken ? { 'Authorization': `Bearer ${coachingToken}` } : {}
     });
     if (!res.ok) return;
@@ -506,7 +506,7 @@ async function fetchAgentEditsFromDB() {
 
 async function fetchStratsFromDB() {
   try {
-    const res = await fetch(`${API_BASE}/coach-data?type=strat`, {
+    const res = await fetch(`${API_BASE}/coaching?view=coach-data&type=strat`, {
       headers: coachingToken ? { 'Authorization': `Bearer ${coachingToken}` } : {}
     });
     if (!res.ok) return;
@@ -520,19 +520,19 @@ async function fetchStratsFromDB() {
 
 async function pushAgentEditToDB(name, agentData) {
   if (!coachingToken) return;
-  fetch(`${API_BASE}/coach-data`, {
+  fetch(`${API_BASE}/coaching`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-    body: JSON.stringify({ data_type: 'agent', data_key: name, data_value: agentData })
+    body: JSON.stringify({ action: 'coach-data', data_type: 'agent', data_key: name, data_value: agentData })
   }).catch(() => {});
 }
 
 async function pushStratToDB(scenarioId, stratData) {
   if (!coachingToken) return;
-  fetch(`${API_BASE}/coach-data`, {
+  fetch(`${API_BASE}/coaching`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
-    body: JSON.stringify({ data_type: 'strat', data_key: String(scenarioId), data_value: stratData })
+    body: JSON.stringify({ action: 'coach-data', data_type: 'strat', data_key: String(scenarioId), data_value: stratData })
   }).catch(() => {});
 }
 
