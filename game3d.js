@@ -240,7 +240,7 @@ function _showLockToast(msg) {
   console.warn('Lock toast fallback:', msg);
 }
 
-const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true,
+const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true, soundVolume:0.5, soundPack:'clean',
   xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
   xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
   xhOuterLen:2, xhOuterThick:2, xhOuterGap:10, xhOuterShow:false,
@@ -335,6 +335,13 @@ function applySettings() {
   G.cm360 = s.cm360 || 34;
   $('#opt-diff').value = s.difficulty; $('#opt-duration').value = s.duration;
   $('#opt-sound').checked = s.soundOn;
+  $('#opt-volume').value = s.soundVolume;
+  $('#opt-volume-val').textContent = Math.round(s.soundVolume * 100) + '%';
+  audioEngine.setVolume(s.soundVolume);
+  audioEngine.setPack(s.soundPack);
+  document.querySelectorAll('.sett-sound-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.pack === s.soundPack);
+  });
   // Crosshair Valorant settings
   if ($('#xh-color')) $('#xh-color').value = s.xhColor || '#00ff88';
   if ($('#xh-opacity')) { $('#xh-opacity').value = s.xhOpacity ?? 1; $('#xh-opacity-val').textContent = s.xhOpacity ?? 1; }
@@ -2598,6 +2605,27 @@ $('#opt-dpi').addEventListener('input',e=>{
 $('#opt-diff').addEventListener('change',e=>saveSettings({difficulty:e.target.value}));
 $('#opt-duration').addEventListener('change',e=>saveSettings({duration:parseInt(e.target.value)}));
 $('#opt-sound').addEventListener('change',e=>saveSettings({soundOn:e.target.checked}));
+$('#opt-volume').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  $('#opt-volume-val').textContent = Math.round(v * 100) + '%';
+  audioEngine.setVolume(v);
+  saveSettings({ soundVolume: v });
+});
+document.querySelectorAll('.sett-sound-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.sett-sound-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const pack = chip.dataset.pack;
+    audioEngine.setPack(pack);
+    saveSettings({ soundPack: pack });
+  });
+});
+$('#sound-test-btn').addEventListener('click', () => {
+  audioEngine.init();
+  audioEngine.play('hit');
+  setTimeout(() => audioEngine.play('headshot'), 300);
+  setTimeout(() => audioEngine.play('combo'), 600);
+});
 // Crosshair Valorant settings
 function xhBind(id, key, parse, valId) {
   const el = $(id); if(!el) return;

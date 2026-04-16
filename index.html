@@ -267,97 +267,144 @@
         </button>
 
         <nav class="ch-sidebar-nav">
-          <div class="ch-nav-section">Jouer</div>
-          <button class="ch-nav-item ch-tab-btn active" data-tab="hub-home">
-            <span class="ch-nav-icon">🏠</span> Accueil
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="hub-freeplay">
-            <span class="ch-nav-icon">⚡</span> Free Play
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="hub-viscose">
-            <span class="ch-nav-icon">📊</span> Viscose Benchmark
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily">
-            <span class="ch-nav-icon">📅</span> Daily Challenge
-          </button>
+          <div class="ch-nav-search-wrap">
+            <input type="text" id="ch-nav-search" class="ch-nav-search" placeholder="Rechercher..." autocomplete="off">
+            <span class="ch-nav-search-icon">🔍</span>
+          </div>
 
-          <div class="ch-nav-section">Progression</div>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-profile">
-            <span class="ch-nav-icon">👤</span> Mon Profil
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-tracker">
-            <span class="ch-nav-icon">🎮</span> Tracker Valorant
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily-training">
-            <span class="ch-nav-icon">🗓️</span> Daily Training
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
-            <span class="ch-nav-icon">📈</span> Historique
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-leaderboard">
-            <span class="ch-nav-icon">🏆</span> Classement
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-achievements">
-            <span class="ch-nav-icon">🏅</span> Succès
-          </button>
+          <div class="ch-nav-group" data-group="play">
+            <button class="ch-nav-group-header" data-group-toggle="play">
+              <span class="ch-nav-group-label">Jouer</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn active" data-tab="hub-home">
+                <span class="ch-nav-icon">🏠</span> Accueil
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="hub-freeplay">
+                <span class="ch-nav-icon">⚡</span> Free Play
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="hub-viscose">
+                <span class="ch-nav-icon">📊</span> Viscose Benchmark
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily">
+                <span class="ch-nav-icon">📅</span> Daily Challenge
+              </button>
+            </div>
+          </div>
 
-          <div class="ch-nav-section">Coaching</div>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-ai-coach">
-            <span class="ch-nav-icon">🤖</span> Coach IA
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-scenarios">
-            <span class="ch-nav-icon">🎯</span> Scénarios
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-agents">
-            <span class="ch-nav-icon">🧠</span> Agents
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-vods">
-            <span class="ch-nav-icon">📹</span> VODs
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-cours">
-            <span class="ch-nav-icon">📚</span> Cours
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-warmup">
-            <span class="ch-nav-icon">🔥</span> Échauffement
-          </button>
+          <div class="ch-nav-group" data-group="progress">
+            <button class="ch-nav-group-header" data-group-toggle="progress">
+              <span class="ch-nav-group-label">Progression</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-profile">
+                <span class="ch-nav-icon">👤</span> Mon Profil
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-tracker">
+                <span class="ch-nav-icon">🎮</span> Tracker Valorant
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-daily-training">
+                <span class="ch-nav-icon">🗓️</span> Daily Training
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-historique">
+                <span class="ch-nav-icon">📈</span> Historique
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-leaderboard">
+                <span class="ch-nav-icon">🏆</span> Classement
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-achievements">
+                <span class="ch-nav-icon">🏅</span> Succès
+              </button>
+            </div>
+          </div>
 
-          <div class="ch-nav-section ch-coach-only" style="display:none">Outils Coach</div>
-          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">
-            <span class="ch-nav-icon">👥</span> Élèves
-          </button>
-          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">
-            <span class="ch-nav-icon">🗺️</span> Map Editor
-          </button>
-          <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">
-            <span class="ch-nav-icon">🔧</span> Gestion Scénarios
-          </button>
+          <div class="ch-nav-group" data-group="coaching">
+            <button class="ch-nav-group-header" data-group-toggle="coaching">
+              <span class="ch-nav-group-label">Coaching</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-ai-coach">
+                <span class="ch-nav-icon">🤖</span> Coach IA
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-scenarios">
+                <span class="ch-nav-icon">🎯</span> Scénarios
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-agents">
+                <span class="ch-nav-icon">🧠</span> Agents
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-vods">
+                <span class="ch-nav-icon">📹</span> VODs
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-cours">
+                <span class="ch-nav-icon">📚</span> Cours
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-warmup">
+                <span class="ch-nav-icon">🔥</span> Échauffement
+              </button>
+            </div>
+          </div>
 
-          <div class="ch-nav-section">Mon Espace</div>
-          <button class="ch-nav-item ch-tab-btn" data-tab="ch-messages">
-            <span class="ch-nav-icon">💬</span> Messages
-            <span class="ch-nav-badge" id="nav-notif-badge" style="display:none">0</span>
-          </button>
-          <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">
-            <span class="ch-nav-icon">👨‍🏫</span> Mon Coach
-          </button>
-          <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mes-vods" style="display:none">
-            <span class="ch-nav-icon">🎬</span> Mes VODs<span class="ch-nav-badge" id="badge-vods" style="display:none">!</span>
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="cp-mon-plan">
-            <span class="ch-nav-icon">🗓️</span> Mon Plan<span class="ch-nav-badge" id="badge-plan" style="display:none">!</span>
-          </button>
-          <button class="ch-nav-item ch-tab-btn" data-tab="cp-feedbacks">
-            <span class="ch-nav-icon">📝</span> Feedbacks<span class="ch-nav-badge" id="badge-feedback" style="display:none">!</span>
-          </button>
+          <div class="ch-nav-group ch-coach-only" data-group="tools" style="display:none">
+            <button class="ch-nav-group-header" data-group-toggle="tools">
+              <span class="ch-nav-group-label">Outils Coach</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-students" style="display:none">
+                <span class="ch-nav-icon">👥</span> Élèves
+              </button>
+              <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-map-editor" style="display:none">
+                <span class="ch-nav-icon">🗺️</span> Map Editor
+              </button>
+              <button class="ch-nav-item ch-tab-btn ch-coach-only" data-tab="ch-manage-scenarios" style="display:none">
+                <span class="ch-nav-icon">🔧</span> Gestion Scénarios
+              </button>
+            </div>
+          </div>
+
+          <div class="ch-nav-group" data-group="space">
+            <button class="ch-nav-group-header" data-group-toggle="space">
+              <span class="ch-nav-group-label">Mon Espace</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn" data-tab="ch-messages">
+                <span class="ch-nav-icon">💬</span> Messages
+                <span class="ch-nav-badge" id="nav-notif-badge" style="display:none">0</span>
+              </button>
+              <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mon-coach" style="display:none">
+                <span class="ch-nav-icon">👨‍🏫</span> Mon Coach
+              </button>
+              <button class="ch-nav-item ch-tab-btn cp-student-tab" data-tab="cp-mes-vods" style="display:none">
+                <span class="ch-nav-icon">🎬</span> Mes VODs<span class="ch-nav-badge" id="badge-vods" style="display:none">!</span>
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="cp-mon-plan">
+                <span class="ch-nav-icon">🗓️</span> Mon Plan<span class="ch-nav-badge" id="badge-plan" style="display:none">!</span>
+              </button>
+              <button class="ch-nav-item ch-tab-btn" data-tab="cp-feedbacks">
+                <span class="ch-nav-icon">📝</span> Feedbacks<span class="ch-nav-badge" id="badge-feedback" style="display:none">!</span>
+              </button>
+            </div>
+          </div>
 
           <button class="ch-nav-item ch-tab-btn ch-admin-tab" data-tab="ch-admin" style="display:none">
             <span class="ch-nav-icon">⚙️</span> Admin
           </button>
 
-          <div class="ch-nav-section">Général</div>
-          <button class="ch-nav-item ch-tab-btn" data-tab="hub-settings">
-            <span class="ch-nav-icon">⚙️</span> Paramètres
-          </button>
+          <div class="ch-nav-group" data-group="general">
+            <button class="ch-nav-group-header" data-group-toggle="general">
+              <span class="ch-nav-group-label">Général</span>
+              <span class="ch-nav-group-chevron">›</span>
+            </button>
+            <div class="ch-nav-group-items">
+              <button class="ch-nav-item ch-tab-btn" data-tab="hub-settings">
+                <span class="ch-nav-icon">⚙️</span> Paramètres
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div class="ch-sidebar-footer">
@@ -413,48 +460,132 @@
 
         <!-- ══ HUB HOME (remplace menu-screen) ══ -->
         <div id="hub-home" class="ch-panel active">
-          <div class="hub-home-hero">
-            <div class="hub-home-greeting">Bienvenue, <span id="menu-hero-name">Joueur</span> 👋</div>
-            <div id="announcements-bar" style="margin-top:6px;font-size:0.82rem;color:var(--dim)"></div>
+
+          <!-- Hero Banner -->
+          <div class="home-hero">
+            <div class="home-hero-bg"></div>
+            <div class="home-hero-content">
+              <div class="home-hero-left">
+                <div class="home-hero-greeting">Bienvenue, <span id="menu-hero-name">Joueur</span></div>
+                <div class="home-hero-sub" id="home-hero-sub">Prêt à t'entraîner ?</div>
+                <div id="announcements-bar" class="home-announcements"></div>
+              </div>
+              <div class="home-hero-rank">
+                <div class="home-rank-badge" id="home-rank-badge">
+                  <span class="home-rank-icon">🎯</span>
+                  <div class="home-rank-info">
+                    <div class="home-rank-label">Rang Viscose</div>
+                    <div class="home-rank-value" id="home-rank-value">Unranked</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="menu-stat-cards" style="margin:20px 0">
-            <div class="menu-stat-card">
-              <div class="menu-stat-icon">🏆</div>
-              <div class="menu-stat-val" id="menu-best">—</div>
-              <div class="menu-stat-lbl">Meilleur Score</div>
+          <!-- Stats Row -->
+          <div class="home-stats-row">
+            <div class="home-stat-card home-stat-accent">
+              <div class="home-stat-top">
+                <span class="home-stat-icon">🏆</span>
+                <span class="home-stat-trend" id="home-trend-score"></span>
+              </div>
+              <div class="home-stat-val" id="menu-best">—</div>
+              <div class="home-stat-lbl">Meilleur Score</div>
             </div>
-            <div class="menu-stat-card">
-              <div class="menu-stat-icon">🎯</div>
-              <div class="menu-stat-val" id="menu-acc">—</div>
-              <div class="menu-stat-lbl">Précision</div>
+            <div class="home-stat-card">
+              <div class="home-stat-top">
+                <span class="home-stat-icon">🎯</span>
+                <span class="home-stat-trend" id="home-trend-acc"></span>
+              </div>
+              <div class="home-stat-val" id="menu-acc">—</div>
+              <div class="home-stat-lbl">Précision</div>
             </div>
-            <div class="menu-stat-card">
-              <div class="menu-stat-icon">🎮</div>
-              <div class="menu-stat-val" id="menu-games">—</div>
-              <div class="menu-stat-lbl">Parties</div>
+            <div class="home-stat-card">
+              <div class="home-stat-top">
+                <span class="home-stat-icon">🎮</span>
+                <span class="home-stat-trend" id="home-trend-games"></span>
+              </div>
+              <div class="home-stat-val" id="menu-games">—</div>
+              <div class="home-stat-lbl">Parties</div>
+            </div>
+            <div class="home-stat-card">
+              <div class="home-stat-top">
+                <span class="home-stat-icon">⚡</span>
+              </div>
+              <div class="home-stat-val" id="home-streak">0</div>
+              <div class="home-stat-lbl">Streak du jour</div>
             </div>
           </div>
 
-          <div class="menu-xp-section" style="margin-bottom:28px">
-            <div class="menu-xp-row">
+          <!-- XP Section -->
+          <div class="home-xp-section">
+            <div class="home-xp-row">
               <span class="xp-level-badge" id="menu-level">Niv. 1 — Rookie</span>
               <span class="xp-bar-text" id="menu-xp-text">0 / 100 XP</span>
             </div>
             <div class="xp-bar-track"><div class="xp-bar-fill" id="menu-xp-fill" style="width:0%"></div></div>
           </div>
 
-          <div class="ch-section-title">Accès rapide</div>
-          <div class="hub-quick-grid" style="margin-bottom:28px">
-            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-freeplay')"><span>⚡</span> Free Play</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-daily-training')"><span>🗓️</span> Daily Training</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-viscose')"><span>📊</span> Viscose Benchmark</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-daily')"><span>📅</span> Daily Challenge</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('ch-warmup')"><span>🔥</span> Échauffement</button>
-            <button class="hub-quick-card" onclick="coachingSwitchTab('hub-settings')"><span>⚙️</span> Paramètres</button>
+          <!-- Quick Play Cards -->
+          <div class="home-section-header">
+            <div class="home-section-title">Jouer maintenant</div>
+          </div>
+          <div class="home-play-grid">
+            <button class="home-play-card home-play-benchmark" onclick="coachingSwitchTab('hub-viscose')">
+              <div class="home-play-glow"></div>
+              <div class="home-play-icon">📊</div>
+              <div class="home-play-info">
+                <div class="home-play-name">Viscose Benchmark</div>
+                <div class="home-play-desc">Mesure ton niveau avec les 18 scénarios</div>
+              </div>
+              <span class="home-play-arrow">→</span>
+            </button>
+            <button class="home-play-card home-play-free" onclick="coachingSwitchTab('hub-freeplay')">
+              <div class="home-play-glow"></div>
+              <div class="home-play-icon">⚡</div>
+              <div class="home-play-info">
+                <div class="home-play-name">Free Play</div>
+                <div class="home-play-desc">14 exercices libres, à ton rythme</div>
+              </div>
+              <span class="home-play-arrow">→</span>
+            </button>
+            <button class="home-play-card home-play-daily" onclick="coachingSwitchTab('ch-daily')">
+              <div class="home-play-glow"></div>
+              <div class="home-play-icon">📅</div>
+              <div class="home-play-info">
+                <div class="home-play-name">Daily Challenge</div>
+                <div class="home-play-desc">Défi quotidien avec classement global</div>
+              </div>
+              <span class="home-play-arrow">→</span>
+            </button>
+            <button class="home-play-card home-play-warmup" onclick="coachingSwitchTab('ch-warmup')">
+              <div class="home-play-glow"></div>
+              <div class="home-play-icon">🔥</div>
+              <div class="home-play-info">
+                <div class="home-play-name">Échauffement</div>
+                <div class="home-play-desc">Routine guidée en 6 phases</div>
+              </div>
+              <span class="home-play-arrow">→</span>
+            </button>
           </div>
 
-          <div class="menu-missions-title">Missions du jour</div>
+          <!-- Quick Access -->
+          <div class="home-section-header">
+            <div class="home-section-title">Accès rapide</div>
+          </div>
+          <div class="home-quick-row">
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-daily-training')"><span>🗓️</span> Daily Training</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-ai-coach')"><span>🤖</span> Coach IA</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-profile')"><span>👤</span> Profil</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-leaderboard')"><span>🏆</span> Classement</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('ch-achievements')"><span>🏅</span> Succès</button>
+            <button class="home-quick-btn" onclick="coachingSwitchTab('hub-settings')"><span>⚙️</span> Paramètres</button>
+          </div>
+
+          <!-- Missions -->
+          <div class="home-section-header">
+            <div class="home-section-title">Missions du jour</div>
+          </div>
           <div id="missions-container" class="missions-grid"></div>
         </div>
 
@@ -543,6 +674,35 @@
             <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
           </label>
         </div>
+        <div class="sett-range-row">
+          <span class="sett-row-label">Volume</span>
+          <input type="range" id="opt-volume" min="0" max="1" value="0.5" step="0.05" class="sett-range">
+          <span class="sett-range-val" id="opt-volume-val">50%</span>
+        </div>
+        <div class="sett-field-label" style="margin-top:12px">Pack de sons</div>
+        <div class="sett-sound-pack-grid" id="sound-pack-chips">
+          <button class="sett-sound-chip active" data-pack="clean">
+            <span class="sett-sound-chip-icon">🔔</span>
+            <span class="sett-sound-chip-name">Clean</span>
+            <span class="sett-sound-chip-desc">Son par défaut, clair et net</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="retro">
+            <span class="sett-sound-chip-icon">👾</span>
+            <span class="sett-sound-chip-name">Retro</span>
+            <span class="sett-sound-chip-desc">Sons 8-bit arcade</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="soft">
+            <span class="sett-sound-chip-icon">🌊</span>
+            <span class="sett-sound-chip-name">Soft</span>
+            <span class="sett-sound-chip-desc">Sons doux et discrets</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="mechanical">
+            <span class="sett-sound-chip-icon">⚙️</span>
+            <span class="sett-sound-chip-name">Mechanical</span>
+            <span class="sett-sound-chip-desc">Sons tranchants, métalliques</span>
+          </button>
+        </div>
+        <button class="sett-sound-test-btn" id="sound-test-btn">🔊 Tester le son</button>
       </div>
 
       <!-- Sensibilité -->

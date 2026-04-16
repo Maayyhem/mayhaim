@@ -5018,6 +5018,63 @@ document.addEventListener('DOMContentLoaded', () => {
   initCoaching();
   meInit();
 
+  // ── Collapsible nav groups ──
+  (function initNavGroups() {
+    // Open all groups by default
+    document.querySelectorAll('.ch-nav-group').forEach(g => g.classList.add('open'));
+
+    // Toggle on header click
+    document.querySelectorAll('.ch-nav-group-header').forEach(h => {
+      h.addEventListener('click', () => {
+        const group = h.closest('.ch-nav-group');
+        group.classList.toggle('open');
+      });
+    });
+
+    // Auto-open group containing active item
+    const openGroupForTab = (tabId) => {
+      const btn = document.querySelector(`.ch-tab-btn[data-tab="${tabId}"]`);
+      if (btn) {
+        const group = btn.closest('.ch-nav-group');
+        if (group) group.classList.add('open');
+      }
+    };
+
+    // Search filter
+    const searchInput = document.getElementById('ch-nav-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
+        // Filter items inside groups
+        document.querySelectorAll('.ch-nav-group').forEach(g => {
+          let anyVisible = false;
+          g.querySelectorAll('.ch-nav-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            const match = !q || text.includes(q);
+            item.classList.toggle('search-hidden', !match);
+            if (match) anyVisible = true;
+          });
+          g.classList.toggle('search-hidden', !anyVisible && !!q);
+          if (q && anyVisible) g.classList.add('open');
+        });
+        // Filter standalone items (not in a group)
+        document.querySelectorAll('.ch-sidebar-nav > .ch-nav-item').forEach(item => {
+          const text = item.textContent.toLowerCase();
+          item.classList.toggle('search-hidden', q && !text.includes(q));
+        });
+      });
+    }
+
+    // Hook into coachingSwitchTab to auto-open the right group
+    const origSwitch = window.coachingSwitchTab;
+    if (origSwitch) {
+      window.coachingSwitchTab = function(tabId) {
+        origSwitch(tabId);
+        openGroupForTab(tabId);
+      };
+    }
+  })();
+
   // Les hooks endGame (_updateCoachingReturnBtn, _renderHeatmap)
   // sont appelés directement depuis game3d.js#endGame()
 });
