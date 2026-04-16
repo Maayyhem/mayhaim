@@ -24,7 +24,7 @@ async function fetchHenrik(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(`https://api.henrikdev.tech${path}`, { headers, signal: controller.signal });
+    const res = await fetch(`https://api.henrikdev.xyz${path}`, { headers, signal: controller.signal });
     let data;
     try { data = await res.json(); } catch { data = {}; }
     return { status: res.status, data };
