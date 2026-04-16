@@ -1661,7 +1661,15 @@
         <!-- TRACKER VALORANT -->
         <div id="ch-tracker" class="ch-panel">
           <h2 class="ch-section-title">🎮 Tracker Valorant</h2>
+          <div class="trk-search-bar">
+            <div class="trk-search-inner">
+              <span class="trk-search-icon">🔍</span>
+              <input id="trk-search-input" type="text" class="trk-search-input" placeholder="Rechercher un joueur…  (ex: TenZ#0505)" autocomplete="off">
+              <button class="trk-search-btn" onclick="trackerSearchPlayer()">Rechercher</button>
+            </div>
+          </div>
           <div id="trk-main"></div>
+          <div id="trk-search-results" style="display:none"></div>
         </div>
 
         <div id="ch-historique" class="ch-panel">

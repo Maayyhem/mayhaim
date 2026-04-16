@@ -3551,6 +3551,84 @@ async function trackerLoadStats(btn) {
 
 function trackerLoad() { trackerLoadStats(); }
 
+// ── Search any player ──────────────────────────────────────────────
+async function trackerSearchPlayer() {
+  const input = document.getElementById('trk-search-input');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) { showToast.warn('Entre un Riot ID (Pseudo#TAG)'); return; }
+  const parts = raw.split('#');
+  if (parts.length < 2 || !parts[1]) { showToast.warn('Format : Pseudo#TAG'); return; }
+  const name = parts[0].trim(), tag = parts.slice(1).join('#').trim();
+
+  const mainEl = document.getElementById('trk-main');
+  const resultsEl = document.getElementById('trk-search-results');
+  if (!resultsEl) return;
+
+  // Hide own profile, show search results
+  if (mainEl) mainEl.style.display = 'none';
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:0.85rem">
+    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">🔍</div>Recherche de <strong>${san(name)}#${san(tag)}</strong>…</div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
+        <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">${san(data.error || 'Joueur introuvable')}</p>
+        <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
+      return;
+    }
+    // Build search hero
+    const acct = data.account || {};
+    const rankColor = _riotTierColor(acct.rank);
+    const emblemUrl = _rankEmblemUrl(acct.rank);
+    resultsEl.innerHTML = `
+      <div class="trk-hero trk-hero--search">
+        <div class="trk-hero-content">
+          <div class="trk-hero-left">
+            <div class="trk-rank-emblem">
+              ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">🎯</span>'}
+            </div>
+            <div class="trk-hero-info">
+              <div class="trk-hero-name">${san(acct.gamename || name)}<span class="trk-tag">#${san(acct.tagline || tag)}</span></div>
+              ${acct.rank
+                ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(acct.rank)}<span class="trk-hero-lp">${acct.lp != null ? acct.lp + ' RR' : ''}</span></div>`
+                : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non disponible</div>'}
+            </div>
+          </div>
+          <div class="trk-hero-actions">
+            <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Mon profil</button>
+          </div>
+        </div>
+      </div>
+      <div id="trk-search-stats-wrap"></div>`;
+    // Render stats into the wrap
+    const wrap = document.getElementById('trk-search-stats-wrap');
+    if (wrap) trackerRender(data, wrap);
+  } catch(e) {
+    resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
+      <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">Erreur réseau</p>
+      <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
+  }
+}
+
+function trackerSearchBack() {
+  const mainEl = document.getElementById('trk-main');
+  const resultsEl = document.getElementById('trk-search-results');
+  if (mainEl) mainEl.style.display = '';
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  const input = document.getElementById('trk-search-input');
+  if (input) input.value = '';
+}
+
+// Allow Enter key in search input
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('trk-search-input');
+  if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') trackerSearchPlayer(); });
+});
+
 function _donutSvg(pct, color) {
   const r = 58, c = 2 * Math.PI * r;
   const offset = c - (pct / 100) * c;

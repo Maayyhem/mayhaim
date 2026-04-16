@@ -2430,6 +2430,39 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 
 /* ══ TRACKER VALORANT ═══════════════════════════════════ */
 
+/* ── Search Bar ── */
+.trk-search-bar {
+  margin-bottom: 18px;
+}
+.trk-search-inner {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.trk-search-inner:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,70,85,0.12);
+}
+.trk-search-icon {
+  padding: 0 4px 0 14px; font-size: 0.9rem; opacity: 0.5;
+}
+.trk-search-input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--txt); font-size: 0.88rem; padding: 11px 10px;
+  font-family: inherit;
+}
+.trk-search-input::placeholder { color: var(--dim); }
+.trk-search-btn {
+  background: var(--accent); color: #fff; border: none;
+  padding: 11px 20px; font-weight: 700; font-size: 0.8rem;
+  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
+  transition: filter 0.15s;
+}
+.trk-search-btn:hover { filter: brightness(1.15); }
+
+.trk-hero--search { border-left: 3px solid var(--accent); }
+
 /* ── Link Screen ── */
 .trk-link-screen {
   display: flex; flex-direction: column; align-items: center;
