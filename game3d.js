@@ -3002,31 +3002,36 @@ function _applyMergedData(data) {
 // Push local data to server, receive merged, apply locally
 async function cloudSync(direction) {
   if (_syncInProgress) return;
-  const token = (typeof coachingToken !== 'undefined') ? coachingToken : localStorage.getItem('ch_token');
-  if (!token) return;
+  const token = (typeof coachingToken !== 'undefined' && coachingToken) ? coachingToken : localStorage.getItem('ch_token');
+  if (!token) { console.log('[sync] skip — no token'); return; }
   _syncInProgress = true;
   _updateSyncUI('syncing');
+  console.log('[sync]', direction, 'starting…');
   try {
     const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
     if (direction === 'pull') {
-      // Pull only — on login
       const res = await fetch(apiBase + '/api/profile?action=sync-pull', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      if (!res.ok) throw new Error('sync pull failed: ' + res.status);
+      console.log('[sync] pull response:', res.status);
+      if (!res.ok) { const t = await res.text(); throw new Error('sync pull ' + res.status + ': ' + t.substring(0,200)); }
       const { data } = await res.json();
-      if (data && Object.keys(data).length > 0) _applyMergedData(data);
+      const keys = data ? Object.keys(data).length : 0;
+      console.log('[sync] pull got', keys, 'keys');
+      if (keys > 0) _applyMergedData(data);
     } else {
-      // Full push+merge
       const clientData = _collectLocalData();
+      console.log('[sync] push payload keys:', Object.keys(clientData).join(','));
       const res = await fetch(apiBase + '/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ action: 'sync-push', client_data: clientData })
       });
-      if (!res.ok) throw new Error('sync push failed: ' + res.status);
+      console.log('[sync] push response:', res.status);
+      if (!res.ok) { const t = await res.text(); throw new Error('sync push ' + res.status + ': ' + t.substring(0,200)); }
       const { data } = await res.json();
       if (data) _applyMergedData(data);
+      console.log('[sync] push+merge OK');
     }
     _updateSyncUI('synced');
   } catch (e) {
