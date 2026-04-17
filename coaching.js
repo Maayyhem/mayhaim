@@ -4306,15 +4306,86 @@ let _trackerCtx       = 'self';        // 'self' | 'search'
 let _trackerSearch    = null;          // { name, tag, region } for search context
 let _trackerRawData   = null;          // full unfiltered data (self)
 let _trackerSrchRaw   = null;          // full unfiltered data (search)
+let _valActsCache     = null;          // sorted array of { uuid, epNum, actNum, label, start, end }
+let _valActsPromise   = null;          // in-flight promise (dedupe concurrent loads)
+let _valActsByUuid    = null;          // map uuid → act entry
 
-// Build a consistent key for a match (season_id from API, or year-month fallback)
+// Lazy-load the Valorant episode/act calendar from valorant-api.com (public, cached).
+// Returns an array sorted chronologically descending (most recent first).
+async function _trkLoadActs() {
+  if (_valActsCache) return _valActsCache;
+  if (_valActsPromise) return _valActsPromise;
+  _valActsPromise = (async () => {
+    try {
+      const r = await fetch('https://valorant-api.com/v1/seasons', { cache: 'force-cache' });
+      const j = await r.json();
+      const rows = Array.isArray(j?.data) ? j.data : [];
+      // Build episode map: uuid → ordinal (E1, E2, …) based on chronological order
+      const episodes = rows.filter(x => x.type === 'EAresSeasonType::Episode' || x.parentUuid == null);
+      episodes.sort((a,b) => String(a.startTime||'').localeCompare(String(b.startTime||'')));
+      const epOrdinal = new Map();
+      episodes.forEach((e, i) => epOrdinal.set(e.uuid, i + 1));
+      // Acts only — chronologically ascending to assign Act 1/2/3 per episode
+      const acts = rows.filter(x => x.type === 'EAresSeasonType::Act' || (x.parentUuid && x.type !== 'EAresSeasonType::Episode'));
+      acts.sort((a,b) => String(a.startTime||'').localeCompare(String(b.startTime||'')));
+      const actIdxInEp = new Map(); // epUuid → running counter
+      const built = acts.map(a => {
+        const epUuid = a.parentUuid;
+        const epN = epOrdinal.get(epUuid) || null;
+        const idx = (actIdxInEp.get(epUuid) || 0) + 1;
+        actIdxInEp.set(epUuid, idx);
+        return {
+          uuid: a.uuid,
+          epNum: epN,
+          actNum: idx,
+          label: epN ? `E${epN} · Act ${idx}` : (a.displayName || 'Act'),
+          start: a.startTime || null,
+          end:   a.endTime   || null,
+        };
+      });
+      built.sort((a,b) => String(b.start||'').localeCompare(String(a.start||'')));
+      _valActsCache = built;
+      _valActsByUuid = new Map(built.map(x => [x.uuid, x]));
+      return built;
+    } catch {
+      _valActsCache = [];
+      _valActsByUuid = new Map();
+      return [];
+    }
+  })();
+  return _valActsPromise;
+}
+
+// Find which Valorant act a match date falls into. Returns act entry or null.
+function _trkActForDate(iso) {
+  if (!iso || !_valActsCache) return null;
+  for (const a of _valActsCache) {
+    if (a.start && iso < a.start) continue;
+    if (a.end   && iso > a.end  ) continue;
+    return a;
+  }
+  return null;
+}
+
+// Build a consistent key for a match: preferring the authoritative season UUID
+// (either from API or derived from the date), then falling back to month.
 function _trkMatchActKey(m) {
+  // 1) If API gave us a season_id AND it matches a known act → use that UUID
+  if (m?.season_id && _valActsByUuid?.has(String(m.season_id))) {
+    return String(m.season_id);
+  }
+  // 2) Resolve via date range against the Valorant calendar
+  const a = _trkActForDate(m?.date);
+  if (a) return a.uuid;
+  // 3) Season_id without calendar match (rare) → still group by id
   if (m?.season_id) return String(m.season_id);
+  // 4) Final fallback: year-month bucket
   const d = m?.date ? String(m.date) : '';
   return d ? 'month-' + d.substring(0, 7) : 'unknown';
 }
 
-// Group matches by act (season_id), sorted by recency (most recent group first)
+// Group matches by act, sorted by recency (most recent group first).
+// Labels use real Valorant episode/act names when resolvable.
 function _trkSeasonGroups(matches) {
   const map = new Map();
   for (const m of (matches || [])) {
@@ -4329,12 +4400,16 @@ function _trkSeasonGroups(matches) {
   groups.sort((a,b) => (b.lastDate||'').localeCompare(a.lastDate||''));
   const fmt = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
   const fmtMonth = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}) : '';
-  groups.forEach((g, i) => {
-    // Use month labels when falling back to month grouping, otherwise act labels
-    if (String(g.id).startsWith('month-')) {
+  groups.forEach((g) => {
+    const act = _valActsByUuid ? _valActsByUuid.get(g.id) : null;
+    if (act) {
+      g.label = act.label;               // e.g. "E10 · Act 3"
+      g.epNum = act.epNum;
+      g.actNum = act.actNum;
+    } else if (String(g.id).startsWith('month-')) {
       g.label = fmtMonth(g.lastDate).replace(/^\w/, c => c.toUpperCase());
     } else {
-      g.label = i === 0 ? 'Acte courant' : `Acte −${i}`;
+      g.label = 'Acte inconnu';
     }
     g.range = g.firstDate && g.lastDate ? `${fmt(g.firstDate)} → ${fmt(g.lastDate)}` : '';
     g.count = g.matches.length;
@@ -4576,7 +4651,11 @@ async function trackerLoadStats(btn) {
   if (btn) btn.disabled = true;
   wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats…</div>`;
   try {
-    const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
+    // Kick off acts fetch in parallel with tracker data
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} }),
+      _trkLoadActs(),
+    ]);
     const data = await res.json();
     if (!res.ok) {
       wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
@@ -4626,7 +4705,10 @@ async function trackerSearchPlayer() {
   resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
 
   try {
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`);
+    const [res] = await Promise.all([
+      fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`),
+      _trkLoadActs(),
+    ]);
     const data = await res.json();
     if (!res.ok) {
       resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
