@@ -2259,7 +2259,7 @@ function renderRunsSparkline(mode) {
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: true, aspectRatio: 6,
       plugins: { legend: { display: false }, tooltip: {
         callbacks: { label: (ctx) => ctx.raw.toLocaleString() + ' pts' }
       } },

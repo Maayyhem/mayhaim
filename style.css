@@ -481,9 +481,9 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .res-percentile.top5 { background: rgba(227,179,65,0.12); border-color: rgba(227,179,65,0.5); color: var(--gold); text-shadow: 0 0 12px rgba(227,179,65,0.3); }
 .res-percentile.top1 { background: rgba(255,70,85,0.12); border-color: rgba(255,70,85,0.5); color: var(--accent); text-shadow: 0 0 12px var(--red-g); }
 
-.res-sparkline-wrap { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); position: relative; }
+.res-sparkline-wrap { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); position: relative; height: 70px; overflow: hidden; }
 .res-spark-lbl { font-size: var(--fs-xs); color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-#res-runs-spark { display: block; margin: 0 auto; max-width: 100%; height: 52px; }
+#res-runs-spark { display: block; width: 100%; height: 52px; }
 
 /* ── Gauges row ── */
 .res-scores-row {

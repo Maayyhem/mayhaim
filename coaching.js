@@ -3882,8 +3882,6 @@ function _renderHistoryUI(history) {
     return with_rt.length ? Math.round(with_rt.reduce((s,h) => s + h.avg_reaction, 0) / with_rt.length) : 0;
   })();
 
-  renderHistoryChart(filtered);
-
   el.innerHTML = `
     <!-- Mode filter tabs -->
     <div class="hist-filter-wrap">
@@ -3941,12 +3939,16 @@ function _renderHistoryUI(history) {
         }).join('')}</tbody>
       </table>
     </div>`;
+
+  // Chart rendered after innerHTML (canvas is outside el, but ensures DOM is ready)
+  requestAnimationFrame(() => renderHistoryChart(filtered));
 }
 
 function _historySetFilter(mode) {
   _historyFilter = mode;
   if (_historyData && _historyData.length) _renderHistoryUI(_historyData);
 }
+window._historySetFilter = _historySetFilter; // expose for onclick in innerHTML
 
 function renderHistoryChart(history) {
   const canvas = document.getElementById('ch-history-chart');
