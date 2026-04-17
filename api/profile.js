@@ -256,36 +256,49 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     const matchKills = [...(m.kills || [])].sort((a, b) => (a.kill_time_in_match||0) - (b.kill_time_in_match||0));
     const firstBlood = matchKills.length > 0 && matchKills[0].killer_puuid === me.puuid;
 
-    // KAST% — per round: did player Kill/Assist/Survive/Trade?
+    // Pre-bucket kills by their `round` key (Henrik sometimes emits 0-indexed,
+    // sometimes 1-indexed depending on endpoint/version). We detect the base
+    // by looking at the min key and map array index → round key accordingly.
+    const killsByRoundKey = new Map();
+    for (const k of (m.kills || [])) {
+      if (typeof k.round !== 'number') continue;
+      if (!killsByRoundKey.has(k.round)) killsByRoundKey.set(k.round, []);
+      killsByRoundKey.get(k.round).push(k);
+    }
+    const roundKeys = [...killsByRoundKey.keys()];
+    const minRoundKey = roundKeys.length ? Math.min(...roundKeys) : 0;
+    const rdKeyFor = (i) => i + minRoundKey;
+
+    // KAST% — per round: did player Kill / Assist / Survive / get Traded?
+    // Only count rounds that actually have logged kill events, to avoid
+    // inflating KAST on rounds Henrik didn't instrument.
     let kastRounds = 0;
+    let kastEligibleRounds = 0;
     if (m.rounds && m.rounds.length > 0) {
       const myPuuid = me.puuid;
-      for (const rd of m.rounds) {
-        const roundNum = rd.id ?? rd.round_num ?? null;
-        // Kill or Assist in this round
-        const hadKill = (m.kills || []).some(k => k.round === roundNum && k.killer_puuid === myPuuid);
-        const hadAssist = (m.kills || []).some(k => k.round === roundNum && (k.assistants||[]).some(a => a.assistant_puuid === myPuuid));
-        // Survived: player not in victim list this round
-        const died = (m.kills || []).some(k => k.round === roundNum && k.victim_puuid === myPuuid);
-        const survived = !died;
-        // Traded: died but killer was killed within 3s by teammate
+      for (let i = 0; i < m.rounds.length; i++) {
+        const rdKills = killsByRoundKey.get(rdKeyFor(i)) || [];
+        if (rdKills.length === 0) continue;
+        kastEligibleRounds++;
+        const hadKill   = rdKills.some(k => k.killer_puuid === myPuuid);
+        const hadAssist = rdKills.some(k => (k.assistants || []).some(a => a.assistant_puuid === myPuuid));
+        const myDeath   = rdKills.find(k => k.victim_puuid === myPuuid);
+        const survived  = !myDeath;
         let traded = false;
-        if (died) {
-          const myDeath = (m.kills || []).find(k => k.round === roundNum && k.victim_puuid === myPuuid);
-          if (myDeath) {
-            const killerPuuid = myDeath.killer_puuid;
-            const tradeWindow = (myDeath.kill_time_in_round || 0) + 3000;
-            traded = (m.kills || []).some(k =>
-              k.round === roundNum && k.victim_puuid === killerPuuid &&
-              (k.kill_time_in_round||0) <= tradeWindow &&
-              k.killer_puuid !== myPuuid // teammate killed the killer
-            );
-          }
+        if (myDeath) {
+          const killerPuuid = myDeath.killer_puuid;
+          const tradeWindow = (myDeath.kill_time_in_round || 0) + 3000;
+          traded = rdKills.some(k =>
+            k.victim_puuid === killerPuuid &&
+            (k.kill_time_in_round || 0) > (myDeath.kill_time_in_round || 0) &&
+            (k.kill_time_in_round || 0) <= tradeWindow &&
+            k.killer_puuid !== myPuuid
+          );
         }
         if (hadKill || hadAssist || survived || traded) kastRounds++;
       }
     }
-    const kastPct = (m.rounds && m.rounds.length > 0) ? Math.round(kastRounds / m.rounds.length * 100) : null;
+    const kastPct = kastEligibleRounds > 0 ? Math.round(kastRounds / kastEligibleRounds * 100) : null;
 
     // Update per-agent KAST
     if (kastPct != null) { agentMap[agent].kast_sum += kastPct; agentMap[agent].kast_games++; }
@@ -299,9 +312,9 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
         .filter(p => (p.team||'').toLowerCase() === myTeam && p.puuid !== myPuuid)
         .map(p => p.puuid);
 
-      for (const rd of m.rounds) {
-        const roundNum = rd.round_num ?? rd.id ?? null;
-        const rdKills = (m.kills || []).filter(k => k.round === roundNum);
+      for (let i = 0; i < m.rounds.length; i++) {
+        const rd = m.rounds[i];
+        const rdKills = killsByRoundKey.get(rdKeyFor(i)) || [];
         const sortedRdKills = [...rdKills].sort((a,b) => (a.kill_time_in_round||0) - (b.kill_time_in_round||0));
 
         // Plant (try both v3 and v2 property paths)
