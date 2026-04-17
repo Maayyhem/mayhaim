@@ -4327,10 +4327,15 @@ function _trkSeasonGroups(matches) {
   }
   const groups = [...map.values()];
   groups.sort((a,b) => (b.lastDate||'').localeCompare(a.lastDate||''));
-  // Labels: "Acte courant", "Acte −1", etc. + readable date range
   const fmt = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
+  const fmtMonth = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}) : '';
   groups.forEach((g, i) => {
-    g.label = i === 0 ? 'Acte courant' : `Acte −${i}`;
+    // Use month labels when falling back to month grouping, otherwise act labels
+    if (String(g.id).startsWith('month-')) {
+      g.label = fmtMonth(g.lastDate).replace(/^\w/, c => c.toUpperCase());
+    } else {
+      g.label = i === 0 ? 'Acte courant' : `Acte −${i}`;
+    }
     g.range = g.firstDate && g.lastDate ? `${fmt(g.firstDate)} → ${fmt(g.lastDate)}` : '';
     g.count = g.matches.length;
   });
@@ -4501,15 +4506,19 @@ function _trkQueueTabs() {
 }
 
 function _trkActTabs(groups) {
-  if (!groups || groups.length < 2) return '';
-  const all = `<button class="trk-atab${!_trackerAct?' active':''}" data-act="" onclick="_trackerSetAct('')">Tous actes</button>`;
+  if (!groups || !groups.length) return '';
+  const totalMatches = groups.reduce((n, g) => n + (g.count || 0), 0);
+  const all = `<button class="trk-atab${!_trackerAct?' active':''}" data-act="" onclick="_trackerSetAct('')" title="${totalMatches} parties toutes périodes">
+    <span class="trk-atab-lbl">Toutes</span>
+    <span class="trk-atab-range">${totalMatches} parties</span>
+  </button>`;
   const tabs = groups.map(g =>
     `<button class="trk-atab${_trackerAct===g.id?' active':''}" data-act="${san(g.id)}" onclick="_trackerSetAct('${san(g.id)}')" title="${san(g.range)} · ${g.count} parties">
       <span class="trk-atab-lbl">${san(g.label)}</span>
-      <span class="trk-atab-range">${san(g.range)}</span>
+      <span class="trk-atab-range">${san(g.range)} · ${g.count}p</span>
     </button>`
   ).join('');
-  return `<div class="trk-act-tabs">${all}${tabs}</div>`;
+  return `<div class="trk-act-tabs"><span class="trk-act-lbl">Période :</span>${all}${tabs}</div>`;
 }
 
 async function trackerLinkRiot() {
