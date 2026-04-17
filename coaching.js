@@ -4834,109 +4834,166 @@ window._trkCloseMatch = function() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') window._trkCloseMatch?.(); });
 
 function _trkRenderMatchModal(d, modal) {
-  const clrWR   = v => v >= 50 ? '#4ade80' : '#f87171';
-  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
+  // ── Colour helpers ────────────────────────────────────────────────
   const clrACS  = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : '#e2e8f0';
-  const clrHS   = v => v == null ? '#64748b' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : '#64748b';
-  const clrKAST = v => v == null ? '#64748b' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
-  const clrDmg  = v => v == null ? '#64748b' : v >= 150 ? '#4ade80' : '#fbbf24';
+  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
+  const clrHS   = v => v == null ? '#475569' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : '#475569';
+  const clrKAST = v => v == null ? '#475569' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
+  const clrDmg  = v => v == null ? '#475569' : v >= 150 ? '#4ade80' : '#fbbf24';
+  const RANK_COLORS = {
+    iron:'#a0836c', bronze:'#cd9a6a', silver:'#b0b8c1', gold:'#f5d269',
+    platinum:'#4bc8d8', diamond:'#ae7fe8', ascendant:'#4ade80', immortal:'#f87171', radiant:'#ffe566',
+  };
+  const rankClr = r => { if (!r) return '#475569'; return RANK_COLORS[r.toLowerCase().split(' ')[0]] || '#475569'; };
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+  const fmtDur  = s => s >= 60 ? `${Math.floor(s/60)}m${String(s%60).padStart(2,'0')}s` : `${s}s`;
 
   const blue = d.blue || {}, red = d.red || {};
-  const blueWon = blue.has_won, redWon = red.has_won;
-  const fmtDur = s => s ? `${Math.floor(s/60)}m ${s%60}s` : '';
-  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+  const blueWon = !!blue.has_won, redWon = !!red.has_won;
+  const rounds = d.round_summary || [];
 
-  const RANK_COLORS = {
-    iron:'#8B7355',bronze:'#CD7F32',silver:'#C0C0C0',gold:'#FFD700',
-    platinum:'#00B4D8',diamond:'#9B59B6',ascendant:'#2ecc71',immortal:'#E74C3C',radiant:'#FFE066',
-  };
-  const rankClr = r => {
-    if (!r) return '#64748b';
-    const k = r.toLowerCase().split(' ')[0];
-    return RANK_COLORS[k] || '#64748b';
-  };
-
-  // Build team tables
-  const mkBadges = mk => {
-    if (!mk) return '';
-    const b = [];
-    if(mk.aces>0)   b.push(`<span class="trk-mk-badge trk-mk-ace">${mk.aces}×ACE</span>`);
-    if(mk.fourK>0)  b.push(`<span class="trk-mk-badge trk-mk-4k">${mk.fourK}×4K</span>`);
-    if(mk.threeK>0) b.push(`<span class="trk-mk-badge trk-mk-3k">${mk.threeK}×3K</span>`);
-    if(mk.twoK>0)   b.push(`<span class="trk-mk-badge trk-mk-2k">${mk.twoK}×2K</span>`);
-    return b.join('');
-  };
-
-  const playerRow = (p, isHighlighted) => {
-    const agIcon = AGENT_ICONS[(p.agent||'').toLowerCase()];
-    const kdStr = typeof p.kd === 'number' ? p.kd.toFixed(2) : (p.kd ?? '—');
-    return `<tr class="${isHighlighted ? 'trk-sb-me' : ''}">
-      <td class="trk-sb-player">
-        <div class="trk-sb-agent">${agIcon ? `<img src="${agIcon}" alt="">` : ''}</div>
-        <div class="trk-sb-pinfo">
-          <div class="trk-sb-name">${san(p.name)}#${san(p.tag)}${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
-          <div class="trk-sb-rank" style="color:${rankClr(p.rank)}">${san(p.rank || 'Unranked')}</div>
-        </div>
-      </td>
-      <td><span style="color:${clrACS(p.acs)};font-weight:700">${p.acs}</span></td>
-      <td><span style="color:#f87171">${p.kills}</span>/<span style="color:#94a3b8">${p.deaths}</span>/<span style="color:#60a5fa">${p.assists}</span></td>
-      <td style="color:${clrKDA(p.kd)}">${kdStr}</td>
-      <td style="color:${clrHS(p.hs_pct)}">${p.hs_pct != null ? p.hs_pct+'%' : '—'}</td>
-      <td style="color:${clrDmg(p.damage)}">${p.damage ?? '—'}</td>
-      <td style="color:${clrKAST(p.kast)}">${p.kast != null ? p.kast+'%' : '—'}</td>
-      <td class="trk-sb-mk">${mkBadges(p.multikills)}</td>
-    </tr>`;
-  };
-
-  // Identify the tracked player (from _trackerSearch or linked account)
+  // ── Current player identifier ─────────────────────────────────────
   const myName = (_trackerCtx === 'search' && _trackerSearch)
     ? _trackerSearch.name?.toLowerCase()
     : (typeof coachingUser !== 'undefined' ? coachingUser?.riot_gamename?.toLowerCase() : null);
 
-  const blueTeam = (d.scoreboard || []).filter(p => p.team === 'blue');
-  const redTeam  = (d.scoreboard || []).filter(p => p.team === 'red');
-  const teamTable = (players, won, score) => `
-    <div class="trk-sb-team">
-      <div class="trk-sb-team-header ${won ? 'won' : 'lost'}">
-        <span class="trk-sb-team-badge">${won ? 'VICTOIRE' : 'DÉFAITE'}</span>
-        <span class="trk-sb-team-score">${score}</span>
+  // ── Max ACS in scoreboard (for performance bar) ───────────────────
+  const allPlayers = d.scoreboard || [];
+  const maxACS = Math.max(1, ...allPlayers.map(p => p.acs || 0));
+
+  // ── Multi-kill badges ─────────────────────────────────────────────
+  const mkBadges = mk => {
+    if (!mk) return '';
+    const b = [];
+    if (mk.aces  > 0) b.push(`<span class="trk-mk-badge trk-mk-ace">${mk.aces}×ACE</span>`);
+    if (mk.fourK > 0) b.push(`<span class="trk-mk-badge trk-mk-4k">${mk.fourK}×4K</span>`);
+    if (mk.threeK> 0) b.push(`<span class="trk-mk-badge trk-mk-3k">${mk.threeK}×3K</span>`);
+    if (mk.twoK  > 0) b.push(`<span class="trk-mk-badge trk-mk-2k">${mk.twoK}×2K</span>`);
+    return b.join('');
+  };
+
+  // ── Player row ────────────────────────────────────────────────────
+  const playerRow = (p, teamClr) => {
+    const isMe = p.name?.toLowerCase() === myName;
+    const agIcon = AGENT_ICONS[(p.agent||'').toLowerCase()];
+    const kd = typeof p.kd === 'number' ? p.kd.toFixed(2) : (p.kd ?? '—');
+    const acsBarW = Math.round((p.acs || 0) / maxACS * 100);
+    return `<tr class="trk-sb-row${isMe ? ' trk-sb-me' : ''}" style="${isMe ? `--team-clr:${teamClr}` : ''}">
+      <td class="trk-sb-player-cell">
+        <div class="trk-sb-agent-wrap">
+          ${agIcon ? `<img class="trk-sb-agent-img" src="${agIcon}" alt="">` : `<div class="trk-sb-agent-ph"></div>`}
+        </div>
+        <div class="trk-sb-pinfo">
+          <div class="trk-sb-name">${san(p.name)}<span class="trk-sb-tag">#${san(p.tag)}</span>${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
+          <div class="trk-sb-rank" style="color:${rankClr(p.rank)}">${san(p.rank||'Unranked')} · Niv.${p.level||'?'}</div>
+        </div>
+      </td>
+      <td class="trk-sb-acs-cell">
+        <div class="trk-sb-acs-val" style="color:${clrACS(p.acs)}">${p.acs}</div>
+        <div class="trk-sb-acs-bar"><div style="width:${acsBarW}%;background:${clrACS(p.acs)}"></div></div>
+      </td>
+      <td class="trk-sb-num trk-sb-k" style="color:#f87171;font-weight:700">${p.kills}</td>
+      <td class="trk-sb-num trk-sb-d" style="color:#94a3b8">${p.deaths}</td>
+      <td class="trk-sb-num trk-sb-a" style="color:#60a5fa">${p.assists}</td>
+      <td class="trk-sb-num" style="color:${clrKDA(p.kd)}">${kd}</td>
+      <td class="trk-sb-num" style="color:${clrHS(p.hs_pct)}">${p.hs_pct != null ? p.hs_pct+'%' : '—'}</td>
+      <td class="trk-sb-num" style="color:${clrDmg(p.damage)}">${p.damage ?? '—'}</td>
+      <td class="trk-sb-num" style="color:${clrKAST(p.kast)}">${p.kast != null ? p.kast+'%' : '—'}</td>
+      <td class="trk-sb-mk-cell">${mkBadges(p.multikills)}</td>
+    </tr>`;
+  };
+
+  // ── Team section ──────────────────────────────────────────────────
+  const teamSection = (players, won, roundsWon, teamClr, teamLabel) => `
+    <div class="trk-sb-section" style="--team-clr:${teamClr}">
+      <div class="trk-sb-section-hdr">
+        <div class="trk-sb-section-dot" style="background:${teamClr}"></div>
+        <span class="trk-sb-section-label">${teamLabel}</span>
+        <span class="trk-sb-section-score">${roundsWon}</span>
+        <span class="trk-sb-section-result ${won ? 'won' : 'lost'}">${won ? 'VICTOIRE' : 'DÉFAITE'}</span>
       </div>
       <table class="trk-sb-table">
         <thead><tr>
-          <th>Joueur</th><th>ACS</th><th>K/D/A</th><th>KD</th><th>HS%</th><th>D/R</th><th>KAST</th><th>Highlights</th>
+          <th class="trk-sb-th-player">Joueur</th>
+          <th class="trk-sb-th-acs">ACS</th>
+          <th class="trk-sb-th-num">K</th>
+          <th class="trk-sb-th-num">D</th>
+          <th class="trk-sb-th-num">A</th>
+          <th class="trk-sb-th-num">KD</th>
+          <th class="trk-sb-th-num">HS%</th>
+          <th class="trk-sb-th-num">D/R</th>
+          <th class="trk-sb-th-num">KAST</th>
+          <th class="trk-sb-th-mk"></th>
         </tr></thead>
-        <tbody>${players.map(p => playerRow(p, p.name?.toLowerCase() === myName)).join('')}</tbody>
+        <tbody>${players.map(p => playerRow(p, teamClr)).join('')}</tbody>
       </table>
     </div>`;
 
-  // Round summary — show economy + outcome
-  const roundRows = (d.round_summary || []).map(r => {
-    const site = r.plant?.site ? `<span class="trk-rnd-site">${san(r.plant.site)}</span>` : '';
-    const outcome = r.end_type === 'Eliminated' ? '💀' : r.end_type === 'Defused' ? '🔵' : r.end_type === 'Detonate' ? '💥' : r.plant ? '💣' : '⏱';
-    const wt = r.winning_team === 'blue' ? '<span style="color:#3b82f6">■</span>' : r.winning_team === 'red' ? '<span style="color:#ef4444">■</span>' : '';
-    return `<div class="trk-rnd-row">${wt} <span class="trk-rnd-num">R${(r.round??0)+1}</span> ${outcome} ${site}</div>`;
-  });
+  // ── Round timeline ────────────────────────────────────────────────
+  // Outcome icons (text, no emoji for cleaner look)
+  const outcomeIcon = r => {
+    if (r.end_type === 'Defused')   return '<span class="trk-rp-icon defuse">D</span>';
+    if (r.end_type === 'Detonate')  return '<span class="trk-rp-icon detonate">X</span>';
+    if (r.end_type === 'Eliminated') return '';
+    if (r.plant)                    return '<span class="trk-rp-icon bomb">B</span>';
+    return '<span class="trk-rp-icon time">T</span>';
+  };
+  const firstHalf  = rounds.filter(r => (r.round ?? 0) < 12);
+  const secondHalf = rounds.filter(r => (r.round ?? 0) >= 12 && (r.round ?? 0) < 24);
+  const overtime   = rounds.filter(r => (r.round ?? 0) >= 24);
+  const renderHalf = (rds, label) => rds.length === 0 ? '' : `
+    <div class="trk-rnd-half">
+      <span class="trk-rnd-half-lbl">${label}</span>
+      <div class="trk-rnd-pills">
+        ${rds.map(r => {
+          const wt = r.winning_team === 'blue' ? 'blue' : r.winning_team === 'red' ? 'red' : '';
+          const site = r.plant?.site ? r.plant.site : '';
+          return `<div class="trk-rp trk-rp-${wt}" title="R${(r.round??0)+1}${site?' · Site '+site:''} · ${r.end_type||''}">
+            <span class="trk-rp-num">${(r.round??0)+1}</span>
+            ${outcomeIcon(r)}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  const roundTimeline = rounds.length ? `
+    <div class="trk-rnd-timeline">
+      ${renderHalf(firstHalf, 'Première mi-temps')}
+      ${renderHalf(secondHalf, 'Deuxième mi-temps')}
+      ${renderHalf(overtime, 'Prolongation')}
+    </div>` : '';
+
+  const blueTeam = allPlayers.filter(p => p.team === 'blue');
+  const redTeam  = allPlayers.filter(p => p.team === 'red');
 
   modal.innerHTML = `
     <div class="trk-match-header">
-      <div class="trk-match-title">
-        <div class="trk-match-map">${san(d.map)}</div>
-        <div class="trk-match-sub">${san(d.mode)} · ${fmtDate(d.date)}${d.duration ? ' · '+fmtDur(d.duration) : ''}</div>
+      <div class="trk-match-header-info">
+        <div class="trk-match-map-name">${san(d.map)}</div>
+        <div class="trk-match-meta-row">
+          <span>${san(d.mode)}</span>
+          <span class="trk-meta-dot">·</span>
+          <span>${fmtDate(d.date)}</span>
+          ${d.duration ? `<span class="trk-meta-dot">·</span><span>${fmtDur(d.duration)}</span>` : ''}
+        </div>
+      </div>
+      <div class="trk-match-header-score">
+        <div class="trk-mhs-side ${blueWon ? 'won' : 'lost'}" style="--clr:#3b82f6">
+          <span class="trk-mhs-num">${blue.rounds_won ?? 0}</span>
+          <span class="trk-mhs-label">Bleu</span>
+        </div>
+        <div class="trk-mhs-divider">:</div>
+        <div class="trk-mhs-side ${redWon ? 'won' : 'lost'}" style="--clr:#ef4444">
+          <span class="trk-mhs-num">${red.rounds_won ?? 0}</span>
+          <span class="trk-mhs-label">Rouge</span>
+        </div>
       </div>
       <button class="trk-match-close" onclick="_trkCloseMatch()">✕</button>
     </div>
-    <div class="trk-match-score-banner">
-      <div class="trk-msb-team ${blueWon ? 'won' : ''}">Bleu · ${blue.rounds_won ?? 0}</div>
-      <div class="trk-msb-sep">—</div>
-      <div class="trk-msb-team ${redWon ? 'won' : ''}">Rouge · ${red.rounds_won ?? 0}</div>
-    </div>
+    ${roundTimeline}
     <div class="trk-match-body">
-      ${teamTable(blueTeam, blueWon, blue.rounds_won ?? 0)}
-      ${teamTable(redTeam, redWon, red.rounds_won ?? 0)}
-      ${roundRows.length ? `<div class="trk-match-rounds">
-        <div class="trk-section-title" style="margin-bottom:8px">${icon('trending',13)} Rounds (${roundRows.length})</div>
-        <div class="trk-rnd-grid">${roundRows.join('')}</div>
-      </div>` : ''}
+      ${teamSection(blueTeam, blueWon, blue.rounds_won ?? 0, '#3b82f6', 'Équipe Bleue')}
+      ${teamSection(redTeam,  redWon,  red.rounds_won  ?? 0, '#ef4444', 'Équipe Rouge')}
     </div>`;
 }
 
