@@ -4300,31 +4300,73 @@ function _rankEmblemUrl(rankStr) {
 }
 
 // ── Tracker state ─────────────────────────────────────────────────────
-let _trackerMode   = 'competitive'; // current queue filter
-let _trackerCtx    = 'self';        // 'self' | 'search'
-let _trackerSearch = null;          // { name, tag, region } for search context
+let _trackerMode      = 'competitive'; // current queue filter
+let _trackerCtx       = 'self';        // 'self' | 'search'
+let _trackerSearch    = null;          // { name, tag, region } for search context
+let _trackerRawData   = null;          // full unfiltered data (self)
+let _trackerSrchRaw   = null;          // full unfiltered data (search)
+
+// Normalise Henrik's mode string to our filter key
+function _normMode(str) {
+  return (str || '').toLowerCase().replace(/[\s_\-]/g, '');
+}
+
+// Re-render from cached raw data using current mode filter (no API call)
+function _trackerApplyFilter(rawData, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap || !rawData) return;
+  const all = rawData.recent_matches || [];
+  const filtered = _trackerMode
+    ? all.filter(m => _normMode(m.mode) === _trackerMode)
+    : all;
+  // Recompute stats from filtered matches
+  let wins=0,losses=0,tK=0,tD=0,tA=0,tHS=0,tSh=0,tSc=0,tRd=0,tDmg=0;
+  const agentMap={}, mapMap={};
+  for (const m of filtered) {
+    const isWin = m.result === 'WIN'; if(isWin) wins++; else losses++;
+    tK+=m.kills||0; tD+=m.deaths||0; tA+=m.assists||0;
+    const sh = m._shots||0; tHS+=m._hs||0; tSh+=sh;
+    tSc+=m._score||0; tRd+=m._rounds||0; tDmg+=m._dmg||0;
+    const ag=m.agent||'Unknown', mp=m.map||'Unknown';
+    if(!agentMap[ag]) agentMap[ag]={games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0};
+    agentMap[ag].games++; if(isWin) agentMap[ag].wins++;
+    agentMap[ag].kills+=m.kills||0; agentMap[ag].deaths+=m.deaths||0;
+    agentMap[ag].score+=m._score||0; agentMap[ag].rounds+=m._rounds||0;
+    agentMap[ag].hs+=m._hs||0; agentMap[ag].shots+=sh;
+    if(!mapMap[mp]) mapMap[mp]={games:0,wins:0};
+    mapMap[mp].games++; if(isWin) mapMap[mp].wins++;
+  }
+  const n=wins+losses;
+  const recomputed = {
+    account: rawData.account,
+    stats: {
+      matches_analyzed: n, wins, losses,
+      win_rate: n>0 ? Math.round(wins/n*100) : 0,
+      kda: tD>0 ? parseFloat(((tK+tA*0.5)/tD).toFixed(2)) : tK,
+      avg_acs: tRd>0 ? Math.round(tSc/tRd) : 0,
+      avg_hs_pct: tSh>0 ? Math.round(tHS/tSh*100) : 0,
+      avg_damage: tRd>0 ? Math.round(tDmg/tRd) : 0,
+    },
+    top_agents: Object.entries(agentMap).map(([agent,d])=>({
+      agent, games:d.games, wins:d.wins, kills:d.kills, deaths:d.deaths,
+      avg_acs: d.rounds>0 ? Math.round(d.score/d.rounds) : null,
+      avg_hs_pct: d.shots>0 ? Math.round(d.hs/d.shots*100) : null,
+    })).sort((a,b)=>b.games-a.games).slice(0,5),
+    top_maps: Object.entries(mapMap).map(([map,d])=>({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
+    recent_matches: filtered,
+  };
+  trackerRender(recomputed, wrap);
+}
+
 window._trackerSetMode = function(mode) {
   _trackerMode = mode;
   document.querySelectorAll('.trk-qtab').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  if (_trackerCtx === 'search' && _trackerSearch) {
-    _reloadSearchStats();
+  if (_trackerCtx === 'search') {
+    _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
   } else {
-    trackerLoadStats(null);
+    _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
   }
 };
-async function _reloadSearchStats() {
-  const wrap = document.getElementById('trk-search-stats-wrap');
-  if (!wrap || !_trackerSearch) return;
-  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement…</div>`;
-  try {
-    const { name, tag, region } = _trackerSearch;
-    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
-    const data = await res.json();
-    if (!res.ok) { wrap.innerHTML = `<p style="color:#ff4655;padding:16px">${san(data.error)}</p>`; return; }
-    trackerRender(data, wrap);
-  } catch { wrap.innerHTML = `<p style="color:#ff4655;padding:16px">Erreur réseau</p>`; }
-}
 
 function trackerTabLoad() {
   const main = document.getElementById('trk-main');
@@ -4447,13 +4489,11 @@ async function trackerUnlink() {
 
 async function trackerLoadStats(btn) {
   const wrap = document.getElementById('trk-stats-wrap');
-  const msg  = document.getElementById('trk-msg');
   if (!wrap) return;
   if (btn) btn.disabled = true;
-  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats ${_trackerMode || 'toutes queues'}…</div>`;
+  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats…</div>`;
   try {
-    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
-    const res  = await fetch(`${API_BASE}/profile?action=tracker${modeQ}`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
+    const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
       wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
@@ -4461,7 +4501,8 @@ async function trackerLoadStats(btn) {
         <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this)">Réessayer</button></div>`;
       return;
     }
-    trackerRender(data, wrap);
+    _trackerRawData = data;
+    _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
   } catch(e) {
     wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
       <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">Erreur réseau</p>
@@ -4497,8 +4538,7 @@ async function trackerSearchPlayer() {
   resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
 
   try {
-    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`);
     const data = await res.json();
     if (!res.ok) {
       resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
@@ -4506,6 +4546,7 @@ async function trackerSearchPlayer() {
         <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
       return;
     }
+    _trackerSrchRaw = data;
     // Build search hero
     const acct = data.account || {};
     const rankColor = _riotTierColor(acct.rank);
@@ -4531,9 +4572,8 @@ async function trackerSearchPlayer() {
       </div>
       ${_trkQueueTabs()}
       <div id="trk-search-stats-wrap"></div>`;
-    // Render stats into the wrap
-    const wrap = document.getElementById('trk-search-stats-wrap');
-    if (wrap) trackerRender(data, wrap);
+    // Apply current filter and render
+    _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
   } catch(e) {
     resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
       <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">Erreur réseau</p>
@@ -4550,6 +4590,9 @@ function trackerSearchBack() {
   if (input) input.value = '';
   _trackerCtx = 'self';
   _trackerSearch = null;
+  _trackerSrchRaw = null;
+  // Re-apply filter on self data (tabs active state stays)
+  _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
 }
 
 // Allow Enter key in search input

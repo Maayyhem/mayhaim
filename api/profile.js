@@ -190,8 +190,6 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker-search') {
       const { name, tag } = req.query || {};
       const region = (['eu','na','ap','br','latam','kr'].includes(req.query?.region)) ? req.query.region : 'eu';
-      const ALLOWED_MODES = ['competitive','unrated','spikerush','deathmatch','all'];
-      const mode = ALLOWED_MODES.includes(req.query?.mode) ? req.query.mode : 'competitive';
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
@@ -204,15 +202,14 @@ module.exports = async function handler(req, res) {
           lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
         }
 
-        // 2. Fetch matches (filtered by mode when specified, 'all' = no filter)
-        const filterQ = (mode && mode !== 'all') ? `?filter=${encodeURIComponent(mode)}&size=15` : '?size=20';
+        // 2. Fetch all recent matches (no mode filter — client filters locally)
         const result = await fetchHenrik(
-          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}${filterQ}`
+          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`
         );
         if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status})` });
 
-        // 3. Process matches
+        // 3. Process matches — include raw fields for client-side aggregation
         const matches = result.data.data || [];
         let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
         let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
@@ -234,7 +231,7 @@ module.exports = async function handler(req, res) {
           const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
           totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
           const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          const queueMode = m.metadata?.mode || mode || 'Competitive';
+          const queueMode = m.metadata?.mode || 'Competitive';
           if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
           agentMap[agent].games++; if (won) agentMap[agent].wins++;
           agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
@@ -246,7 +243,12 @@ module.exports = async function handler(req, res) {
           const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
           const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
           const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, damage: dpr, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
+          // Include _shots/_hs/_score/_rounds/_dmg for client-side re-aggregation per mode
+          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
+            kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0, acs, hs_pct: hsPct, damage: dpr,
+            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
+            _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal, _dmg: me.damage_made||0,
+          });
         }
 
         const n = wins + losses;
@@ -272,8 +274,7 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
-      const ALLOWED_MODES_T = ['competitive','unrated','spikerush','deathmatch','all'];
-      const trackerMode = ALLOWED_MODES_T.includes(req.query?.mode) ? req.query.mode : 'competitive';
+      // mode filtering is handled client-side
 
       const rows = await sql`
         SELECT riot_gamename, riot_tagline, riot_region, riot_rank, riot_lp, riot_puuid
@@ -360,13 +361,12 @@ module.exports = async function handler(req, res) {
 
       // ── Henrik API fallback ──────────────────────────────────────────
       try {
-        // Try stored region first; if missing/invalid, probe all regions
+        // Fetch all recent matches — client filters by mode locally
         const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
-        const filterQ = (trackerMode && trackerMode !== 'all') ? `?filter=${encodeURIComponent(trackerMode)}&size=15` : '?size=20';
         let result = null;
         for (const r of regionList) {
           const attempt = await fetchHenrik(
-            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}${filterQ}`
+            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`
           );
           if (attempt.status === 200) { result = attempt; break; }
           if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
@@ -394,7 +394,7 @@ module.exports = async function handler(req, res) {
           const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
           totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
           const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          const queueMode = m.metadata?.mode || trackerMode || 'Competitive';
+          const queueMode = m.metadata?.mode || 'Competitive';
           if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
           agentMap[agent].games++; if (won) agentMap[agent].wins++;
           agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
@@ -406,7 +406,11 @@ module.exports = async function handler(req, res) {
           const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
           const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
           const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, damage: dpr, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
+          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
+            kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0, acs, hs_pct: hsPct, damage: dpr,
+            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
+            _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal, _dmg: me.damage_made||0,
+          });
         }
 
         const n = wins + losses;
