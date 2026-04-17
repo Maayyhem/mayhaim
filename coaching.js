@@ -4625,8 +4625,9 @@ function trackerRender(data, el) {
   const agents  = data.top_agents || [];
   const maps    = data.top_maps   || [];
 
-  // Colour helpers — Win% et RR uniquement
+  // Colour helpers
   const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
+  const clrKD  = v => { const n = parseFloat(v); return n >= 1.5 ? '#4ade80' : n < 1.0 ? '#f87171' : 'var(--txt)'; };
   const clrRR  = v => v == null ? 'var(--dim)' : v > 0 ? '#4ade80' : '#f87171';
   const fmtKDA = (k, d, a) => `${k}/<span class="trk-d-dim">${d}</span>/${a}`;
   const fmtRR   = v => v == null ? null : `${v > 0 ? '+' : ''}${v} RR`;
@@ -4697,7 +4698,7 @@ function trackerRender(data, el) {
             </td>
             <td class="trk-td-dim">${a.games}</td>
             <td class="trk-td-wr" style="color:${clrWR(wr)}">${wr}%</td>
-            <td>${kd}</td>
+            <td style="color:${clrKD(kd)}">${kd}</td>
             <td>${a.avg_acs ?? '—'}</td>
             <td class="trk-td-sec">${a.avg_hs_pct != null ? a.avg_hs_pct+'%' : '—'}</td>
             <td class="trk-td-sec">${a.avg_kast != null ? a.avg_kast+'%' : '—'}</td>
@@ -4758,7 +4759,7 @@ function trackerRender(data, el) {
           <div class="trk-card-stat-lbl">K / D / A</div>
         </div>
         <div class="trk-card-stat trk-card-stat-sec">
-          <div class="trk-card-stat-val">${kd}</div>
+          <div class="trk-card-stat-val" style="color:${clrKD(kd)}">${kd}</div>
           <div class="trk-card-stat-lbl">K/D</div>
         </div>
         <div class="trk-card-stat">
