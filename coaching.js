@@ -4835,11 +4835,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') window._trkC
 
 function _trkRenderMatchModal(d, modal) {
   // ── Colour helpers ────────────────────────────────────────────────
-  const clrACS  = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : '#e2e8f0';
-  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
-  const clrHS   = v => v == null ? '#475569' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : '#475569';
-  const clrKAST = v => v == null ? '#475569' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
-  const clrDmg  = v => v == null ? '#475569' : v >= 150 ? '#4ade80' : '#fbbf24';
   const RANK_COLORS = {
     iron:'#a0836c', bronze:'#cd9a6a', silver:'#b0b8c1', gold:'#f5d269',
     platinum:'#4bc8d8', diamond:'#ae7fe8', ascendant:'#4ade80', immortal:'#f87171', radiant:'#ffe566',
@@ -4889,16 +4884,16 @@ function _trkRenderMatchModal(d, modal) {
         </div>
       </td>
       <td class="trk-sb-acs-cell">
-        <div class="trk-sb-acs-val" style="color:${clrACS(p.acs)}">${p.acs}</div>
-        <div class="trk-sb-acs-bar"><div style="width:${acsBarW}%;background:${clrACS(p.acs)}"></div></div>
+        <div class="trk-sb-acs-val">${p.acs ?? '—'}</div>
+        <div class="trk-sb-acs-bar"><div style="width:${acsBarW}%"></div></div>
       </td>
-      <td class="trk-sb-num trk-sb-k" style="color:#f87171;font-weight:700">${p.kills}</td>
-      <td class="trk-sb-num trk-sb-d" style="color:#94a3b8">${p.deaths}</td>
-      <td class="trk-sb-num trk-sb-a" style="color:#60a5fa">${p.assists}</td>
-      <td class="trk-sb-num" style="color:${clrKDA(p.kd)}">${kd}</td>
-      <td class="trk-sb-num" style="color:${clrHS(p.hs_pct)}">${p.hs_pct != null ? p.hs_pct+'%' : '—'}</td>
-      <td class="trk-sb-num" style="color:${clrDmg(p.damage)}">${p.damage ?? '—'}</td>
-      <td class="trk-sb-num" style="color:${clrKAST(p.kast)}">${p.kast != null ? p.kast+'%' : '—'}</td>
+      <td class="trk-sb-num trk-sb-k">${p.kills ?? '—'}</td>
+      <td class="trk-sb-num trk-sb-d">${p.deaths ?? '—'}</td>
+      <td class="trk-sb-num trk-sb-a">${p.assists ?? '—'}</td>
+      <td class="trk-sb-num trk-sb-sec">${kd}</td>
+      <td class="trk-sb-num trk-sb-sec">${p.hs_pct != null ? p.hs_pct+'%' : '—'}</td>
+      <td class="trk-sb-num trk-sb-sec">${p.damage ?? '—'}</td>
+      <td class="trk-sb-num trk-sb-sec">${p.kast != null ? p.kast+'%' : '—'}</td>
       <td class="trk-sb-mk-cell">${mkBadges(p.multikills)}</td>
     </tr>`;
   };
