@@ -4593,17 +4593,24 @@ function _trkQueueTabs() {
 function _trkActTabs(groups) {
   if (!groups || !groups.length) return '';
   const totalMatches = groups.reduce((n, g) => n + (g.count || 0), 0);
-  const all = `<button class="trk-atab${!_trackerAct?' active':''}" data-act="" onclick="_trackerSetAct('')" title="${totalMatches} parties toutes périodes">
-    <span class="trk-atab-lbl">Toutes</span>
-    <span class="trk-atab-range">${totalMatches} parties</span>
-  </button>`;
-  const tabs = groups.map(g =>
-    `<button class="trk-atab${_trackerAct===g.id?' active':''}" data-act="${san(g.id)}" onclick="_trackerSetAct('${san(g.id)}')" title="${san(g.range)} · ${g.count} parties">
-      <span class="trk-atab-lbl">${san(g.label)}</span>
-      <span class="trk-atab-range">${san(g.range)} · ${g.count}p</span>
-    </button>`
-  ).join('');
-  return `<div class="trk-act-tabs"><span class="trk-act-lbl">Période :</span>${all}${tabs}</div>`;
+  const allOpt = `<option value=""${!_trackerAct?' selected':''}>Toutes les périodes · ${totalMatches} parties</option>`;
+  const opts = groups.map(g => {
+    const txt = `${g.label}${g.range ? ' · ' + g.range : ''} · ${g.count}p`;
+    return `<option value="${san(g.id)}"${_trackerAct===g.id?' selected':''}>${san(txt)}</option>`;
+  }).join('');
+  const current = _trackerAct
+    ? (groups.find(g => g.id === _trackerAct)?.label || 'Période')
+    : 'Toutes les périodes';
+  return `<div class="trk-act-tabs">
+    <label class="trk-act-lbl" for="trk-act-select">Période</label>
+    <div class="trk-act-select-wrap">
+      <select id="trk-act-select" class="trk-act-select" onchange="_trackerSetAct(this.value)" aria-label="Filtrer par acte Valorant">
+        ${allOpt}${opts}
+      </select>
+      <span class="trk-act-chevron">▾</span>
+    </div>
+    <span class="trk-act-current" title="${san(current)}">${san(current)}</span>
+  </div>`;
 }
 
 async function trackerLinkRiot() {
