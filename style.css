@@ -3067,6 +3067,15 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 
 /* ── Match Cards ── */
 .trk-cards-list { display: flex; flex-direction: column; gap: 5px; }
+.trk-more-btn {
+  margin-top: 10px; width: 100%; padding: 10px 16px;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.4px;
+  border-radius: 6px; cursor: pointer;
+  border: 1px dashed var(--border); color: var(--dim);
+  background: rgba(255,255,255,0.02); transition: 0.15s;
+}
+.trk-more-btn:hover { border-style: solid; color: var(--txt); border-color: var(--accent); background: rgba(255,255,255,0.05); }
+.trk-section-sub { font-size: 0.68rem; color: var(--dim); font-weight: 500; margin-left: 4px; }
 .trk-card {
   display: grid; grid-template-columns: 230px 88px 1fr;
   background: var(--card); border: 1px solid var(--border);

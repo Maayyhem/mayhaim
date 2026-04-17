@@ -33,20 +33,37 @@ async function fetchHenrik(path, timeoutMs = 8000) {
   }
 }
 
-// Fetch multiple pages of stored-matches to build a full history (paginated).
-// Returns an array of normalized match objects (same shape as _processHenrikMatches.recent).
+// Fetch the full stored-matches history using batched parallel pagination.
+// Returns an array of raw stored-match rows (later fed through _normalizeStoredMatch).
+// Terminates early on: rate-limit (429), error, empty page, or short page (end of history).
 // NB: stored-matches has less detail (no round events) → plants/defuses/clutches/KAST are null.
-async function fetchStoredMatchesAll(region, name, tag, { maxPages = 5, pageSize = 25 } = {}) {
+async function fetchStoredMatchesAll(region, name, tag, {
+  maxPages  = 40,   // ~1000 matches absolute cap
+  pageSize  = 25,   // Henrik's per-page cap for this endpoint
+  batchSize = 4,    // concurrent requests per round
+  deadlineMs = 9000 // budget within the serverless invocation (Vercel hobby = 10s)
+} = {}) {
   const all = [];
-  for (let page = 1; page <= maxPages; page++) {
-    const url = `/valorant/v1/stored-matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=${pageSize}&page=${page}`;
-    const r = await fetchHenrik(url, 10000);
-    if (r.status === 429) break;                    // rate limited, stop politely
-    if (r.status !== 200) break;                    // no more data or error
-    const rows = Array.isArray(r.data?.data) ? r.data.data : [];
-    if (rows.length === 0) break;                   // empty page → end of history
-    all.push(...rows);
-    if (rows.length < pageSize) break;              // last page
+  const started = Date.now();
+  let stop = false;
+  const basePath = `/valorant/v1/stored-matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`;
+
+  for (let first = 1; first <= maxPages && !stop; first += batchSize) {
+    if (Date.now() - started > deadlineMs) break;   // hard stop before Vercel kills us
+    const pages = [];
+    for (let p = first; p < first + batchSize && p <= maxPages; p++) pages.push(p);
+    const results = await Promise.all(pages.map(p =>
+      fetchHenrik(`${basePath}?size=${pageSize}&page=${p}`, 8000).catch(() => ({ status: 0, data: null }))
+    ));
+    // Process in page order; stop as soon as one batch page is short/empty/errored
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === 429 || r.status !== 200) { stop = true; break; }
+      const rows = Array.isArray(r.data?.data) ? r.data.data : [];
+      if (rows.length === 0) { stop = true; break; }
+      all.push(...rows);
+      if (rows.length < pageSize) { stop = true; break; }
+    }
   }
   return all;
 }
@@ -529,7 +546,7 @@ module.exports = async function handler(req, res) {
         //        + MMR rank + MMR history (for RR per game)
         const [matchResult, storedRows, mmrResult, mmrHistResult] = await Promise.all([
           fetchHenrik(`/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`),
-          fetchStoredMatchesAll(region, name, tag, { maxPages: 5, pageSize: 25 }),
+          fetchStoredMatchesAll(region, name, tag),
           fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
           fetchHenrik(`/valorant/v3/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
         ]);
@@ -780,7 +797,7 @@ module.exports = async function handler(req, res) {
 
         // Fetch full history via paginated stored-matches, merge with v3 detailed
         let storedRows = [];
-        try { storedRows = await fetchStoredMatchesAll(foundRegion, name, tag, { maxPages: 5, pageSize: 25 }); } catch {}
+        try { storedRows = await fetchStoredMatchesAll(foundRegion, name, tag); } catch {}
 
         const v3Processed = _processHenrikMatches(matchResult.data?.data || [], name, tag, rrMap);
         const storedNorm  = (storedRows || []).map(_normalizeStoredMatch).filter(x => x.match_id);

@@ -4309,6 +4309,14 @@ let _trackerSrchRaw   = null;          // full unfiltered data (search)
 let _valActsCache     = null;          // sorted array of { uuid, epNum, actNum, label, start, end }
 let _valActsPromise   = null;          // in-flight promise (dedupe concurrent loads)
 let _valActsByUuid    = null;          // map uuid → act entry
+let _trkMatchLimit    = 50;            // how many match cards are currently rendered
+const _TRK_PAGE_SIZE  = 50;            // cards added per "Voir plus"
+
+window._trkShowMoreMatches = function() {
+  _trkMatchLimit += _TRK_PAGE_SIZE;
+  if (_trackerCtx === 'search') _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
+  else                          _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
+};
 
 // Lazy-load the Valorant episode/act calendar from valorant-api.com (public, cached).
 // Returns an array sorted chronologically descending (most recent first).
@@ -4492,6 +4500,7 @@ function _trackerApplyFilter(rawData, wrapId) {
 
 window._trackerSetMode = function(mode) {
   _trackerMode = mode;
+  _trkMatchLimit = _TRK_PAGE_SIZE;   // reset pagination on filter change
   document.querySelectorAll('.trk-qtab').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   if (_trackerCtx === 'search') {
     _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
@@ -4502,6 +4511,7 @@ window._trackerSetMode = function(mode) {
 
 window._trackerSetAct = function(actId) {
   _trackerAct = actId || '';
+  _trkMatchLimit = _TRK_PAGE_SIZE;   // reset pagination on filter change
   if (_trackerCtx === 'search') {
     _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
   } else {
@@ -4914,8 +4924,10 @@ function trackerRender(data, el) {
       </table>
     </div>` : '';
 
-  // ── Match history cards ───────────────────────────────────────────
-  const matchCardsHtml = matches.length ? matches.map(m => {
+  // ── Match history cards (paginated for perf: render up to _trkMatchLimit)
+  const visibleMatches = matches.slice(0, _trkMatchLimit);
+  const remainingCount = Math.max(0, matches.length - visibleMatches.length);
+  const matchCardsHtml = visibleMatches.length ? visibleMatches.map(m => {
     const isWin   = m.result === 'WIN';
     const agIcon  = AGENT_ICONS[(m.agent||'').toLowerCase()];
     const kd      = m.deaths > 0 ? (m.kills / m.deaths).toFixed(2) : m.kills;
@@ -4976,8 +4988,9 @@ function trackerRender(data, el) {
       ${mapTableHtml}
     </div>
     <div class="trk-section">
-      <div class="trk-section-title">${icon('trending',14)} Historique · ${s.matches_analyzed ?? matches.length} parties</div>
+      <div class="trk-section-title">${icon('trending',14)} Historique · ${s.matches_analyzed ?? matches.length} parties${remainingCount > 0 ? ` <span class="trk-section-sub">(${visibleMatches.length} affichées)</span>` : ''}</div>
       <div class="trk-cards-list">${matchCardsHtml}</div>
+      ${remainingCount > 0 ? `<button class="trk-btn trk-btn-ghost trk-more-btn" onclick="_trkShowMoreMatches()">Voir ${Math.min(remainingCount, _TRK_PAGE_SIZE)} parties de plus · ${remainingCount} restantes</button>` : ''}
     </div>
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
   `;
