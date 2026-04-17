@@ -189,11 +189,12 @@ module.exports = async function handler(req, res) {
     // ── Tracker Search (public, no auth) ────────────────────────────
     if (action === 'tracker-search') {
       const { name, tag } = req.query || {};
+      const region = (['eu','na','ap','br','latam','kr'].includes(req.query?.region)) ? req.query.region : 'eu';
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
         // 1. Fetch rank
-        const mmr = await fetchHenrik(`/valorant/v2/mmr/eu/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+        const mmr = await fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
         if (mmr.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         let rank = null, lp = null;
         if (mmr.status === 200 && mmr.data?.data?.current_data) {
@@ -203,7 +204,7 @@ module.exports = async function handler(req, res) {
 
         // 2. Fetch matches
         const result = await fetchHenrik(
-          `/valorant/v3/matches/eu/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
         );
         if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status})` });
@@ -343,11 +344,18 @@ module.exports = async function handler(req, res) {
 
       // ── Henrik API fallback ──────────────────────────────────────────
       try {
-        const result = await fetchHenrik(
-          `/valorant/v3/matches/${shard}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
-        );
-        if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
-        if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status}) — configure RIOT_API_KEY` });
+        // Try stored region first; if missing/invalid, probe all regions
+        const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
+        let result = null;
+        let foundRegion = shard || 'eu';
+        for (const r of regionList) {
+          const attempt = await fetchHenrik(
+            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+          );
+          if (attempt.status === 200) { result = attempt; foundRegion = r; break; }
+          if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        }
+        if (!result || result.status !== 200) return res.status(502).json({ error: `Joueur introuvable sur toutes les régions. Relie ton compte à nouveau.` });
 
         const matches = result.data.data || [];
         let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;

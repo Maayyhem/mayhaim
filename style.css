@@ -2702,6 +2702,12 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   transition: filter 0.15s;
 }
 .trk-search-btn:hover { filter: brightness(1.15); }
+.trk-region-select {
+  background: var(--card); color: var(--txt); border: none; border-left: 1px solid var(--border);
+  padding: 0 10px; font-size: 0.8rem; font-family: var(--font); cursor: pointer;
+  outline: none; height: 100%; min-width: 62px;
+}
+.trk-region-select:focus { border-color: var(--accent); }
 
 .trk-hero--search { border-left: 3px solid var(--accent); }
 

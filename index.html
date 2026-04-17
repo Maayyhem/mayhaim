@@ -1675,8 +1675,16 @@
           <h2 class="ch-section-title"><span data-icon="gamepad"></span> Tracker Valorant</h2>
           <div class="trk-search-bar">
             <div class="trk-search-inner">
-              <span class="trk-search-icon">🔍</span>
-              <input id="trk-search-input" type="text" class="trk-search-input" placeholder="Rechercher un joueur…  (ex: TenZ#0505)" autocomplete="off">
+              <span class="trk-search-icon" data-icon="search"></span>
+              <input id="trk-search-input" type="text" class="trk-search-input" placeholder="Pseudo#TAG  (ex: TenZ#0505)" autocomplete="off">
+              <select id="trk-region-select" class="trk-region-select">
+                <option value="eu">EU</option>
+                <option value="na">NA</option>
+                <option value="ap">AP</option>
+                <option value="br">BR</option>
+                <option value="latam">LATAM</option>
+                <option value="kr">KR</option>
+              </select>
               <button class="trk-search-btn" onclick="trackerSearchPlayer()">Rechercher</button>
             </div>
           </div>

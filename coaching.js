@@ -4441,6 +4441,7 @@ async function trackerSearchPlayer() {
   const parts = raw.split('#');
   if (parts.length < 2 || !parts[1]) { showToast.warn('Format : Pseudo#TAG'); return; }
   const name = parts[0].trim(), tag = parts.slice(1).join('#').trim();
+  const region = (document.getElementById('trk-region-select')?.value) || 'eu';
 
   const mainEl = document.getElementById('trk-main');
   const resultsEl = document.getElementById('trk-search-results');
@@ -4450,10 +4451,10 @@ async function trackerSearchPlayer() {
   if (mainEl) mainEl.style.display = 'none';
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:0.85rem">
-    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('search',24)}</div>Recherche de <strong>${san(name)}#${san(tag)}</strong>…</div>`;
+    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('search',24)}</div>Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
 
   try {
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`);
     const data = await res.json();
     if (!res.ok) {
       resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
