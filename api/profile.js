@@ -129,6 +129,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     const rrChange = (rrMap && matchId) ? (rrMap[matchId] ?? null) : null;
 
     recent.push({
+      match_id: matchId,
       map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
       kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0,
       acs, hs_pct: hsPct, damage: dpr, damage_received: dprRcv,
@@ -353,6 +354,101 @@ module.exports = async function handler(req, res) {
 
         const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
         return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, ...processed });
+      } catch(err) {
+        return res.status(502).json({ error: `Service indisponible: ${err.message}` });
+      }
+    }
+
+    // ── Match detail (public, no auth) ───────────────────────────────
+    if (action === 'tracker-match') {
+      const { matchId } = req.query || {};
+      if (!matchId) return res.status(400).json({ error: 'matchId requis' });
+      try {
+        const r = await fetchHenrik(`/valorant/v2/match/${encodeURIComponent(matchId)}`);
+        if (r.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (r.status !== 200) return res.status(502).json({ error: `Match introuvable (${r.status})` });
+        const d = r.data?.data || r.data || {};
+        const meta = d.metadata || {};
+        const allPlayers = d.players?.all_players || [];
+        const teams = d.teams || {};
+        const kills = d.kills || [];
+        const rounds = d.rounds || [];
+
+        // Build scoreboard: all 10 players with full stats
+        const scoreboard = allPlayers.map(p => {
+          const st = p.stats || {};
+          const shots = (st.headshots||0) + (st.bodyshots||0) + (st.legshots||0);
+          const rTotal = (teams?.blue?.rounds_won||0) + (teams?.red?.rounds_won||0);
+          const acs = rTotal > 0 ? Math.round((st.score||0) / rTotal) : 0;
+          const hsPct = shots > 0 ? Math.round(((st.headshots||0) / shots) * 100) : 0;
+          const dpr = rTotal > 0 ? Math.round((p.damage_made||0) / rTotal) : null;
+          const dprRcv = rTotal > 0 ? Math.round((p.damage_received||0) / rTotal) : null;
+          const kd = (st.deaths||0) > 0 ? parseFloat(((st.kills||0)/(st.deaths||0)).toFixed(2)) : (st.kills||0);
+          // Multi-kills
+          const mkByRound = {};
+          for (const k of kills) {
+            if (k.killer_puuid === p.puuid) mkByRound[k.round] = (mkByRound[k.round]||0) + 1;
+          }
+          const mkVals = Object.values(mkByRound);
+          const multikills = { twoK: mkVals.filter(v=>v===2).length, threeK: mkVals.filter(v=>v===3).length, fourK: mkVals.filter(v=>v===4).length, aces: mkVals.filter(v=>v>=5).length };
+          // KAST per player
+          let kastRounds = 0;
+          for (const rd of rounds) {
+            const rn = rd.id ?? rd.round_num ?? null;
+            const K = kills.some(k => k.round===rn && k.killer_puuid===p.puuid);
+            const A = kills.some(k => k.round===rn && (k.assistants||[]).some(a=>a.assistant_puuid===p.puuid));
+            const died = kills.some(k => k.round===rn && k.victim_puuid===p.puuid);
+            let T = false;
+            if (died) {
+              const myDeath = kills.find(k => k.round===rn && k.victim_puuid===p.puuid);
+              if (myDeath) {
+                T = kills.some(k => k.round===rn && k.victim_puuid===myDeath.killer_puuid && (k.kill_time_in_round||0)<=(myDeath.kill_time_in_round||0)+3000);
+              }
+            }
+            if (K||A||!died||T) kastRounds++;
+          }
+          const kast = rounds.length > 0 ? Math.round(kastRounds/rounds.length*100) : null;
+          // First blood
+          const sortedKills = [...kills].sort((a,b)=>(a.kill_time_in_match||0)-(b.kill_time_in_match||0));
+          const firstBlood = sortedKills.length > 0 && sortedKills[0].killer_puuid === p.puuid;
+          const ab = p.ability_casts || {};
+          return {
+            puuid: p.puuid, name: p.name, tag: p.tag, agent: p.character,
+            team: (p.team||'').toLowerCase(),
+            rank: p.currenttier_patched || null, rank_tier: p.currenttier || 0,
+            level: p.level || 0,
+            kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0,
+            acs, kd, hs_pct: hsPct, damage: dpr, damage_received: dprRcv,
+            score: st.score||0, kast, first_blood: firstBlood, multikills,
+            ability_casts: { c: ab.c_cast||0, q: ab.q_cast||0, e: ab.e_cast||0, x: ab.x_cast||0 },
+            headshots: st.headshots||0, bodyshots: st.bodyshots||0, legshots: st.legshots||0,
+          };
+        }).sort((a,b) => b.acs - a.acs);
+
+        // Round summary
+        const roundSummary = rounds.map(rd => ({
+          round: rd.id ?? rd.round_num,
+          winning_team: (rd.winning_team||'').toLowerCase(),
+          end_type: rd.end_type || null,
+          plant: rd.plant ? { site: rd.plant.site, time: rd.plant.plant_time_in_round } : null,
+          defuse: rd.defuse ? { time: rd.defuse.defuse_time_in_round } : null,
+          player_economies: (rd.player_economies || []).map(e => ({
+            puuid: e.puuid, loadout_value: e.loadout_value||0, spent: e.spent||0,
+            remaining: e.remaining||0, weapon: e.weapon?.name || null, armor: e.armor?.name || null,
+          })),
+        }));
+
+        return res.status(200).json({
+          match_id: matchId,
+          map: meta.map || 'Unknown',
+          mode: meta.mode || 'Competitive',
+          date: meta.game_start ? new Date(meta.game_start * 1000).toISOString() : null,
+          duration: meta.game_length || null,
+          blue: { rounds_won: teams?.blue?.rounds_won||0, has_won: teams?.blue?.has_won||false },
+          red:  { rounds_won: teams?.red?.rounds_won ||0, has_won: teams?.red?.has_won ||false },
+          scoreboard,
+          round_summary: roundSummary,
+        });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }

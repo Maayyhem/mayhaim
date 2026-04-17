@@ -4740,7 +4740,8 @@ function trackerRender(data, el) {
     const rrStr   = fmtRR(m.rr_change);
     const mkHtml  = fmtMultikills(m.multikills);
     const modeLabel = m.mode || 'Competitive';
-    return `<div class="trk-card ${isWin ? 'trk-card-win' : 'trk-card-loss'}">
+    const clickable = m.match_id ? `onclick="_trkOpenMatch('${san(m.match_id)}')" style="cursor:pointer"` : '';
+    return `<div class="trk-card ${isWin ? 'trk-card-win' : 'trk-card-loss'}" ${clickable}>
       <div class="trk-card-left">
         <div class="trk-card-agent">
           ${agIcon ? `<img src="${agIcon}" alt="${san(m.agent)}">` : `<div class="trk-card-agent-ph">${window.icon('user',18)}</div>`}
@@ -4797,6 +4798,146 @@ function trackerRender(data, el) {
     </div>
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
   `;
+}
+
+// ── Match detail modal ────────────────────────────────────────────────
+window._trkOpenMatch = async function(matchId) {
+  // Create/reuse modal overlay
+  let overlay = document.getElementById('trk-match-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'trk-match-overlay';
+    overlay.className = 'trk-match-overlay';
+    overlay.innerHTML = '<div class="trk-match-modal" id="trk-match-modal"></div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) _trkCloseMatch(); });
+    document.body.appendChild(overlay);
+  }
+  const modal = document.getElementById('trk-match-modal');
+  overlay.style.display = 'flex';
+  modal.innerHTML = `<div class="trk-match-loading">${icon('chart',22)} Chargement du match…</div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/profile?action=tracker-match&matchId=${encodeURIComponent(matchId)}`);
+    const data = await res.json();
+    if (!res.ok) { modal.innerHTML = `<div class="trk-match-err">${san(data.error)}<br><button class="trk-btn trk-btn-ghost" style="margin-top:12px" onclick="_trkCloseMatch()">Fermer</button></div>`; return; }
+    _trkRenderMatchModal(data, modal);
+  } catch(e) {
+    modal.innerHTML = `<div class="trk-match-err">Erreur réseau<br><button class="trk-btn trk-btn-ghost" style="margin-top:12px" onclick="_trkCloseMatch()">Fermer</button></div>`;
+  }
+};
+
+window._trkCloseMatch = function() {
+  const o = document.getElementById('trk-match-overlay');
+  if (o) o.style.display = 'none';
+};
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window._trkCloseMatch?.(); });
+
+function _trkRenderMatchModal(d, modal) {
+  const clrWR   = v => v >= 50 ? '#4ade80' : '#f87171';
+  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
+  const clrACS  = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : '#e2e8f0';
+  const clrHS   = v => v == null ? '#64748b' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : '#64748b';
+  const clrKAST = v => v == null ? '#64748b' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
+  const clrDmg  = v => v == null ? '#64748b' : v >= 150 ? '#4ade80' : '#fbbf24';
+
+  const blue = d.blue || {}, red = d.red || {};
+  const blueWon = blue.has_won, redWon = red.has_won;
+  const fmtDur = s => s ? `${Math.floor(s/60)}m ${s%60}s` : '';
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+
+  const RANK_COLORS = {
+    iron:'#8B7355',bronze:'#CD7F32',silver:'#C0C0C0',gold:'#FFD700',
+    platinum:'#00B4D8',diamond:'#9B59B6',ascendant:'#2ecc71',immortal:'#E74C3C',radiant:'#FFE066',
+  };
+  const rankClr = r => {
+    if (!r) return '#64748b';
+    const k = r.toLowerCase().split(' ')[0];
+    return RANK_COLORS[k] || '#64748b';
+  };
+
+  // Build team tables
+  const mkBadges = mk => {
+    if (!mk) return '';
+    const b = [];
+    if(mk.aces>0)   b.push(`<span class="trk-mk-badge trk-mk-ace">${mk.aces}×ACE</span>`);
+    if(mk.fourK>0)  b.push(`<span class="trk-mk-badge trk-mk-4k">${mk.fourK}×4K</span>`);
+    if(mk.threeK>0) b.push(`<span class="trk-mk-badge trk-mk-3k">${mk.threeK}×3K</span>`);
+    if(mk.twoK>0)   b.push(`<span class="trk-mk-badge trk-mk-2k">${mk.twoK}×2K</span>`);
+    return b.join('');
+  };
+
+  const playerRow = (p, isHighlighted) => {
+    const agIcon = AGENT_ICONS[(p.agent||'').toLowerCase()];
+    const kdStr = typeof p.kd === 'number' ? p.kd.toFixed(2) : (p.kd ?? '—');
+    return `<tr class="${isHighlighted ? 'trk-sb-me' : ''}">
+      <td class="trk-sb-player">
+        <div class="trk-sb-agent">${agIcon ? `<img src="${agIcon}" alt="">` : ''}</div>
+        <div class="trk-sb-pinfo">
+          <div class="trk-sb-name">${san(p.name)}#${san(p.tag)}${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
+          <div class="trk-sb-rank" style="color:${rankClr(p.rank)}">${san(p.rank || 'Unranked')}</div>
+        </div>
+      </td>
+      <td><span style="color:${clrACS(p.acs)};font-weight:700">${p.acs}</span></td>
+      <td><span style="color:#f87171">${p.kills}</span>/<span style="color:#94a3b8">${p.deaths}</span>/<span style="color:#60a5fa">${p.assists}</span></td>
+      <td style="color:${clrKDA(p.kd)}">${kdStr}</td>
+      <td style="color:${clrHS(p.hs_pct)}">${p.hs_pct != null ? p.hs_pct+'%' : '—'}</td>
+      <td style="color:${clrDmg(p.damage)}">${p.damage ?? '—'}</td>
+      <td style="color:${clrKAST(p.kast)}">${p.kast != null ? p.kast+'%' : '—'}</td>
+      <td class="trk-sb-mk">${mkBadges(p.multikills)}</td>
+    </tr>`;
+  };
+
+  // Identify the tracked player (from _trackerSearch or linked account)
+  const myName = (_trackerCtx === 'search' && _trackerSearch)
+    ? _trackerSearch.name?.toLowerCase()
+    : (typeof coachingUser !== 'undefined' ? coachingUser?.riot_gamename?.toLowerCase() : null);
+
+  const blueTeam = (d.scoreboard || []).filter(p => p.team === 'blue');
+  const redTeam  = (d.scoreboard || []).filter(p => p.team === 'red');
+  const teamTable = (players, won, score) => `
+    <div class="trk-sb-team">
+      <div class="trk-sb-team-header ${won ? 'won' : 'lost'}">
+        <span class="trk-sb-team-badge">${won ? 'VICTOIRE' : 'DÉFAITE'}</span>
+        <span class="trk-sb-team-score">${score}</span>
+      </div>
+      <table class="trk-sb-table">
+        <thead><tr>
+          <th>Joueur</th><th>ACS</th><th>K/D/A</th><th>KD</th><th>HS%</th><th>D/R</th><th>KAST</th><th>Highlights</th>
+        </tr></thead>
+        <tbody>${players.map(p => playerRow(p, p.name?.toLowerCase() === myName)).join('')}</tbody>
+      </table>
+    </div>`;
+
+  // Round summary — show economy + outcome
+  const roundRows = (d.round_summary || []).map(r => {
+    const site = r.plant?.site ? `<span class="trk-rnd-site">${san(r.plant.site)}</span>` : '';
+    const outcome = r.end_type === 'Eliminated' ? '💀' : r.end_type === 'Defused' ? '🔵' : r.end_type === 'Detonate' ? '💥' : r.plant ? '💣' : '⏱';
+    const wt = r.winning_team === 'blue' ? '<span style="color:#3b82f6">■</span>' : r.winning_team === 'red' ? '<span style="color:#ef4444">■</span>' : '';
+    return `<div class="trk-rnd-row">${wt} <span class="trk-rnd-num">R${(r.round??0)+1}</span> ${outcome} ${site}</div>`;
+  });
+
+  modal.innerHTML = `
+    <div class="trk-match-header">
+      <div class="trk-match-title">
+        <div class="trk-match-map">${san(d.map)}</div>
+        <div class="trk-match-sub">${san(d.mode)} · ${fmtDate(d.date)}${d.duration ? ' · '+fmtDur(d.duration) : ''}</div>
+      </div>
+      <button class="trk-match-close" onclick="_trkCloseMatch()">✕</button>
+    </div>
+    <div class="trk-match-score-banner">
+      <div class="trk-msb-team ${blueWon ? 'won' : ''}">Bleu · ${blue.rounds_won ?? 0}</div>
+      <div class="trk-msb-sep">—</div>
+      <div class="trk-msb-team ${redWon ? 'won' : ''}">Rouge · ${red.rounds_won ?? 0}</div>
+    </div>
+    <div class="trk-match-body">
+      ${teamTable(blueTeam, blueWon, blue.rounds_won ?? 0)}
+      ${teamTable(redTeam, redWon, red.rounds_won ?? 0)}
+      ${roundRows.length ? `<div class="trk-match-rounds">
+        <div class="trk-section-title" style="margin-bottom:8px">${icon('trending',13)} Rounds (${roundRows.length})</div>
+        <div class="trk-rnd-grid">${roundRows.join('')}</div>
+      </div>` : ''}
+    </div>`;
 }
 
 async function renderProfile() {
