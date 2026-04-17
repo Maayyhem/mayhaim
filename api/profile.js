@@ -37,6 +37,7 @@ async function fetchHenrik(path) {
 // rrMap: { matchId -> rr_change } — optional, from MMR history
 function _processHenrikMatches(matches, name, tag, rrMap) {
   let wins=0, losses=0, tK=0, tD=0, tA=0, tHS=0, tSh=0, tSc=0, tRd=0, tDmg=0;
+  let tPlants=0, tDefuses=0, tClutches=0, tFirstDeaths=0, tFirstBloods=0, tKastSum=0, tKastGames=0;
   const agentMap={}, mapMap={}, recent=[];
 
   for (const m of matches) {
@@ -58,7 +59,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     const matchId = m.metadata?.matchid || null;
 
     // Per-agent aggregation
-    if (!agentMap[agent]) agentMap[agent] = {games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0};
+    if (!agentMap[agent]) agentMap[agent] = {games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0,kast_sum:0,kast_games:0};
     agentMap[agent].games++; if(won) agentMap[agent].wins++;
     agentMap[agent].kills += st.kills||0; agentMap[agent].deaths += st.deaths||0;
     agentMap[agent].score += st.score||0; agentMap[agent].rounds += rTotal;
@@ -122,6 +123,50 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     }
     const kastPct = (m.rounds && m.rounds.length > 0) ? Math.round(kastRounds / m.rounds.length * 100) : null;
 
+    // Update per-agent KAST
+    if (kastPct != null) { agentMap[agent].kast_sum += kastPct; agentMap[agent].kast_games++; }
+
+    // Round-level stats: plants, defuses, clutches, first deaths
+    let matchPlants = 0, matchDefuses = 0, matchClutches = 0, matchFirstDeaths = 0;
+    if (m.rounds && m.rounds.length > 0) {
+      const myPuuid = me.puuid;
+      const allPlayers = m.players?.all_players || [];
+      const teammates = allPlayers
+        .filter(p => (p.team||'').toLowerCase() === myTeam && p.puuid !== myPuuid)
+        .map(p => p.puuid);
+
+      for (const rd of m.rounds) {
+        const roundNum = rd.round_num ?? rd.id ?? null;
+        const rdKills = (m.kills || []).filter(k => k.round === roundNum);
+        const sortedRdKills = [...rdKills].sort((a,b) => (a.kill_time_in_round||0) - (b.kill_time_in_round||0));
+
+        // Plant (try both v3 and v2 property paths)
+        const plantPuuid = rd.plant?.planted_by?.puuid ?? rd.plant_events?.planted_by?.puuid;
+        if (plantPuuid && plantPuuid === myPuuid) matchPlants++;
+
+        // Defuse (try both v3 and v2 property paths)
+        const defusePuuid = rd.defuse?.defused_by?.puuid ?? rd.defuse_events?.defused_by?.puuid;
+        if (defusePuuid && defusePuuid === myPuuid) matchDefuses++;
+
+        // First death in this round
+        if (sortedRdKills.length > 0 && sortedRdKills[0].victim_puuid === myPuuid) matchFirstDeaths++;
+
+        // Clutch: my team won, I survived, ALL teammates died
+        const winningTeam = (rd.winning_team || '').toLowerCase();
+        if (winningTeam === myTeam && teammates.length > 0) {
+          const iSurvived = !rdKills.some(k => k.victim_puuid === myPuuid);
+          if (iSurvived) {
+            const deadTm = rdKills.filter(k => teammates.includes(k.victim_puuid)).length;
+            if (deadTm >= teammates.length) matchClutches++;
+          }
+        }
+      }
+    }
+    tPlants += matchPlants; tDefuses += matchDefuses;
+    tClutches += matchClutches; tFirstDeaths += matchFirstDeaths;
+    if (firstBlood) tFirstBloods++;
+    if (kastPct != null) { tKastSum += kastPct; tKastGames++; }
+
     // Ability casts
     const ab = me.ability_casts || {};
 
@@ -138,6 +183,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
       kast: kastPct,
       rr_change: rrChange,
       ability_casts: { c: ab.c_cast||0, q: ab.q_cast||0, e: ab.e_cast||0, x: ab.x_cast||0 },
+      plants: matchPlants, defuses: matchDefuses, clutches: matchClutches, first_death: matchFirstDeaths > 0,
       date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
       // raw fields for client-side re-aggregation
       _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal,
@@ -150,6 +196,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     agent, games: d.games, wins: d.wins, kills: d.kills, deaths: d.deaths,
     avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
     avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
+    avg_kast: d.kast_games > 0 ? Math.round(d.kast_sum / d.kast_games) : null,
   })).sort((a,b) => b.games - a.games).slice(0, 5);
 
   return {
@@ -160,6 +207,9 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
       avg_acs: tRd > 0 ? Math.round(tSc/tRd) : 0,
       avg_hs_pct: tSh > 0 ? Math.round(tHS/tSh*100) : 0,
       avg_damage: tRd > 0 ? Math.round(tDmg/tRd) : 0,
+      avg_kast: tKastGames > 0 ? Math.round(tKastSum / tKastGames) : null,
+      total_plants: tPlants, total_defuses: tDefuses,
+      total_clutches: tClutches, total_first_bloods: tFirstBloods, total_first_deaths: tFirstDeaths,
     },
     top_agents: topAgents,
     top_maps: Object.entries(mapMap).map(([map,d]) => ({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
@@ -339,11 +389,12 @@ module.exports = async function handler(req, res) {
         }
         if (matchResult.status !== 200) return res.status(502).json({ error: `API indisponible (${matchResult.status})` });
 
-        // Rank
-        let rank = null, lp = null;
+        // Rank + peak rank
+        let rank = null, lp = null, peakRank = null;
         if (mmrResult.status === 200 && mmrResult.data?.data?.current_data) {
-          rank = mmrResult.data.data.current_data.currenttierpatched || null;
-          lp   = mmrResult.data.data.current_data.ranking_in_tier   ?? null;
+          rank     = mmrResult.data.data.current_data.currenttierpatched || null;
+          lp       = mmrResult.data.data.current_data.ranking_in_tier   ?? null;
+          peakRank = mmrResult.data.data.highest_rank?.patched_tier     ?? null;
         }
 
         // RR history map: matchId → rr_change
@@ -353,7 +404,7 @@ module.exports = async function handler(req, res) {
         }
 
         const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
-        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, ...processed });
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...processed });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
@@ -554,17 +605,24 @@ module.exports = async function handler(req, res) {
         }
         if (!matchResult || matchResult.status !== 200) return res.status(502).json({ error: 'Joueur introuvable. Relie ton compte à nouveau.' });
 
-        // Fetch MMR history for RR per game (best effort, don't block on failure)
+        // Fetch MMR history + v2 peak rank in parallel (best effort)
         const rrMap = {};
+        let peakRank = null;
         try {
-          const mmrH = await fetchHenrik(`/valorant/v3/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+          const [mmrH, mmrV2] = await Promise.all([
+            fetchHenrik(`/valorant/v3/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+            fetchHenrik(`/valorant/v2/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+          ]);
           for (const h of (mmrH.data?.data?.history || [])) {
             if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
+          }
+          if (mmrV2.status === 200) {
+            peakRank = mmrV2.data?.data?.highest_rank?.patched_tier ?? null;
           }
         } catch {}
 
         const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
-        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, ...processed });
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...processed });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }

@@ -4413,6 +4413,7 @@ function _trackerShowAccount() {
             ${u.riot_rank
               ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(u.riot_rank)}<span class="trk-hero-lp">${u.riot_lp != null ? u.riot_lp + ' RR' : ''}</span></div>`
               : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non synchronisé</div>'}
+            <div id="trk-self-peak"></div>
             ${syncDate ? `<div class="trk-hero-sync">Sync ${syncDate}</div>` : ''}
           </div>
         </div>
@@ -4505,6 +4506,11 @@ async function trackerLoadStats(btn) {
       return;
     }
     _trackerRawData = data;
+    // Update peak rank in hero if available
+    const peakEl = document.getElementById('trk-self-peak');
+    if (peakEl && data.account?.peak_rank) {
+      peakEl.innerHTML = `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(data.account.peak_rank)}">${san(data.account.peak_rank)}</span></div>`;
+    }
     _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
   } catch(e) {
     wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
@@ -4566,6 +4572,9 @@ async function trackerSearchPlayer() {
               ${acct.rank
                 ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(acct.rank)}<span class="trk-hero-lp">${acct.lp != null ? acct.lp + ' RR' : ''}</span></div>`
                 : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non disponible</div>'}
+              ${acct.peak_rank
+                ? `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(acct.peak_rank)}">${san(acct.peak_rank)}</span></div>`
+                : ''}
             </div>
           </div>
           <div class="trk-hero-actions">
@@ -4675,7 +4684,22 @@ function trackerRender(data, el) {
       <div class="trk-stat-cell">
         <div class="trk-stat-big">${s.avg_damage ?? '—'}</div>
         <div class="trk-stat-lbl">Dégâts/Round</div>
-        <div class="trk-stat-sub">${s.avg_damage_received ? `reçus: ${s.avg_damage_received}` : 'impact'}</div>
+        <div class="trk-stat-sub">impact</div>
+      </div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big">${s.avg_kast != null ? s.avg_kast + '%' : '—'}</div>
+        <div class="trk-stat-lbl">KAST%</div>
+        <div class="trk-stat-sub">participations</div>
+      </div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big">${s.total_clutches ?? '—'}</div>
+        <div class="trk-stat-lbl">Clutches</div>
+        <div class="trk-stat-sub">1vX gagnés</div>
+      </div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big">${s.total_first_bloods ?? '—'}</div>
+        <div class="trk-stat-lbl">First Bloods</div>
+        <div class="trk-stat-sub">premier kill</div>
       </div>
     </div>`;
 
@@ -4743,7 +4767,7 @@ function trackerRender(data, el) {
           ${agIcon ? `<img src="${agIcon}" alt="${san(m.agent)}">` : `<div class="trk-card-agent-ph">${window.icon('user',18)}</div>`}
         </div>
         <div class="trk-card-info">
-          <div class="trk-card-agent-name">${san(m.agent || '?')}${m.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
+          <div class="trk-card-agent-name">${san(m.agent || '?')}${m.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}${m.clutches > 0 ? ` <span class="trk-util-badge trk-clch">${m.clutches}×CL</span>` : ''}${m.plants > 0 ? ` <span class="trk-util-badge trk-plt">${m.plants}P</span>` : ''}${m.defuses > 0 ? ` <span class="trk-util-badge trk-def">${m.defuses}D</span>` : ''}</div>
           <div class="trk-card-meta">${san(modeLabel)} · ${san(m.map)}</div>
           <div class="trk-card-time">${relTime(m.date)}${mkHtml ? ' · '+mkHtml : ''}</div>
         </div>
