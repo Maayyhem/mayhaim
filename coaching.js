@@ -4853,6 +4853,55 @@ window._trkCloseMatch = function() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') window._trkCloseMatch?.(); });
 
+// ── Click a player's name in the modal → search their profile ────────
+window._trkSearchFromModal = function(encName, encTag) {
+  let name, tag;
+  try {
+    name = decodeURIComponent(encName || '');
+    tag  = decodeURIComponent(encTag  || '');
+  } catch { return; }
+  if (!name || !tag) return;
+
+  // If clicking the currently viewed profile, just close the modal
+  const lowerN = name.toLowerCase(), lowerT = tag.toLowerCase();
+  if (_trackerCtx === 'search' && _trackerSearch
+      && _trackerSearch.name?.toLowerCase() === lowerN
+      && _trackerSearch.tag?.toLowerCase()  === lowerT) {
+    _trkCloseMatch(); return;
+  }
+  if (_trackerCtx !== 'search' && typeof coachingUser !== 'undefined'
+      && coachingUser?.riot_gamename?.toLowerCase() === lowerN
+      && coachingUser?.riot_tagline?.toLowerCase()  === lowerT) {
+    _trkCloseMatch(); return;
+  }
+
+  // Pick the region from current context (search > self > default)
+  let region = 'eu';
+  if (_trackerCtx === 'search' && _trackerSearch?.region) {
+    region = _trackerSearch.region;
+  } else if (typeof coachingUser !== 'undefined' && coachingUser?.riot_region) {
+    region = coachingUser.riot_region;
+  }
+
+  // Close the modal
+  _trkCloseMatch();
+
+  // Make sure the tracker tab is active (if user navigated away, bail gracefully)
+  const input = document.getElementById('trk-search-input');
+  const regionSelect = document.getElementById('trk-region-select');
+  if (!input) { showToast?.warn?.("Ouvre l'onglet Tracker pour voir ce profil"); return; }
+
+  // Fill the inputs so the search bar reflects what we're searching for
+  input.value = `${name}#${tag}`;
+  if (regionSelect) regionSelect.value = region;
+
+  // Scroll to top so the user sees the loading state + new hero
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Kick off the search
+  trackerSearchPlayer();
+};
+
 function _trkRenderMatchModal(d, modal) {
   // ── Colour helpers ────────────────────────────────────────────────
   const RANK_COLORS = {
@@ -4899,7 +4948,7 @@ function _trkRenderMatchModal(d, modal) {
           ${agIcon ? `<img class="trk-sb-agent-img" src="${agIcon}" alt="">` : `<div class="trk-sb-agent-ph"></div>`}
         </div>
         <div class="trk-sb-pinfo">
-          <div class="trk-sb-name">${san(p.name)}<span class="trk-sb-tag">#${san(p.tag)}</span>${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
+          <div class="trk-sb-name trk-sb-clickable" onclick="event.stopPropagation(); _trkSearchFromModal('${encodeURIComponent(p.name||'')}','${encodeURIComponent(p.tag||'')}')" title="Voir le profil de ${san(p.name)}#${san(p.tag)}">${san(p.name)}<span class="trk-sb-tag">#${san(p.tag)}</span>${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
           <div class="trk-sb-rank" style="color:${rankClr(p.rank)}">${san(p.rank||'Unranked')} · Niv.${p.level||'?'}</div>
         </div>
       </td>

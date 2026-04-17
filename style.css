@@ -3315,6 +3315,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   display: flex; align-items: center; gap: 5px;
 }
+.trk-sb-clickable { cursor: pointer; transition: color 0.12s; }
+.trk-sb-clickable:hover { color: var(--accent, #ff4655); text-decoration: underline; text-underline-offset: 2px; }
 .trk-sb-tag  { font-weight: 400; color: var(--dim); font-size: 0.72rem; flex-shrink: 0; }
 .trk-sb-rank { font-size: 0.6rem; color: var(--dim); margin-top: 2px; }
 
