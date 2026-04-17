@@ -2960,6 +2960,146 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   .trk-hero-name { font-size: 1.1rem; }
 }
 
+/* ── Queue Tabs ── */
+.trk-queue-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border); padding-bottom: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.trk-queue-tabs::-webkit-scrollbar { display: none; }
+.trk-qtab {
+  padding: 7px 16px; font-size: 0.78rem; font-weight: 600;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--dim); cursor: pointer; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s; margin-bottom: -1px;
+  font-family: var(--font);
+}
+.trk-qtab:hover { color: var(--txt); }
+.trk-qtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Stats Strip ── */
+.trk-stats-strip {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  overflow: hidden; margin-bottom: 16px;
+}
+.trk-stat-cell {
+  background: var(--card); padding: 14px 10px;
+  text-align: center;
+}
+.trk-stat-big {
+  font-size: 1.55rem; font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.5px;
+}
+.trk-stat-lbl {
+  font-size: 0.65rem; color: var(--dim); text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 700; margin: 4px 0 2px;
+}
+.trk-stat-sub { font-size: 0.68rem; color: var(--dim); opacity: 0.7; }
+
+/* ── Sections ── */
+.trk-section { margin-bottom: 14px; }
+.trk-section-title {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+  font-weight: 700; color: var(--dim); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Agent/Map Table ── */
+.trk-agent-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); overflow: hidden;
+}
+.trk-agent-table thead th {
+  padding: 8px 10px; text-align: left; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--dim);
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+.trk-agent-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+.trk-agent-table tbody tr:not(:last-child) { border-bottom: 1px solid var(--border); }
+.trk-agent-table tbody td { padding: 8px 10px; }
+.trk-agent-name-cell { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.trk-agent-thumb {
+  width: 26px; height: 26px; border-radius: 6px;
+  object-fit: cover; flex-shrink: 0;
+}
+.trk-mini-bar {
+  width: 80px; height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+
+/* ── Match Cards ── */
+.trk-cards-list { display: flex; flex-direction: column; gap: 6px; }
+.trk-card {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); overflow: hidden;
+  border-left-width: 3px; transition: background 0.15s;
+}
+.trk-card:hover { background: rgba(255,255,255,0.025); }
+.trk-card-win  { border-left-color: #2dbe73; }
+.trk-card-loss { border-left-color: #ff4655; }
+
+.trk-card-left {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; flex: 0 0 auto; min-width: 200px;
+}
+.trk-card-agent {
+  width: 42px; height: 42px; border-radius: 10px;
+  overflow: hidden; flex-shrink: 0; background: var(--bg);
+}
+.trk-card-agent img { width: 100%; height: 100%; object-fit: cover; }
+.trk-card-agent-ph {
+  width: 100%; height: 100%; display: flex; align-items: center;
+  justify-content: center; color: var(--dim);
+}
+.trk-card-info { min-width: 0; }
+.trk-card-agent-name { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trk-card-meta { font-size: 0.72rem; color: var(--dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trk-card-time { font-size: 0.68rem; color: var(--dim); opacity: 0.65; margin-top: 2px; }
+
+.trk-card-result {
+  padding: 10px 16px; text-align: center; flex-shrink: 0; min-width: 80px;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+.trk-card-result-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.trk-card-result.win .trk-card-result-label { color: #2dbe73; }
+.trk-card-result.loss .trk-card-result-label { color: #ff4655; }
+.trk-card-score { font-size: 1rem; font-weight: 800; color: var(--txt); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+.trk-card-stats {
+  display: flex; gap: 0; flex: 1; justify-content: flex-end;
+}
+.trk-card-stat {
+  padding: 10px 14px; text-align: center; min-width: 58px;
+  border-right: 1px solid var(--border);
+}
+.trk-card-stat:last-child { border-right: none; }
+.trk-card-stat-val { font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.trk-card-stat-lbl { font-size: 0.58rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; font-weight: 600; }
+
+/* ── Loading ── */
+.trk-loading {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--dim); font-size: 0.85rem; padding: 32px 0;
+  justify-content: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .trk-stats-strip { grid-template-columns: repeat(3, 1fr); }
+  .trk-card-left { min-width: 160px; }
+}
+@media (max-width: 700px) {
+  .trk-stats-strip { grid-template-columns: repeat(3, 1fr); }
+  .trk-stat-big { font-size: 1.2rem; }
+  .trk-card-stats { display: none; }
+  .trk-card-left { min-width: 0; flex: 1; }
+}
+
 /* Respect user motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

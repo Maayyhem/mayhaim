@@ -190,6 +190,8 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker-search') {
       const { name, tag } = req.query || {};
       const region = (['eu','na','ap','br','latam','kr'].includes(req.query?.region)) ? req.query.region : 'eu';
+      const ALLOWED_MODES = ['competitive','unrated','spikerush','deathmatch',''];
+      const mode = ALLOWED_MODES.includes(req.query?.mode) ? req.query.mode : 'competitive';
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
@@ -202,14 +204,15 @@ module.exports = async function handler(req, res) {
           lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
         }
 
-        // 2. Fetch matches
+        // 2. Fetch matches (filtered by mode when specified)
+        const filterQ = mode ? `?filter=${encodeURIComponent(mode)}&size=15` : '?size=15';
         const result = await fetchHenrik(
-          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}${filterQ}`
         );
         if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status})` });
 
-        // 3. Process matches (same as Henrik fallback)
+        // 3. Process matches
         const matches = result.data.data || [];
         let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
         let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
@@ -231,22 +234,33 @@ module.exports = async function handler(req, res) {
           const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
           totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
           const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0 };
+          const queueMode = m.metadata?.mode || mode || 'Competitive';
+          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
           agentMap[agent].games++; if (won) agentMap[agent].wins++;
+          agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
+          agentMap[agent].score += st.score || 0; agentMap[agent].rounds += rTotal;
+          agentMap[agent].hs += st.headshots || 0; agentMap[agent].shots += shots;
           if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
           mapMap[map].games++; if (won) mapMap[map].wins++;
           const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
           const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
+          const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
           const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          recent.push({ map, agent, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
+          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, damage: dpr, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
         }
 
         const n = wins + losses;
+        const topAgents = Object.entries(agentMap).map(([agent, d]) => ({
+          agent, games: d.games, wins: d.wins,
+          avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
+          avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
+          kills: d.kills, deaths: d.deaths,
+        })).sort((a,b) => b.games - a.games).slice(0, 5);
         return res.status(200).json({
           account: { gamename: name, tagline: tag, rank, lp },
-          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: n > 0 ? Math.round(totalDamage / n) : 0 },
-          top_agents: Object.entries(agentMap).map(([agent, d]) => ({ agent, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
-          top_maps:   Object.entries(mapMap).map(([map, d])     => ({ map,   ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: totalRounds > 0 ? Math.round(totalDamage / totalRounds) : 0 },
+          top_agents: topAgents,
+          top_maps:   Object.entries(mapMap).map(([map, d]) => ({ map, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
           recent_matches: recent,
         });
       } catch(err) {
@@ -258,6 +272,8 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      const ALLOWED_MODES_T = ['competitive','unrated','spikerush','deathmatch',''];
+      const trackerMode = ALLOWED_MODES_T.includes(req.query?.mode) ? req.query.mode : 'competitive';
 
       const rows = await sql`
         SELECT riot_gamename, riot_tagline, riot_region, riot_rank, riot_lp, riot_puuid
@@ -346,13 +362,13 @@ module.exports = async function handler(req, res) {
       try {
         // Try stored region first; if missing/invalid, probe all regions
         const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
+        const filterQ = trackerMode ? `?filter=${encodeURIComponent(trackerMode)}&size=15` : '?size=15';
         let result = null;
-        let foundRegion = shard || 'eu';
         for (const r of regionList) {
           const attempt = await fetchHenrik(
-            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?filter=competitive&size=10`
+            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}${filterQ}`
           );
-          if (attempt.status === 200) { result = attempt; foundRegion = r; break; }
+          if (attempt.status === 200) { result = attempt; break; }
           if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         }
         if (!result || result.status !== 200) return res.status(502).json({ error: `Joueur introuvable sur toutes les régions. Relie ton compte à nouveau.` });
@@ -378,22 +394,33 @@ module.exports = async function handler(req, res) {
           const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
           totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
           const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0 };
+          const queueMode = m.metadata?.mode || trackerMode || 'Competitive';
+          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
           agentMap[agent].games++; if (won) agentMap[agent].wins++;
+          agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
+          agentMap[agent].score += st.score || 0; agentMap[agent].rounds += rTotal;
+          agentMap[agent].hs += st.headshots || 0; agentMap[agent].shots += shots;
           if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
           mapMap[map].games++; if (won) mapMap[map].wins++;
           const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
           const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
+          const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
           const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          recent.push({ map, agent, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
+          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`, kills: st.kills || 0, deaths: st.deaths || 0, assists: st.assists || 0, acs, hs_pct: hsPct, damage: dpr, date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null });
         }
 
         const n = wins + losses;
+        const topAgents = Object.entries(agentMap).map(([agent, d]) => ({
+          agent, games: d.games, wins: d.wins,
+          avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
+          avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
+          kills: d.kills, deaths: d.deaths,
+        })).sort((a,b) => b.games - a.games).slice(0, 5);
         return res.status(200).json({
           account: { gamename: name, tagline: tag, rank, lp },
-          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: n > 0 ? Math.round(totalDamage / n) : 0 },
-          top_agents: Object.entries(agentMap).map(([agent, d]) => ({ agent, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
-          top_maps:   Object.entries(mapMap).map(([map, d])     => ({ map,   ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
+          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: totalRounds > 0 ? Math.round(totalDamage / totalRounds) : 0 },
+          top_agents: topAgents,
+          top_maps:   Object.entries(mapMap).map(([map, d]) => ({ map, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
           recent_matches: recent,
         });
       } catch(err) {

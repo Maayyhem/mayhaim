@@ -4299,9 +4299,37 @@ function _rankEmblemUrl(rankStr) {
   return `https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${id}/smallicon.png`;
 }
 
+// ── Tracker state ─────────────────────────────────────────────────────
+let _trackerMode   = 'competitive'; // current queue filter
+let _trackerCtx    = 'self';        // 'self' | 'search'
+let _trackerSearch = null;          // { name, tag, region } for search context
+window._trackerSetMode = function(mode) {
+  _trackerMode = mode;
+  document.querySelectorAll('.trk-qtab').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  if (_trackerCtx === 'search' && _trackerSearch) {
+    _reloadSearchStats();
+  } else {
+    trackerLoadStats(null);
+  }
+};
+async function _reloadSearchStats() {
+  const wrap = document.getElementById('trk-search-stats-wrap');
+  if (!wrap || !_trackerSearch) return;
+  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement…</div>`;
+  try {
+    const { name, tag, region } = _trackerSearch;
+    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
+    const data = await res.json();
+    if (!res.ok) { wrap.innerHTML = `<p style="color:#ff4655;padding:16px">${san(data.error)}</p>`; return; }
+    trackerRender(data, wrap);
+  } catch { wrap.innerHTML = `<p style="color:#ff4655;padding:16px">Erreur réseau</p>`; }
+}
+
 function trackerTabLoad() {
   const main = document.getElementById('trk-main');
   if (!main) return;
+  _trackerCtx = 'self';
   if (!coachingUser?.riot_gamename) {
     main.innerHTML = `
       <div class="trk-link-screen">
@@ -4345,15 +4373,27 @@ function _trackerShowAccount() {
         </div>
         <div class="trk-hero-actions">
           <button class="trk-btn trk-btn-primary" onclick="trackerSyncRank(this)">${icon('refresh-cw',14)} Sync</button>
-          <button class="trk-btn trk-btn-ghost" onclick="trackerLoadStats(this)">${icon('chart',14)} Stats</button>
           <button class="trk-btn trk-btn-ghost" onclick="trackerUnlink()">Délier</button>
         </div>
       </div>
     </div>
+    ${_trkQueueTabs()}
     <div id="trk-stats-wrap"></div>
     <div id="trk-msg" class="trk-link-msg"></div>`;
-  // Auto-load stats
   trackerLoadStats();
+}
+
+function _trkQueueTabs() {
+  const queues = [
+    { mode:'competitive', label:'Competitive' },
+    { mode:'unrated',     label:'Non-classé' },
+    { mode:'spikerush',   label:'Spike Rush' },
+    { mode:'deathmatch',  label:'Deathmatch' },
+    { mode:'',            label:'Toutes' },
+  ];
+  return `<div class="trk-queue-tabs">${queues.map(q =>
+    `<button class="trk-qtab${_trackerMode===q.mode?' active':''}" data-mode="${q.mode}" onclick="_trackerSetMode('${q.mode}')">${q.label}</button>`
+  ).join('')}</div>`;
 }
 
 async function trackerLinkRiot() {
@@ -4410,10 +4450,10 @@ async function trackerLoadStats(btn) {
   const msg  = document.getElementById('trk-msg');
   if (!wrap) return;
   if (btn) btn.disabled = true;
-  wrap.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--dim);font-size:0.85rem">
-    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('chart',24)}</div>Chargement des statistiques…</div>`;
+  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats ${_trackerMode || 'toutes queues'}…</div>`;
   try {
-    const res  = await fetch(`${API_BASE}/profile?action=tracker`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
+    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const res  = await fetch(`${API_BASE}/profile?action=tracker${modeQ}`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
       wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
@@ -4447,14 +4487,18 @@ async function trackerSearchPlayer() {
   const resultsEl = document.getElementById('trk-search-results');
   if (!resultsEl) return;
 
+  // Store search state for mode switching
+  _trackerCtx = 'search';
+  _trackerSearch = { name, tag, region };
+
   // Hide own profile, show search results
   if (mainEl) mainEl.style.display = 'none';
   resultsEl.style.display = 'block';
-  resultsEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:0.85rem">
-    <div style="font-size:1.5rem;margin-bottom:8px;animation:syncPulse 1s infinite">${icon('search',24)}</div>Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
+  resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
 
   try {
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`);
+    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
     const data = await res.json();
     if (!res.ok) {
       resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
@@ -4485,6 +4529,7 @@ async function trackerSearchPlayer() {
           </div>
         </div>
       </div>
+      ${_trkQueueTabs()}
       <div id="trk-search-stats-wrap"></div>`;
     // Render stats into the wrap
     const wrap = document.getElementById('trk-search-stats-wrap');
@@ -4503,6 +4548,8 @@ function trackerSearchBack() {
   if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
   const input = document.getElementById('trk-search-input');
   if (input) input.value = '';
+  _trackerCtx = 'self';
+  _trackerSearch = null;
 }
 
 // Allow Enter key in search input
@@ -4527,135 +4574,162 @@ function _perfBar(val, max, color) {
 }
 
 function trackerRender(data, el) {
-  const s = data.stats;
-  const wrColor = s.win_rate >= 50 ? '#2dbe73' : '#ff4655';
-  const kdaColor = s.kda >= 1.5 ? '#2dbe73' : s.kda >= 1 ? '#f0c43f' : '#ff4655';
-  const acsColor = s.avg_acs >= 200 ? '#2dbe73' : s.avg_acs >= 150 ? '#f0c43f' : 'var(--accent)';
-  const hsColor  = s.avg_hs_pct == null ? 'var(--dim)' : s.avg_hs_pct >= 25 ? '#2dbe73' : s.avg_hs_pct >= 15 ? '#f0c43f' : 'var(--dim)';
-  const dmgColor = s.avg_damage != null && s.avg_damage >= 150 ? '#2dbe73' : '#f0c43f';
+  const s = data.stats || {};
+  const matches = data.recent_matches || [];
+  const agents  = data.top_agents || [];
+  const maps    = data.top_maps   || [];
 
-  // Agents HTML
-  const agentsHtml = (data.top_agents || []).map(a => {
-    const wr = a.games > 0 ? Math.round(a.wins / a.games * 100) : 0;
-    const c = wr >= 50 ? '#2dbe73' : '#ff4655';
-    const icon = AGENT_ICONS[a.agent.toLowerCase()];
-    return `<div class="trk-agent-row">
-      <div class="trk-agent-icon">${icon ? `<img src="${icon}" alt="">` : `<span style="font-size:1.1rem;display:flex;align-items:center;justify-content:center;height:100%">${window.icon('target',18)}</span>`}</div>
-      <div class="trk-agent-info">
-        <div class="trk-agent-name">${san(a.agent)}</div>
-        <div class="trk-agent-games">${a.games} partie${a.games>1?'s':''}</div>
-      </div>
-      <div class="trk-agent-wr-bar"><div class="trk-agent-wr-fill" style="width:${wr}%;background:${c}"></div></div>
-      <span class="trk-wr-val" style="color:${c}">${wr}%</span>
-    </div>`;
-  }).join('');
+  // Colour helpers
+  const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
+  const clrKDA = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
+  const clrACS = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : 'var(--accent)';
+  const clrHS  = v => v == null ? 'var(--dim)' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : 'var(--dim)';
+  const clrDmg = v => v == null ? 'var(--dim)' : v >= 150 ? '#4ade80' : '#fbbf24';
+  const fmtKDA = (k,d,a) => `<span style="color:#f87171">${k}</span>/<span style="color:#94a3b8">${d}</span>/<span style="color:#60a5fa">${a}</span>`;
+  const relTime = iso => {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso);
+    const h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+    if (d >= 1) return d === 1 ? 'hier' : `il y a ${d}j`;
+    if (h >= 1) return `il y a ${h}h`;
+    return 'récemment';
+  };
 
-  // Maps HTML
-  const mapsHtml = (data.top_maps || []).map(m => {
-    const wr = m.games > 0 ? Math.round(m.wins / m.games * 100) : 0;
-    const c = wr >= 50 ? '#2dbe73' : '#ff4655';
-    return `<div class="trk-map-row">
-      <div class="trk-agent-icon"><span style="font-size:0.9rem;display:flex;align-items:center;justify-content:center;height:100%">${icon('map',16)}</span></div>
-      <div class="trk-agent-info">
-        <div class="trk-agent-name">${san(m.map)}</div>
-        <div class="trk-agent-games">${m.games} partie${m.games>1?'s':''}</div>
+  // ── Stats overview strip ──────────────────────────────────────────
+  const statsHtml = `
+    <div class="trk-stats-strip">
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big" style="color:${clrWR(s.win_rate)}">${s.win_rate ?? '—'}%</div>
+        <div class="trk-stat-lbl">Win Rate</div>
+        <div class="trk-stat-sub">${s.wins ?? 0}W · ${s.losses ?? 0}L</div>
       </div>
-      <div class="trk-agent-wr-bar"><div class="trk-agent-wr-fill" style="width:${wr}%;background:${c}"></div></div>
-      <span class="trk-wr-val" style="color:${c}">${wr}%</span>
-    </div>`;
-  }).join('');
-
-  // Matches HTML
-  const matchesHtml = (data.recent_matches || []).map(m => {
-    const rc = m.result === 'WIN' ? 'win' : 'loss';
-    const kc = m.deaths > 0 ? (m.kills/m.deaths >= 1.5 ? '#2dbe73' : m.kills/m.deaths >= 1 ? '#f0c43f' : '#ff4655') : '#2dbe73';
-    const dateStr = m.date ? new Date(m.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
-    const agentIcon = AGENT_ICONS[(m.agent||'').toLowerCase()];
-    return `<div class="trk-match ${rc}">
-      <div class="trk-match-agent">${agentIcon ? `<img src="${agentIcon}" alt="">` : `<span style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">${icon('target',18)}</span>`}</div>
-      <div class="trk-match-main">
-        <div class="trk-match-map">${san(m.map)}</div>
-        <div class="trk-match-meta">${san(m.agent)} · ${dateStr}</div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big" style="color:${clrKDA(s.kda)}">${s.kda ?? '—'}</div>
+        <div class="trk-stat-lbl">K/D Ratio</div>
+        <div class="trk-stat-sub">${s.matches_analyzed ?? 0} parties</div>
       </div>
-      <span class="trk-match-result-badge ${rc}">${m.result}</span>
-      <span class="trk-match-score">${m.score}</span>
-      <span class="trk-match-kda" style="color:${kc}">${m.kills}/${m.deaths}/${m.assists}</span>
-      <div class="trk-match-acs-wrap">
-        <div class="trk-match-acs-val">${m.acs}</div>
-        <div class="trk-match-acs-lbl">ACS</div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big" style="color:${clrACS(s.avg_acs)}">${s.avg_acs ?? '—'}</div>
+        <div class="trk-stat-lbl">ACS moyen</div>
+        <div class="trk-stat-sub">Combat score</div>
+      </div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big" style="color:${clrHS(s.avg_hs_pct)}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</div>
+        <div class="trk-stat-lbl">Headshot %</div>
+        <div class="trk-stat-sub">précision tête</div>
+      </div>
+      <div class="trk-stat-cell">
+        <div class="trk-stat-big" style="color:${clrDmg(s.avg_damage)}">${s.avg_damage != null ? s.avg_damage : '—'}</div>
+        <div class="trk-stat-lbl">Dégâts/Round</div>
+        <div class="trk-stat-sub">impact moyen</div>
       </div>
     </div>`;
-  }).join('');
+
+  // ── Per-agent table ───────────────────────────────────────────────
+  const agentTableHtml = agents.length ? `
+    <div class="trk-section">
+      <div class="trk-section-title">${icon('user',14)} Agents</div>
+      <table class="trk-agent-table">
+        <thead><tr>
+          <th>Agent</th><th>Picks</th><th>Win%</th><th>K/D</th><th>ACS</th><th>HS%</th>
+        </tr></thead>
+        <tbody>${agents.map(a => {
+          const wr = a.games > 0 ? Math.round(a.wins / a.games * 100) : 0;
+          const agIcon = AGENT_ICONS[(a.agent||'').toLowerCase()];
+          const kd = a.deaths > 0 ? ((a.kills||0) / a.deaths).toFixed(2) : (a.kills||0);
+          return `<tr>
+            <td class="trk-agent-name-cell">
+              ${agIcon ? `<img src="${agIcon}" class="trk-agent-thumb" alt="">` : ''}
+              <span>${san(a.agent)}</span>
+            </td>
+            <td>${a.games}</td>
+            <td style="color:${clrWR(wr)};font-weight:700">${wr}%</td>
+            <td style="color:${clrKDA(kd)}">${kd}</td>
+            <td style="color:${clrACS(a.avg_acs)}">${a.avg_acs ?? '—'}</td>
+            <td style="color:${clrHS(a.avg_hs_pct)}">${a.avg_hs_pct != null ? a.avg_hs_pct+'%' : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  // ── Per-map table ─────────────────────────────────────────────────
+  const mapTableHtml = maps.length ? `
+    <div class="trk-section">
+      <div class="trk-section-title">${icon('map',14)} Maps</div>
+      <table class="trk-agent-table">
+        <thead><tr>
+          <th>Map</th><th>Picks</th><th>Win%</th><th>Victoires</th>
+        </tr></thead>
+        <tbody>${maps.map(m => {
+          const wr = m.games > 0 ? Math.round(m.wins / m.games * 100) : 0;
+          const bar = `<div class="trk-mini-bar"><div style="width:${wr}%;background:${clrWR(wr)};height:100%;border-radius:2px"></div></div>`;
+          return `<tr>
+            <td style="font-weight:600">${san(m.map)}</td>
+            <td>${m.games}</td>
+            <td style="color:${clrWR(wr)};font-weight:700">${wr}%</td>
+            <td style="min-width:80px">${bar}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  // ── Match history cards ───────────────────────────────────────────
+  const matchCardsHtml = matches.length ? matches.map(m => {
+    const isWin  = m.result === 'WIN';
+    const agIcon = AGENT_ICONS[(m.agent||'').toLowerCase()];
+    const kd     = m.deaths > 0 ? (m.kills / m.deaths).toFixed(2) : m.kills;
+    const kdClr  = clrKDA(parseFloat(kd));
+    const modeLabel = m.mode || 'Competitive';
+    return `<div class="trk-card ${isWin ? 'trk-card-win' : 'trk-card-loss'}">
+      <div class="trk-card-left">
+        <div class="trk-card-agent">
+          ${agIcon ? `<img src="${agIcon}" alt="${san(m.agent)}">` : `<div class="trk-card-agent-ph">${window.icon('user',18)}</div>`}
+        </div>
+        <div class="trk-card-info">
+          <div class="trk-card-agent-name">${san(m.agent || '?')}</div>
+          <div class="trk-card-meta">${san(modeLabel)} · ${san(m.map)}</div>
+          <div class="trk-card-time">${relTime(m.date)}</div>
+        </div>
+      </div>
+      <div class="trk-card-result ${isWin ? 'win' : 'loss'}">
+        <div class="trk-card-result-label">${m.result}</div>
+        <div class="trk-card-score">${san(m.score)}</div>
+      </div>
+      <div class="trk-card-stats">
+        <div class="trk-card-stat">
+          <div class="trk-card-stat-val">${fmtKDA(m.kills, m.deaths, m.assists)}</div>
+          <div class="trk-card-stat-lbl">K / D / A</div>
+        </div>
+        <div class="trk-card-stat">
+          <div class="trk-card-stat-val" style="color:${clrKDA(parseFloat(kd))}">${kd}</div>
+          <div class="trk-card-stat-lbl">K/D</div>
+        </div>
+        <div class="trk-card-stat">
+          <div class="trk-card-stat-val" style="color:${clrACS(m.acs)}">${m.acs ?? '—'}</div>
+          <div class="trk-card-stat-lbl">ACS</div>
+        </div>
+        ${m.hs_pct != null ? `<div class="trk-card-stat">
+          <div class="trk-card-stat-val" style="color:${clrHS(m.hs_pct)}">${m.hs_pct}%</div>
+          <div class="trk-card-stat-lbl">HS%</div>
+        </div>` : ''}
+        ${m.damage != null ? `<div class="trk-card-stat">
+          <div class="trk-card-stat-val" style="color:${clrDmg(m.damage)}">${m.damage}</div>
+          <div class="trk-card-stat-lbl">D/R</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('') : `<p style="color:var(--dim);font-size:0.85rem;padding:24px 0;text-align:center">Aucune partie trouvée pour ce mode.</p>`;
 
   el.innerHTML = `
-    <!-- Overview: Donut + Performance -->
-    <div class="trk-overview">
-      <div class="trk-winrate-card">
-        <div class="trk-donut-wrap">
-          ${_donutSvg(s.win_rate, wrColor)}
-          <div class="trk-donut-center">
-            <div class="trk-donut-pct" style="color:${wrColor}">${s.win_rate}%</div>
-            <div class="trk-donut-lbl">Win Rate</div>
-          </div>
-        </div>
-        <div class="trk-wl-row">
-          <span class="trk-wl-w">${s.wins}W</span>
-          <span class="trk-wl-l">${s.losses}L</span>
-        </div>
-      </div>
-
-      <div class="trk-perf-card">
-        <div class="trk-perf-item">
-          <div class="trk-perf-header">
-            <span class="trk-perf-label">K/D/A</span>
-            <span class="trk-perf-val" style="color:${kdaColor}">${s.kda}</span>
-          </div>
-          ${_perfBar(s.kda, 3, kdaColor)}
-        </div>
-        <div class="trk-perf-item">
-          <div class="trk-perf-header">
-            <span class="trk-perf-label">ACS moyen</span>
-            <span class="trk-perf-val" style="color:${acsColor}">${s.avg_acs}</span>
-          </div>
-          ${_perfBar(s.avg_acs, 300, acsColor)}
-        </div>
-        <div class="trk-perf-item">
-          <div class="trk-perf-header">
-            <span class="trk-perf-label">Headshot %</span>
-            <span class="trk-perf-val" style="color:${hsColor}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</span>
-          </div>
-          ${s.avg_hs_pct != null ? _perfBar(s.avg_hs_pct, 40, hsColor) : '<div class="trk-perf-bar"></div>'}
-        </div>
-        <div class="trk-perf-item">
-          <div class="trk-perf-header">
-            <span class="trk-perf-label">Damage/Round</span>
-            <span class="trk-perf-val" style="color:${dmgColor}">${s.avg_damage != null ? s.avg_damage : '—'}</span>
-          </div>
-          ${s.avg_damage != null ? _perfBar(s.avg_damage, 200, dmgColor) : '<div class="trk-perf-bar"></div>'}
-        </div>
-      </div>
-    </div>
-
-    <!-- Agents & Maps -->
+    ${statsHtml}
     <div class="trk-split">
-      <div class="trk-panel">
-        <div class="trk-panel-title">Top Agents</div>
-        ${agentsHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:8px 0">Aucune donnée</p>'}
-      </div>
-      <div class="trk-panel">
-        <div class="trk-panel-title">Top Maps</div>
-        ${mapsHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:8px 0">Aucune donnée</p>'}
-      </div>
+      ${agentTableHtml}
+      ${mapTableHtml}
     </div>
-
-    <!-- Match History -->
-    <div class="trk-matches">
-      <div class="trk-matches-header">
-        <span class="trk-matches-title">Historique · ${s.matches_analyzed} parties</span>
-      </div>
-      ${matchesHtml || '<p style="color:var(--dim);font-size:0.82rem;padding:16px 18px">Aucune partie trouvée</p>'}
+    <div class="trk-section">
+      <div class="trk-section-title">${icon('trending',14)} Historique · ${s.matches_analyzed ?? matches.length} parties</div>
+      <div class="trk-cards-list">${matchCardsHtml}</div>
     </div>
-
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
   `;
 }
