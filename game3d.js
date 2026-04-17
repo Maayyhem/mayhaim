@@ -85,41 +85,41 @@ const SCENARIOS = {
   // ═══ FLICK TECH ═══
   pokeball_frenzy:{ cat:'flick_tech', sub:'speed', type:'click', label:'Pokeball Frenzy', labelH:'Pokeball Frenzy Auto TE Wide', labelE:'Pokeball Frenzy TE Wide',
     th:[1950,2250,2550,2850,3150,3400,3600,3800], thH:[3550,3725,3850,4000,4100,4200], thE:[650,950,1250,1500,1750,2000,2300,2700] },
-  w1w3ts_reload:  { cat:'flick_tech', sub:'speed', type:'click', label:'1w3ts Reload', labelH:'1w2ts Reload', labelE:'1w3ts Reload Larger',
+  w1w3ts_reload:  { cat:'flick_tech', sub:'speed', type:'click', useHits:true, label:'1w3ts Reload', labelH:'1w2ts Reload', labelE:'1w3ts Reload Larger',
     th:[66,76,86,96,106,116,126,135], thH:[106,114,121,127,133,138], thE:[36,43,50,58,70,82,92,102] },
-  vox_ts2:        { cat:'flick_tech', sub:'speed', type:'click', label:'voxTargetSwitch 2', labelH:'voxTargetSwitch 2 20% Smaller', labelE:'voxTargetSwitch 2 Large',
+  vox_ts2:        { cat:'flick_tech', sub:'speed', type:'click', useHits:true, label:'voxTargetSwitch 2', labelH:'voxTargetSwitch 2 20% Smaller', labelE:'voxTargetSwitch 2 Large',
     th:[78,88,98,107,116,123,130,136], thH:[103,111,116,121,127,133], thE:[67,78,87,95,103,110,117,123] },
-  beants:         { cat:'flick_tech', sub:'stability', type:'click', label:'BeanTS', labelH:'BeanTS 30% Smaller', labelE:'BeanTS Larger',
+  beants:         { cat:'flick_tech', sub:'stability', type:'click', useHits:true, label:'BeanTS', labelH:'BeanTS 30% Smaller', labelE:'BeanTS Larger',
     th:[88,103,115,127,136,143,149,156], thH:[119,127,134,139,143,147], thE:[65,78,90,100,110,120,130,142] },
-  floatts:        { cat:'flick_tech', sub:'stability', type:'click', label:'FloatTS Angelic', labelH:'FloatTS Angelic', labelE:'FloatTS Angelic Easy Larger',
+  floatts:        { cat:'flick_tech', sub:'stability', type:'click', useHits:true, label:'FloatTS Angelic', labelH:'FloatTS Angelic', labelE:'FloatTS Angelic Easy Larger',
     th:[70,79,86,93,100,107,115,123], thH:[94,100,105,110,114,118], thE:[65,74,81,88,95,101,106,111] },
-  waldots:        { cat:'flick_tech', sub:'micro', type:'click', label:'WaldoTS', labelH:'WaldoTS', labelE:'WaldoTS Novice',
+  waldots:        { cat:'flick_tech', sub:'micro', type:'click', useHits:true, label:'WaldoTS', labelH:'WaldoTS', labelE:'WaldoTS Novice',
     th:[108,117,126,135,144,153,162,170], thH:[145,153,160,166,173,178], thE:[65,78,90,100,110,120,130,140] },
-  devts:          { cat:'flick_tech', sub:'micro', type:'click', label:'devTS NR Goated 5Bot', labelH:'devTS Goated NR Static Small 5Bot', labelE:'devTS Goated 5Bot',
+  devts:          { cat:'flick_tech', sub:'micro', type:'click', useHits:true, label:'devTS NR Goated 5Bot', labelH:'devTS Goated NR Static Small 5Bot', labelE:'devTS Goated 5Bot',
     th:[600,650,705,760,810,840,870,900], thH:[750,775,800,825,850,870], thE:[350,400,450,500,550,600,640,680] },
   domiswitch:     { cat:'flick_tech', sub:'postflick', type:'click', label:'domiSwitch', labelH:'domiSwitch', labelE:'domiSwitch Easy Slower',
     th:[4200,4700,5200,5700,6150,6600,7100,7600], thH:[5550,5950,6250,6550,6850,7200], thE:[3200,3700,4200,4600,5000,5400,5800,6300] },
-  tamts:          { cat:'flick_tech', sub:'postflick', type:'click', label:'tamTargetSwitch', labelH:'tamTargetSwitch Smooth', labelE:'tamTargetSwitch Smooth Easy',
+  tamts:          { cat:'flick_tech', sub:'postflick', type:'click', useHits:true, label:'tamTargetSwitch', labelH:'tamTargetSwitch Smooth', labelE:'tamTargetSwitch Smooth Easy',
     th:[22,26,29,32,34,36,38,41], thH:[32,35,37,39,42,45], thE:[7,11,15,18,21,24,26,28] },
 
   // ═══ CLICK TIMING ═══
-  pasu_reload:    { cat:'click_timing', sub:'reading', type:'click', label:'Pasu Reload', labelH:'Pasu Reload Goated', labelE:'Pasu Slow',
+  pasu_reload:    { cat:'click_timing', sub:'reading', type:'click', useHits:true, label:'Pasu Reload', labelH:'Pasu Reload Goated', labelE:'Pasu Slow',
     th:[70,85,100,115,130,142,155,165], thH:[110,120,130,140,150,160], thE:[76,88,100,110,120,130,140,150] },
   vt_bounceshot:  { cat:'click_timing', sub:'reading', type:'click', label:'VT Bounceshot', labelH:'VT Bounceshot Advanced', labelE:'B180 Voltaic Easy',
     th:[550,640,720,780,850,900,980,1060], thH:[730,790,850,910,950,1000], thE:[26,38,50,58,65,72,78,87] },
-  ctrlsphere_clk: { cat:'click_timing', sub:'reading', type:'click', label:'Controlsphere Click', labelH:'Controlsphere Click Smaller', labelE:'Controlsphere Click Easy',
+  ctrlsphere_clk: { cat:'click_timing', sub:'reading', type:'click', useHits:true, label:'Controlsphere Click', labelH:'Controlsphere Click Smaller', labelE:'Controlsphere Click Easy',
     th:[27,33,39,45,50,56,61,67], thH:[39,45,51,56,60,64], thE:[15,21,27,33,39,45,50,55] },
-  popcorn_mv:     { cat:'click_timing', sub:'precision', type:'click', label:'Popcorn MV', labelH:'Popcorn MV Advanced', labelE:'Popcorn MV Novice',
+  popcorn_mv:     { cat:'click_timing', sub:'precision', type:'click', useHits:true, label:'Popcorn MV', labelH:'Popcorn MV Advanced', labelE:'Popcorn MV Novice',
     th:[150,190,240,280,330,380,430,480], thH:[290,330,370,420,460,500], thE:[50,100,150,190,230,270,300,330] },
-  pasu_angelic:   { cat:'click_timing', sub:'precision', type:'click', label:'Pasu Angelic', labelH:'Pasu Angelic', labelE:'Pasu Angelic 20% Larger 80%',
+  pasu_angelic:   { cat:'click_timing', sub:'precision', type:'click', useHits:true, label:'Pasu Angelic', labelH:'Pasu Angelic', labelE:'Pasu Angelic 20% Larger 80%',
     th:[72,79,85,90,96,103,110,115], thH:[87,94,102,110,118,125], thE:[51,58,65,72,78,84,90,97] },
-  pasu_perfected: { cat:'click_timing', sub:'precision', type:'click', label:'1w2ts Pasu Perfected', labelH:'1w2ts Pasu Perfected 30% Smaller', labelE:'1w2ts Pasu Perfected Easy',
+  pasu_perfected: { cat:'click_timing', sub:'precision', type:'click', useHits:true, label:'1w2ts Pasu Perfected', labelH:'1w2ts Pasu Perfected 30% Smaller', labelE:'1w2ts Pasu Perfected Easy',
     th:[60,70,80,88,96,101,107,112], thH:[75,82,87,93,98,103], thE:[58,69,80,87,93,99,105,110] },
   pasu_micro:     { cat:'click_timing', sub:'ct_stability', type:'click', label:'1w3ts Pasu Perfected Micro', labelH:'1w3ts Pasu Perfected Micro Goated', labelE:'1w3ts Pasu Micro Larger 80%',
     th:[900,1000,1100,1200,1300,1400,1500,1600], thH:[1100,1200,1300,1400,1500,1560], thE:[600,700,800,900,1000,1100,1200,1300] },
   floatheads_t:   { cat:'click_timing', sub:'ct_stability', type:'click', label:'Floating Heads Timing', labelH:'Floating Heads Timing 400% Fixed', labelE:'Floating Heads 400% Larger',
     th:[1950,2300,2650,3000,3350,3650,3900,4200], thH:[3200,3484,3648,3848,4048,4248], thE:[400,700,1000,1350,1700,2050,2400,2750] },
-  vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', label:'voxTargetClick', labelH:'VoxTargetSwitch Click Small', labelE:'voxTargetSwitch Click',
+  vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', useHits:true, label:'voxTargetClick', labelH:'VoxTargetSwitch Click Small', labelE:'voxTargetSwitch Click',
     th:[62,72,80,87,95,102,108,116], thH:[90,96,101,106,111,115], thE:[49,59,67,74,81,88,94,100] },
 
   // ═══ COURS DRILLS (not in benchmark, free play only) ═══
@@ -202,6 +202,8 @@ function getBenchmarkScore() {
   if (sc && (sc.type === 'track' || sc.type === 'track_pct')) {
     return G.trackFrames > 0 ? Math.round(G.trackOnTarget / G.trackFrames * 1000) : 0;
   }
+  // useHits=true → thresholds are calibrated in hit count, not raw score
+  if (sc && sc.useHits) return G.hits;
   return G.score;
 }
 function getBest(key) { return loadBench()[key] || 0; }
@@ -229,7 +231,7 @@ function isScenarioUnlocked(key, tier) {
   const prevTier = tier === 'hard' ? 'medium' : 'easier';
   const best = getBestFor(key, prevTier);
   const threads = calcThreadsFor(key, best, prevTier);
-  return threads >= 1; // au moins 1 thread sur le tier précédent
+  return threads >= maxThreadsFor(prevTier); // 8/8 on easier, 6/6 on medium required
 }
 function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
 
@@ -1732,9 +1734,11 @@ const INTERVAL_MODES = {
 function startGame(mode) {
   // Safety: prevent launching a benchmark scenario that's locked at the current tier
   if (G.benchmarkMode && SCENARIOS[mode]?.th && !isScenarioUnlocked(mode, currentTier)) {
-    const prevTier = currentTier === 'hard' ? 'Medium' : 'Easier';
-    const curLbl = currentTier === 'hard' ? 'Hard' : currentTier === 'medium' ? 'Medium' : 'Easier';
-    _showLockToast(`Scénario verrouillé en ${curLbl}. Complète au moins 1 thread en ${prevTier} d'abord.`);
+    const prevTier = currentTier === 'hard' ? 'medium' : 'easier';
+    const prevLbl = currentTier === 'hard' ? 'Medium' : 'Easier';
+    const curLbl = currentTier === 'hard' ? 'Hard' : 'Medium';
+    const maxPrev = maxThreadsFor(prevTier);
+    _showLockToast(`Verrouillé en ${curLbl}. Obtiens ${maxPrev}/${maxPrev} Threads en ${prevLbl} d'abord.`);
     return;
   }
   G.mode=mode;
@@ -1841,9 +1845,14 @@ function endGame() {
 
   const rk=$('#res-rank'), tw=$('#res-threads-wrap');
 
+  // Always save score for any scenario with benchmark thresholds (regardless of benchmarkMode)
+  if (SCENARIOS[G.mode]?.th) {
+    const _autoScore = getBenchmarkScore();
+    if (_autoScore > 0) saveBest(G.mode, _autoScore);
+  }
+
   if(G.benchmarkMode && SCENARIOS[G.mode]) {
     const benchScore = getBenchmarkScore();
-    saveBest(G.mode, benchScore);
     const threads = calcThreads(G.mode, benchScore);
     const mt = getMaxThreads();
     rk.textContent = threads+'/'+mt+' Threads';
@@ -2506,8 +2515,10 @@ function renderBenchmark() {
           const mtT = maxThreadsFor(t);
           const lbl = t==='easier'?'E':t==='medium'?'M':'H';
           if (!unlocked) {
-            const prev = t==='hard'?'medium':'easier';
-            return `<span class="bsc-chip locked" title="Obtenir au moins 1 thread en ${prev} pour débloquer">${icon('lock',14)}</span>`;
+            const prevT = t==='hard'?'medium':'easier';
+            const prevLbl = t==='hard'?'Medium':'Easier';
+            const mxT = maxThreadsFor(prevT);
+            return `<span class="bsc-chip locked" title="Obtenir ${mxT}/${mxT} threads en ${prevLbl} pour débloquer">${icon('lock',14)}</span>`;
           }
           const active = t === currentTier;
           return `<span class="bsc-chip${active?' active':''} tier-${t}" data-key="${key}" data-tier="${t}" title="${t} · ${thT}/${mtT} threads">${lbl}<sub>${thT}</sub></span>`;
