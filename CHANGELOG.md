@@ -8,6 +8,10 @@
 - **Race-safe hits** — `hitTarget` guards against late clicks on targets destroyed mid-frame
 - **Packaged builds** — Ctrl+Shift+I devtools shortcut disabled outside dev mode
 
+### ⬇ Auto-update
+- **"Vérifier les mises à jour"** bouton dans le modal *À propos* (version desktop) — statut live (vérification, disponible, téléchargement, installé)
+- **CI release workflow** — push d'un tag `v*.*.*` déclenche le build Windows + upload automatique vers GitHub Releases avec `latest.yml`
+
 ### 🧹 Cleanup
 - Removed dead legacy files: `game.js` (old 2D trainer), `netlify/`, `serve.pl`, `serve.ps1`, `netlify.toml`
 - Pruned stale build exclusions from `package.json`

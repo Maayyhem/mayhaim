@@ -3,7 +3,7 @@
 // Handles Discord OAuth via a dedicated popup window that captures
 // the returned discord_token/discord_error query params.
 
-const { app, BrowserWindow, Menu, shell, session, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('electron');
 const path = require('node:path');
 const { autoUpdater } = require('electron-updater');
 
@@ -169,8 +169,21 @@ app.whenReady().then(() => {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
 
+    // Forward lifecycle events to the renderer so the About modal can show
+    // progress / status when the user presses "Check for updates" manually.
+    const emit = (event, payload) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('updater-event', { event, payload });
+      }
+    };
+
+    autoUpdater.on('checking-for-update', () => emit('checking'));
+    autoUpdater.on('update-not-available', (info) => emit('not-available', { version: info && info.version }));
+    autoUpdater.on('download-progress', (p) => emit('progress', { percent: p.percent, bytesPerSecond: p.bytesPerSecond, transferred: p.transferred, total: p.total }));
+
     autoUpdater.on('update-available', (info) => {
       console.log('[updater] Update available:', info.version);
+      emit('available', { version: info.version });
       if (mainWindow) {
         mainWindow.webContents.executeJavaScript(
           `window.showToast && window.showToast('Mise à jour v${info.version} en téléchargement…', {type:'info',icon:'⬇',duration:4000})`
@@ -180,6 +193,7 @@ app.whenReady().then(() => {
 
     autoUpdater.on('update-downloaded', (info) => {
       console.log('[updater] Update downloaded:', info.version);
+      emit('downloaded', { version: info.version });
       dialog.showMessageBox(mainWindow, {
         type: 'info',
         title: 'Mise à jour prête',
@@ -193,6 +207,26 @@ app.whenReady().then(() => {
 
     autoUpdater.on('error', (err) => {
       console.error('[updater] Error:', err.message);
+      emit('error', { message: err && err.message });
+    });
+
+    // Renderer-triggered manual check (from the About modal).
+    // Returns the result of checkForUpdates() so the caller can surface a
+    // "no update available" message even if the event fires synchronously.
+    ipcMain.handle('updater:check', async () => {
+      try {
+        const r = await autoUpdater.checkForUpdates();
+        return {
+          ok: true,
+          currentVersion: app.getVersion(),
+          latestVersion: r && r.updateInfo && r.updateInfo.version,
+        };
+      } catch (err) {
+        return { ok: false, error: err && err.message };
+      }
+    });
+    ipcMain.handle('updater:quit-and-install', () => {
+      autoUpdater.quitAndInstall();
     });
 
     // Check 3s after launch (let the window settle first)

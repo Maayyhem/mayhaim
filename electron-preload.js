@@ -18,6 +18,20 @@ try {
   window.MAYHAIM_IS_ELECTRON = true;
 } catch { /* graceful fallback */ }
 
+// ───── Auto-updater bridge ─────
+// Exposes a tiny API the About modal uses to let the user manually trigger
+// `autoUpdater.checkForUpdates()` and subscribe to its lifecycle events.
+// Only active in packaged builds (main-side is guarded by app.isPackaged).
+window.MAYHAIM_UPDATER = {
+  check: () => ipcRenderer.invoke('updater:check'),
+  quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
+  onEvent: (handler) => {
+    const wrapped = (_e, data) => handler(data);
+    ipcRenderer.on('updater-event', wrapped);
+    return () => ipcRenderer.removeListener('updater-event', wrapped);
+  },
+};
+
 try {
   const clPath = path.join(__dirname, 'CHANGELOG.md');
   if (fs.existsSync(clPath)) {

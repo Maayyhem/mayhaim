@@ -419,10 +419,16 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
         <a href="https://mayhaim.vercel.app" target="_blank" class="btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           <span>🌐</span> Site web
         </a>
+        ${isElectron && window.MAYHAIM_UPDATER ? `
+          <button id="about-check-updates" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;">
+            <span>⬇</span> Vérifier les mises à jour
+          </button>
+          <span id="about-updater-status" style="font-size:0.78rem;color:var(--dim);"></span>
+        ` : ''}
       </div>
 
       ${changelog ? `
@@ -458,11 +464,54 @@
       document.head.appendChild(s);
     }
 
-    return showModal({
+    // Updater subscription lives for the lifetime of the modal; it's cleared
+    // by the onClose hook below regardless of how the modal is dismissed
+    // (× button, ESC, backdrop click, or explicit .close()).
+    let unsubscribeUpdater = null;
+
+    const modalInstance = showModal({
       title: 'À propos de MayhAim',
       content,
       size: 'md',
+      onClose: () => { try { unsubscribeUpdater && unsubscribeUpdater(); } catch {} },
     });
+
+    if (isElectron && window.MAYHAIM_UPDATER) {
+      const btn = content.querySelector('#about-check-updates');
+      const status = content.querySelector('#about-updater-status');
+      const setStatus = (txt) => { if (status) status.textContent = txt || ''; };
+
+      unsubscribeUpdater = window.MAYHAIM_UPDATER.onEvent(({ event, payload }) => {
+        switch (event) {
+          case 'checking': setStatus('Vérification…'); break;
+          case 'available': setStatus(`v${payload.version} disponible, téléchargement…`); break;
+          case 'not-available': setStatus(`À jour (v${payload.version || version})`); break;
+          case 'progress': setStatus(`Téléchargement ${Math.round(payload.percent)}%`); break;
+          case 'downloaded': setStatus(`v${payload.version} prête — redémarrer pour installer`); break;
+          case 'error': setStatus(`Erreur : ${payload.message || 'inconnue'}`); break;
+        }
+      });
+
+      btn && btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        setStatus('Vérification…');
+        try {
+          const r = await window.MAYHAIM_UPDATER.check();
+          if (!r.ok) setStatus(`Erreur : ${r.error || 'inconnue'}`);
+          else if (r.latestVersion && r.latestVersion !== r.currentVersion) {
+            // event handlers above will take it from here (update-available)
+          } else {
+            setStatus(`À jour (v${r.currentVersion})`);
+          }
+        } catch (e) {
+          setStatus(`Erreur : ${e && e.message || 'inconnue'}`);
+        } finally {
+          setTimeout(() => { btn.disabled = false; }, 1500);
+        }
+      });
+    }
+
+    return modalInstance;
   }
 
   /* ============================================================
