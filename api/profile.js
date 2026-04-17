@@ -426,8 +426,8 @@ module.exports = async function handler(req, res) {
         }).sort((a,b) => b.acs - a.acs);
 
         // Round summary
-        const roundSummary = rounds.map(rd => ({
-          round: rd.id ?? rd.round_num,
+        const roundSummary = rounds.map((rd, idx) => ({
+          round: rd.round_num ?? idx,
           winning_team: (rd.winning_team||'').toLowerCase(),
           end_type: rd.end_type || null,
           plant: rd.plant ? { site: rd.plant.site, time: rd.plant.plant_time_in_round } : null,
