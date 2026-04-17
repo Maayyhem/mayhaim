@@ -4320,19 +4320,20 @@ function _trackerApplyFilter(rawData, wrapId) {
     ? all.filter(m => _normMode(m.mode) === _trackerMode)
     : all;
   // Recompute stats from filtered matches
-  let wins=0,losses=0,tK=0,tD=0,tA=0,tHS=0,tSh=0,tSc=0,tRd=0,tDmg=0;
+  let wins=0,losses=0,tK=0,tD=0,tA=0,tHS=0,tSh=0,tSc=0,tRd=0,tDmg=0,tDmgRcv=0;
   const agentMap={}, mapMap={};
   for (const m of filtered) {
     const isWin = m.result === 'WIN'; if(isWin) wins++; else losses++;
     tK+=m.kills||0; tD+=m.deaths||0; tA+=m.assists||0;
     const sh = m._shots||0; tHS+=m._hs||0; tSh+=sh;
-    tSc+=m._score||0; tRd+=m._rounds||0; tDmg+=m._dmg||0;
+    tSc+=m._score||0; tRd+=m._rounds||0; tDmg+=m._dmg||0; tDmgRcv+=m._dmgRcv||0;
     const ag=m.agent||'Unknown', mp=m.map||'Unknown';
-    if(!agentMap[ag]) agentMap[ag]={games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0};
+    if(!agentMap[ag]) agentMap[ag]={games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0,kast:0,kastN:0};
     agentMap[ag].games++; if(isWin) agentMap[ag].wins++;
     agentMap[ag].kills+=m.kills||0; agentMap[ag].deaths+=m.deaths||0;
     agentMap[ag].score+=m._score||0; agentMap[ag].rounds+=m._rounds||0;
     agentMap[ag].hs+=m._hs||0; agentMap[ag].shots+=sh;
+    if(m.kast!=null){agentMap[ag].kast+=m.kast; agentMap[ag].kastN++;}
     if(!mapMap[mp]) mapMap[mp]={games:0,wins:0};
     mapMap[mp].games++; if(isWin) mapMap[mp].wins++;
   }
@@ -4346,11 +4347,13 @@ function _trackerApplyFilter(rawData, wrapId) {
       avg_acs: tRd>0 ? Math.round(tSc/tRd) : 0,
       avg_hs_pct: tSh>0 ? Math.round(tHS/tSh*100) : 0,
       avg_damage: tRd>0 ? Math.round(tDmg/tRd) : 0,
+      avg_damage_received: tRd>0 ? Math.round(tDmgRcv/tRd) : 0,
     },
     top_agents: Object.entries(agentMap).map(([agent,d])=>({
       agent, games:d.games, wins:d.wins, kills:d.kills, deaths:d.deaths,
       avg_acs: d.rounds>0 ? Math.round(d.score/d.rounds) : null,
       avg_hs_pct: d.shots>0 ? Math.round(d.hs/d.shots*100) : null,
+      avg_kast: d.kastN>0 ? Math.round(d.kast/d.kastN) : null,
     })).sort((a,b)=>b.games-a.games).slice(0,5),
     top_maps: Object.entries(mapMap).map(([map,d])=>({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
     recent_matches: filtered,
@@ -4623,12 +4626,15 @@ function trackerRender(data, el) {
   const maps    = data.top_maps   || [];
 
   // Colour helpers
-  const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
-  const clrKDA = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
-  const clrACS = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : 'var(--accent)';
-  const clrHS  = v => v == null ? 'var(--dim)' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : 'var(--dim)';
-  const clrDmg = v => v == null ? 'var(--dim)' : v >= 150 ? '#4ade80' : '#fbbf24';
-  const fmtKDA = (k,d,a) => `<span style="color:#f87171">${k}</span>/<span style="color:#94a3b8">${d}</span>/<span style="color:#60a5fa">${a}</span>`;
+  const clrWR   = v => v >= 50 ? '#4ade80' : '#f87171';
+  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
+  const clrACS  = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : 'var(--accent)';
+  const clrHS   = v => v == null ? 'var(--dim)' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : 'var(--dim)';
+  const clrDmg  = v => v == null ? 'var(--dim)' : v >= 150 ? '#4ade80' : '#fbbf24';
+  const clrKAST = v => v == null ? 'var(--dim)' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
+  const clrRR   = v => v == null ? 'var(--dim)' : v > 0 ? '#4ade80' : '#f87171';
+  const fmtKDA  = (k,d,a) => `<span style="color:#f87171">${k}</span>/<span style="color:#94a3b8">${d}</span>/<span style="color:#60a5fa">${a}</span>`;
+  const fmtRR   = v => v == null ? null : `${v > 0 ? '+' : ''}${v} RR`;
   const relTime = iso => {
     if (!iso) return '';
     const diff = Date.now() - new Date(iso);
@@ -4636,6 +4642,15 @@ function trackerRender(data, el) {
     if (d >= 1) return d === 1 ? 'hier' : `il y a ${d}j`;
     if (h >= 1) return `il y a ${h}h`;
     return 'récemment';
+  };
+  const fmtMultikills = mk => {
+    if (!mk) return '';
+    const badges = [];
+    if (mk.aces   > 0) badges.push(`<span class="trk-mk-badge trk-mk-ace">${mk.aces}×ACE</span>`);
+    if (mk.fourK  > 0) badges.push(`<span class="trk-mk-badge trk-mk-4k">${mk.fourK}×4K</span>`);
+    if (mk.threeK > 0) badges.push(`<span class="trk-mk-badge trk-mk-3k">${mk.threeK}×3K</span>`);
+    if (mk.twoK   > 0) badges.push(`<span class="trk-mk-badge trk-mk-2k">${mk.twoK}×2K</span>`);
+    return badges.join('');
   };
 
   // ── Stats overview strip ──────────────────────────────────────────
@@ -4664,7 +4679,7 @@ function trackerRender(data, el) {
       <div class="trk-stat-cell">
         <div class="trk-stat-big" style="color:${clrDmg(s.avg_damage)}">${s.avg_damage != null ? s.avg_damage : '—'}</div>
         <div class="trk-stat-lbl">Dégâts/Round</div>
-        <div class="trk-stat-sub">impact moyen</div>
+        <div class="trk-stat-sub">${s.avg_damage_received ? `reçus: ${s.avg_damage_received}` : 'impact moyen'}</div>
       </div>
     </div>`;
 
@@ -4674,7 +4689,7 @@ function trackerRender(data, el) {
       <div class="trk-section-title">${icon('user',14)} Agents</div>
       <table class="trk-agent-table">
         <thead><tr>
-          <th>Agent</th><th>Picks</th><th>Win%</th><th>K/D</th><th>ACS</th><th>HS%</th>
+          <th>Agent</th><th>Picks</th><th>Win%</th><th>K/D</th><th>ACS</th><th>HS%</th><th>KAST</th>
         </tr></thead>
         <tbody>${agents.map(a => {
           const wr = a.games > 0 ? Math.round(a.wins / a.games * 100) : 0;
@@ -4690,6 +4705,7 @@ function trackerRender(data, el) {
             <td style="color:${clrKDA(kd)}">${kd}</td>
             <td style="color:${clrACS(a.avg_acs)}">${a.avg_acs ?? '—'}</td>
             <td style="color:${clrHS(a.avg_hs_pct)}">${a.avg_hs_pct != null ? a.avg_hs_pct+'%' : '—'}</td>
+            <td style="color:${clrKAST(a.avg_kast)}">${a.avg_kast != null ? a.avg_kast+'%' : '—'}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>
@@ -4718,10 +4734,11 @@ function trackerRender(data, el) {
 
   // ── Match history cards ───────────────────────────────────────────
   const matchCardsHtml = matches.length ? matches.map(m => {
-    const isWin  = m.result === 'WIN';
-    const agIcon = AGENT_ICONS[(m.agent||'').toLowerCase()];
-    const kd     = m.deaths > 0 ? (m.kills / m.deaths).toFixed(2) : m.kills;
-    const kdClr  = clrKDA(parseFloat(kd));
+    const isWin   = m.result === 'WIN';
+    const agIcon  = AGENT_ICONS[(m.agent||'').toLowerCase()];
+    const kd      = m.deaths > 0 ? (m.kills / m.deaths).toFixed(2) : m.kills;
+    const rrStr   = fmtRR(m.rr_change);
+    const mkHtml  = fmtMultikills(m.multikills);
     const modeLabel = m.mode || 'Competitive';
     return `<div class="trk-card ${isWin ? 'trk-card-win' : 'trk-card-loss'}">
       <div class="trk-card-left">
@@ -4729,14 +4746,15 @@ function trackerRender(data, el) {
           ${agIcon ? `<img src="${agIcon}" alt="${san(m.agent)}">` : `<div class="trk-card-agent-ph">${window.icon('user',18)}</div>`}
         </div>
         <div class="trk-card-info">
-          <div class="trk-card-agent-name">${san(m.agent || '?')}</div>
+          <div class="trk-card-agent-name">${san(m.agent || '?')}${m.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
           <div class="trk-card-meta">${san(modeLabel)} · ${san(m.map)}</div>
-          <div class="trk-card-time">${relTime(m.date)}</div>
+          <div class="trk-card-time">${relTime(m.date)}${mkHtml ? ' · '+mkHtml : ''}</div>
         </div>
       </div>
       <div class="trk-card-result ${isWin ? 'win' : 'loss'}">
         <div class="trk-card-result-label">${m.result}</div>
         <div class="trk-card-score">${san(m.score)}</div>
+        ${rrStr ? `<div class="trk-card-rr" style="color:${clrRR(m.rr_change)}">${rrStr}</div>` : ''}
       </div>
       <div class="trk-card-stats">
         <div class="trk-card-stat">
@@ -4758,6 +4776,10 @@ function trackerRender(data, el) {
         ${m.damage != null ? `<div class="trk-card-stat">
           <div class="trk-card-stat-val" style="color:${clrDmg(m.damage)}">${m.damage}</div>
           <div class="trk-card-stat-lbl">D/R</div>
+        </div>` : ''}
+        ${m.kast != null ? `<div class="trk-card-stat">
+          <div class="trk-card-stat-val" style="color:${clrKAST(m.kast)}">${m.kast}%</div>
+          <div class="trk-card-stat-lbl">KAST</div>
         </div>` : ''}
       </div>
     </div>`;

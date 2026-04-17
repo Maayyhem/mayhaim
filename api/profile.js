@@ -33,6 +33,139 @@ async function fetchHenrik(path) {
   }
 }
 
+// ── Shared match processor (Henrik v3) ────────────────────────────────
+// rrMap: { matchId -> rr_change } — optional, from MMR history
+function _processHenrikMatches(matches, name, tag, rrMap) {
+  let wins=0, losses=0, tK=0, tD=0, tA=0, tHS=0, tSh=0, tSc=0, tRd=0, tDmg=0;
+  const agentMap={}, mapMap={}, recent=[];
+
+  for (const m of matches) {
+    const me = (m.players?.all_players || []).find(
+      p => p.name?.toLowerCase() === name.toLowerCase() && p.tag?.toLowerCase() === tag.toLowerCase()
+    );
+    if (!me) continue;
+    const myTeam = (me.team || '').toLowerCase();
+    const won = m.teams?.[myTeam]?.has_won ?? false;
+    const rBlue = m.teams?.blue?.rounds_won ?? 0, rRed = m.teams?.red?.rounds_won ?? 0;
+    const rTotal = rBlue + rRed;
+    if (won) wins++; else losses++;
+    const st = me.stats || {};
+    tK += st.kills||0; tD += st.deaths||0; tA += st.assists||0; tHS += st.headshots||0;
+    const shots = (st.headshots||0) + (st.bodyshots||0) + (st.legshots||0);
+    tSh += shots; tSc += st.score||0; tRd += rTotal; tDmg += me.damage_made||0;
+    const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
+    const queueMode = m.metadata?.mode || 'Competitive';
+    const matchId = m.metadata?.matchid || null;
+
+    // Per-agent aggregation
+    if (!agentMap[agent]) agentMap[agent] = {games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0};
+    agentMap[agent].games++; if(won) agentMap[agent].wins++;
+    agentMap[agent].kills += st.kills||0; agentMap[agent].deaths += st.deaths||0;
+    agentMap[agent].score += st.score||0; agentMap[agent].rounds += rTotal;
+    agentMap[agent].hs += st.headshots||0; agentMap[agent].shots += shots;
+    if (!mapMap[map]) mapMap[map] = {games:0,wins:0};
+    mapMap[map].games++; if(won) mapMap[map].wins++;
+
+    // Derived per-match stats
+    const acs     = rTotal > 0 ? Math.round((st.score||0) / rTotal) : 0;
+    const hsPct   = shots  > 0 ? Math.round(((st.headshots||0) / shots) * 100) : 0;
+    const dpr     = rTotal > 0 ? Math.round((me.damage_made||0) / rTotal) : null;
+    const dprRcv  = rTotal > 0 ? Math.round((me.damage_received||0) / rTotal) : null;
+    const myR     = myTeam === 'blue' ? rBlue : rRed;
+    const oppR    = myTeam === 'blue' ? rRed  : rBlue;
+
+    // Multi-kills from kill events (kills array on match)
+    const killsByRound = {};
+    for (const k of (m.kills || [])) {
+      if (k.killer_puuid && k.killer_puuid === me.puuid) {
+        killsByRound[k.round] = (killsByRound[k.round] || 0) + 1;
+      }
+    }
+    const vals    = Object.values(killsByRound);
+    const twoK   = vals.filter(v => v === 2).length;
+    const threeK = vals.filter(v => v === 3).length;
+    const fourK  = vals.filter(v => v === 4).length;
+    const aces   = vals.filter(v => v >= 5).length;
+
+    // First blood: earliest kill in the match by this player
+    const matchKills = [...(m.kills || [])].sort((a, b) => (a.kill_time_in_match||0) - (b.kill_time_in_match||0));
+    const firstBlood = matchKills.length > 0 && matchKills[0].killer_puuid === me.puuid;
+
+    // KAST% — per round: did player Kill/Assist/Survive/Trade?
+    let kastRounds = 0;
+    if (m.rounds && m.rounds.length > 0) {
+      const myPuuid = me.puuid;
+      for (const rd of m.rounds) {
+        const roundNum = rd.id ?? rd.round_num ?? null;
+        // Kill or Assist in this round
+        const hadKill = (m.kills || []).some(k => k.round === roundNum && k.killer_puuid === myPuuid);
+        const hadAssist = (m.kills || []).some(k => k.round === roundNum && (k.assistants||[]).some(a => a.assistant_puuid === myPuuid));
+        // Survived: player not in victim list this round
+        const died = (m.kills || []).some(k => k.round === roundNum && k.victim_puuid === myPuuid);
+        const survived = !died;
+        // Traded: died but killer was killed within 3s by teammate
+        let traded = false;
+        if (died) {
+          const myDeath = (m.kills || []).find(k => k.round === roundNum && k.victim_puuid === myPuuid);
+          if (myDeath) {
+            const killerPuuid = myDeath.killer_puuid;
+            const tradeWindow = (myDeath.kill_time_in_round || 0) + 3000;
+            traded = (m.kills || []).some(k =>
+              k.round === roundNum && k.victim_puuid === killerPuuid &&
+              (k.kill_time_in_round||0) <= tradeWindow &&
+              k.killer_puuid !== myPuuid // teammate killed the killer
+            );
+          }
+        }
+        if (hadKill || hadAssist || survived || traded) kastRounds++;
+      }
+    }
+    const kastPct = (m.rounds && m.rounds.length > 0) ? Math.round(kastRounds / m.rounds.length * 100) : null;
+
+    // Ability casts
+    const ab = me.ability_casts || {};
+
+    // RR change from MMR history
+    const rrChange = (rrMap && matchId) ? (rrMap[matchId] ?? null) : null;
+
+    recent.push({
+      map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
+      kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0,
+      acs, hs_pct: hsPct, damage: dpr, damage_received: dprRcv,
+      multikills: { twoK, threeK, fourK, aces },
+      first_blood: firstBlood,
+      kast: kastPct,
+      rr_change: rrChange,
+      ability_casts: { c: ab.c_cast||0, q: ab.q_cast||0, e: ab.e_cast||0, x: ab.x_cast||0 },
+      date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
+      // raw fields for client-side re-aggregation
+      _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal,
+      _dmg: me.damage_made||0, _dmgRcv: me.damage_received||0,
+    });
+  }
+
+  const n = wins + losses;
+  const topAgents = Object.entries(agentMap).map(([agent, d]) => ({
+    agent, games: d.games, wins: d.wins, kills: d.kills, deaths: d.deaths,
+    avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
+    avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
+  })).sort((a,b) => b.games - a.games).slice(0, 5);
+
+  return {
+    stats: {
+      matches_analyzed: n, wins, losses,
+      win_rate: n > 0 ? Math.round(wins/n*100) : 0,
+      kda: tD > 0 ? parseFloat(((tK + tA*0.5)/tD).toFixed(2)) : tK,
+      avg_acs: tRd > 0 ? Math.round(tSc/tRd) : 0,
+      avg_hs_pct: tSh > 0 ? Math.round(tHS/tSh*100) : 0,
+      avg_damage: tRd > 0 ? Math.round(tDmg/tRd) : 0,
+    },
+    top_agents: topAgents,
+    top_maps: Object.entries(mapMap).map(([map,d]) => ({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
+    recent_matches: recent,
+  };
+}
+
 // ── Official Riot Games API ────────────────────────────────────────────
 const TIER_MAP = {
   0:'Unranked', 3:'Iron 1', 4:'Iron 2', 5:'Iron 3',
@@ -193,78 +326,33 @@ module.exports = async function handler(req, res) {
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
-        // 1. Fetch rank
-        const mmr = await fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
-        if (mmr.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        // Parallel: matches + MMR rank + MMR history (for RR per game)
+        const [matchResult, mmrResult, mmrHistResult] = await Promise.all([
+          fetchHenrik(`/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`),
+          fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+          fetchHenrik(`/valorant/v3/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+        ]);
+
+        if (matchResult.status === 429 || mmrResult.status === 429) {
+          return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        }
+        if (matchResult.status !== 200) return res.status(502).json({ error: `API indisponible (${matchResult.status})` });
+
+        // Rank
         let rank = null, lp = null;
-        if (mmr.status === 200 && mmr.data?.data?.current_data) {
-          rank = mmr.data.data.current_data.currenttierpatched || null;
-          lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
+        if (mmrResult.status === 200 && mmrResult.data?.data?.current_data) {
+          rank = mmrResult.data.data.current_data.currenttierpatched || null;
+          lp   = mmrResult.data.data.current_data.ranking_in_tier   ?? null;
         }
 
-        // 2. Fetch all recent matches (no mode filter — client filters locally)
-        const result = await fetchHenrik(
-          `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`
-        );
-        if (result.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
-        if (result.status !== 200) return res.status(502).json({ error: `API indisponible (${result.status})` });
-
-        // 3. Process matches — include raw fields for client-side aggregation
-        const matches = result.data.data || [];
-        let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
-        let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
-        const agentMap = {}, mapMap = {}, recent = [];
-
-        for (const m of matches) {
-          const me = (m.players?.all_players || []).find(
-            p => p.name?.toLowerCase() === name.toLowerCase() && p.tag?.toLowerCase() === tag.toLowerCase()
-          );
-          if (!me) continue;
-          const myTeam = (me.team || '').toLowerCase();
-          const won = m.teams?.[myTeam]?.has_won ?? false;
-          const rBlue = m.teams?.blue?.rounds_won ?? 0, rRed = m.teams?.red?.rounds_won ?? 0;
-          const rTotal = rBlue + rRed;
-          if (won) wins++; else losses++;
-          const st = me.stats || {};
-          totalKills += st.kills || 0; totalDeaths += st.deaths || 0; totalAssists += st.assists || 0;
-          totalHS += st.headshots || 0;
-          const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
-          totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
-          const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          const queueMode = m.metadata?.mode || 'Competitive';
-          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
-          agentMap[agent].games++; if (won) agentMap[agent].wins++;
-          agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
-          agentMap[agent].score += st.score || 0; agentMap[agent].rounds += rTotal;
-          agentMap[agent].hs += st.headshots || 0; agentMap[agent].shots += shots;
-          if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
-          mapMap[map].games++; if (won) mapMap[map].wins++;
-          const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
-          const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
-          const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
-          const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          // Include _shots/_hs/_score/_rounds/_dmg for client-side re-aggregation per mode
-          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
-            kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0, acs, hs_pct: hsPct, damage: dpr,
-            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
-            _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal, _dmg: me.damage_made||0,
-          });
+        // RR history map: matchId → rr_change
+        const rrMap = {};
+        for (const h of (mmrHistResult.data?.data?.history || [])) {
+          if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
         }
 
-        const n = wins + losses;
-        const topAgents = Object.entries(agentMap).map(([agent, d]) => ({
-          agent, games: d.games, wins: d.wins,
-          avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
-          avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
-          kills: d.kills, deaths: d.deaths,
-        })).sort((a,b) => b.games - a.games).slice(0, 5);
-        return res.status(200).json({
-          account: { gamename: name, tagline: tag, rank, lp },
-          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: totalRounds > 0 ? Math.round(totalDamage / totalRounds) : 0 },
-          top_agents: topAgents,
-          top_maps:   Object.entries(mapMap).map(([map, d]) => ({ map, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
-          recent_matches: recent,
-        });
+        const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, ...processed });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
@@ -361,72 +449,26 @@ module.exports = async function handler(req, res) {
 
       // ── Henrik API fallback ──────────────────────────────────────────
       try {
-        // Fetch all recent matches — client filters by mode locally
         const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
-        let result = null;
+        let matchResult = null, foundRegion = shard || 'eu';
         for (const r of regionList) {
-          const attempt = await fetchHenrik(
-            `/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`
-          );
-          if (attempt.status === 200) { result = attempt; break; }
+          const attempt = await fetchHenrik(`/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`);
+          if (attempt.status === 200) { matchResult = attempt; foundRegion = r; break; }
           if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         }
-        if (!result || result.status !== 200) return res.status(502).json({ error: `Joueur introuvable sur toutes les régions. Relie ton compte à nouveau.` });
+        if (!matchResult || matchResult.status !== 200) return res.status(502).json({ error: 'Joueur introuvable. Relie ton compte à nouveau.' });
 
-        const matches = result.data.data || [];
-        let wins = 0, losses = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
-        let totalHS = 0, totalShots = 0, totalScore = 0, totalRounds = 0, totalDamage = 0;
-        const agentMap = {}, mapMap = {}, recent = [];
+        // Fetch MMR history for RR per game (best effort, don't block on failure)
+        const rrMap = {};
+        try {
+          const mmrH = await fetchHenrik(`/valorant/v3/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+          for (const h of (mmrH.data?.data?.history || [])) {
+            if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
+          }
+        } catch {}
 
-        for (const m of matches) {
-          const me = (m.players?.all_players || []).find(
-            p => p.name?.toLowerCase() === name.toLowerCase() && p.tag?.toLowerCase() === tag.toLowerCase()
-          );
-          if (!me) continue;
-          const myTeam = (me.team || '').toLowerCase();
-          const won = m.teams?.[myTeam]?.has_won ?? false;
-          const rBlue = m.teams?.blue?.rounds_won ?? 0, rRed = m.teams?.red?.rounds_won ?? 0;
-          const rTotal = rBlue + rRed;
-          if (won) wins++; else losses++;
-          const st = me.stats || {};
-          totalKills += st.kills || 0; totalDeaths += st.deaths || 0; totalAssists += st.assists || 0;
-          totalHS += st.headshots || 0;
-          const shots = (st.headshots || 0) + (st.bodyshots || 0) + (st.legshots || 0);
-          totalShots += shots; totalScore += st.score || 0; totalRounds += rTotal; totalDamage += me.damage_made || 0;
-          const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
-          const queueMode = m.metadata?.mode || 'Competitive';
-          if (!agentMap[agent]) agentMap[agent] = { games: 0, wins: 0, kills: 0, deaths: 0, score: 0, rounds: 0, hs: 0, shots: 0 };
-          agentMap[agent].games++; if (won) agentMap[agent].wins++;
-          agentMap[agent].kills += st.kills || 0; agentMap[agent].deaths += st.deaths || 0;
-          agentMap[agent].score += st.score || 0; agentMap[agent].rounds += rTotal;
-          agentMap[agent].hs += st.headshots || 0; agentMap[agent].shots += shots;
-          if (!mapMap[map]) mapMap[map] = { games: 0, wins: 0 };
-          mapMap[map].games++; if (won) mapMap[map].wins++;
-          const acs = rTotal > 0 ? Math.round((st.score || 0) / rTotal) : 0;
-          const hsPct = shots > 0 ? Math.round(((st.headshots || 0) / shots) * 100) : 0;
-          const dpr = rTotal > 0 ? Math.round((me.damage_made || 0) / rTotal) : null;
-          const myR = myTeam === 'blue' ? rBlue : rRed, oppR = myTeam === 'blue' ? rRed : rBlue;
-          recent.push({ map, agent, mode: queueMode, result: won ? 'WIN' : 'LOSS', score: `${myR}-${oppR}`,
-            kills: st.kills||0, deaths: st.deaths||0, assists: st.assists||0, acs, hs_pct: hsPct, damage: dpr,
-            date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
-            _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal, _dmg: me.damage_made||0,
-          });
-        }
-
-        const n = wins + losses;
-        const topAgents = Object.entries(agentMap).map(([agent, d]) => ({
-          agent, games: d.games, wins: d.wins,
-          avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
-          avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
-          kills: d.kills, deaths: d.deaths,
-        })).sort((a,b) => b.games - a.games).slice(0, 5);
-        return res.status(200).json({
-          account: { gamename: name, tagline: tag, rank, lp },
-          stats: { matches_analyzed: n, wins, losses, win_rate: n > 0 ? Math.round(wins / n * 100) : 0, kda: totalDeaths > 0 ? parseFloat(((totalKills + totalAssists * 0.5) / totalDeaths).toFixed(2)) : totalKills, avg_acs: totalRounds > 0 ? Math.round(totalScore / totalRounds) : 0, avg_hs_pct: totalShots > 0 ? Math.round(totalHS / totalShots * 100) : 0, avg_damage: totalRounds > 0 ? Math.round(totalDamage / totalRounds) : 0 },
-          top_agents: topAgents,
-          top_maps:   Object.entries(mapMap).map(([map, d]) => ({ map, ...d })).sort((a,b) => b.games - a.games).slice(0, 5),
-          recent_matches: recent,
-        });
+        const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp }, ...processed });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
