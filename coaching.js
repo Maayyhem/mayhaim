@@ -3833,6 +3833,58 @@ function meUpdateScenarioBanner() {
 
 // ============ HISTORIQUE ============
 
+// Mode metadata: label and category for display
+const _HM = {
+  whisphereraw:   { label:'WhisphereRawControl',         cat:'control_tracking',  type:'track' },
+  whisphere:      { label:'Whisphere',                   cat:'control_tracking',  type:'track' },
+  smoothbot:      { label:'SmoothBot Goated',            cat:'control_tracking',  type:'track' },
+  leaptrack:      { label:'Leaptrack Goated',            cat:'control_tracking',  type:'track' },
+  ctrlsphere_aim: { label:'Controlsphere rAim',          cat:'control_tracking',  type:'track' },
+  vt_ctrlsphere:  { label:'VT Controlsphere',            cat:'control_tracking',  type:'track' },
+  air_angelic:    { label:'Air Angelic 4',               cat:'control_tracking',  type:'track' },
+  cloverraw:      { label:'Cloverrawcontrol',            cat:'control_tracking',  type:'track' },
+  ctrlsphere_far: { label:'Controlsphere Far',           cat:'control_tracking',  type:'track' },
+  pgti:           { label:'PGTI Voltaic Easy',           cat:'control_tracking',  type:'track' },
+  air_celestial:  { label:'Air CELESTIAL',               cat:'control_tracking',  type:'track' },
+  whisphere_slow: { label:'Whisphere Slow',              cat:'control_tracking',  type:'track' },
+  ground_plaza:   { label:'Ground Plaza Sparky',         cat:'reactive_tracking', type:'track' },
+  ctrlsphere_ow:  { label:'Controlsphere OW',            cat:'reactive_tracking', type:'track' },
+  flicker_plaza:  { label:'Flicker Plaza rAim',          cat:'reactive_tracking', type:'track' },
+  polarized_hell: { label:'Polarized Hell',              cat:'reactive_tracking', type:'track' },
+  air_pure:       { label:'Air Pure',                    cat:'reactive_tracking', type:'track' },
+  air_voltaic:    { label:'Air Voltaic',                 cat:'reactive_tracking', type:'track' },
+  pokeball_frenzy:{ label:'Pokeball Frenzy',             cat:'flick_tech',        type:'click' },
+  w1w3ts_reload:  { label:'1w3ts Reload',                cat:'flick_tech',        type:'click', useHits:true },
+  vox_ts2:        { label:'voxTargetSwitch 2',           cat:'flick_tech',        type:'click', useHits:true },
+  beants:         { label:'BeanTS',                      cat:'flick_tech',        type:'click', useHits:true },
+  floatts:        { label:'FloatTS Angelic',             cat:'flick_tech',        type:'click', useHits:true },
+  waldots:        { label:'WaldoTS',                     cat:'flick_tech',        type:'click', useHits:true },
+  devts:          { label:'devTS NR Goated 5Bot',        cat:'flick_tech',        type:'click', useHits:true },
+  domiswitch:     { label:'domiSwitch',                  cat:'flick_tech',        type:'click' },
+  tamts:          { label:'tamTargetSwitch',             cat:'flick_tech',        type:'click', useHits:true },
+  pasu_reload:    { label:'Pasu Reload',                 cat:'click_timing',      type:'click', useHits:true },
+  vt_bounceshot:  { label:'VT Bounceshot',               cat:'click_timing',      type:'click' },
+  ctrlsphere_clk: { label:'Controlsphere Click',         cat:'click_timing',      type:'click', useHits:true },
+  popcorn_mv:     { label:'Popcorn MV',                  cat:'click_timing',      type:'click', useHits:true },
+  pasu_angelic:   { label:'Pasu Angelic',                cat:'click_timing',      type:'click', useHits:true },
+  pasu_perfected: { label:'1w2ts Pasu Perfected',        cat:'click_timing',      type:'click', useHits:true },
+  pasu_micro:     { label:'Pasu Perfected Micro',        cat:'click_timing',      type:'click' },
+  floatheads_t:   { label:'Floating Heads Timing',       cat:'click_timing',      type:'click' },
+  vox_click:      { label:'voxTargetClick',              cat:'click_timing',      type:'click', useHits:true },
+  crosshair_drill:{ label:'Crosshair Placement',         cat:'cours',             type:'click' },
+  deadzone_drill: { label:'Deadzone Drill',              cat:'cours',             type:'track' },
+  burst_drill:    { label:'Burst Transfer',              cat:'cours',             type:'click' },
+  strafe_drill:   { label:'Strafe Drill',                cat:'cours',             type:'track' },
+  reaction_drill: { label:'Reaction Drill',              cat:'cours',             type:'click' },
+  micro_drill:    { label:'Micro Precision',             cat:'cours',             type:'click' },
+  gridshot:       { label:'Gridshot',                    cat:'cours',             type:'click' },
+  speedflick:     { label:'Speed Flick',                 cat:'cours',             type:'click' },
+};
+const _CAT_LABELS_H = {
+  all:'Tous', control_tracking:'Control Tracking', reactive_tracking:'Reactive Tracking',
+  flick_tech:'Flick Tech', click_timing:'Click Timing', cours:'Cours / Drills',
+};
+
 let _historyFilter = 'all';
 async function coachingRenderHistory() {
   const el = document.getElementById('ch-history-content');
@@ -3840,7 +3892,7 @@ async function coachingRenderHistory() {
   if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connecte-toi pour voir ton historique.</p>'; return; }
   el.innerHTML = '<p class="ch-empty">Chargement...</p>';
   try {
-    const res = await fetch(`${API_BASE}/history?limit=100`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const res = await fetch(`${API_BASE}/history?limit=200`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
     if (!res.ok) throw new Error('Erreur serveur');
     const { history } = await res.json();
     if (!history || !history.length) {
@@ -3856,47 +3908,61 @@ async function coachingRenderHistory() {
 function _renderHistoryUI(history) {
   const el = document.getElementById('ch-history-content');
   if (!el) return;
-  const modeLabel = m => m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-  const fmt = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+  const fmt  = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   const fmtR = v => v > 0 ? v+'ms' : '—';
-  const fmtScore = v => Number(v).toLocaleString();
+  const mLabel = m => (_HM[m]?.label) || m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const mCat   = m => _HM[m]?.cat || 'other';
+  const isTrack = m => _HM[m]?.type === 'track';
+  const isUseHits = m => !!_HM[m]?.useHits;
 
-  // Get unique modes for filter tabs
-  const modes = ['all', ...[...new Set(history.map(h => h.mode))].sort()];
+  // Category filter: which cats appear in data
+  const presentCats = [...new Set(history.map(h => mCat(h.mode)))];
+  const cats = ['all', ...Object.keys(_CAT_LABELS_H).filter(c => c !== 'all' && presentCats.includes(c))];
 
-  // Filter
-  const filtered = _historyFilter === 'all' ? history : history.filter(h => h.mode === _historyFilter);
+  // Filter by category
+  const filtered = _historyFilter === 'all'
+    ? history
+    : history.filter(h => mCat(h.mode) === _historyFilter);
 
-  // Compute per-mode PBs
+  // Per-mode PB (by score)
   const pbByMode = {};
   history.forEach(h => {
     if (!pbByMode[h.mode] || h.score > pbByMode[h.mode]) pbByMode[h.mode] = h.score;
   });
 
-  // Stats summary for filtered set
-  const totalGames = filtered.length;
-  const avgAcc = totalGames ? Math.round(filtered.reduce((s,h) => s + (h.accuracy||0), 0) / totalGames) : 0;
-  const bestScore = totalGames ? Math.max(...filtered.map(h => h.score)) : 0;
+  // Summary stats for filtered set
+  const n = filtered.length;
+  const totalTime = filtered.reduce((s,h) => s + (h.duration||0), 0);
+  const avgAcc = n ? Math.round(filtered.reduce((s,h) => s + (h.accuracy||0), 0) / n) : 0;
   const avgReact = (() => {
-    const with_rt = filtered.filter(h => h.avg_reaction > 0);
-    return with_rt.length ? Math.round(with_rt.reduce((s,h) => s + h.avg_reaction, 0) / with_rt.length) : 0;
+    const wR = filtered.filter(h => h.avg_reaction > 0);
+    return wR.length ? Math.round(wR.reduce((s,h) => s + h.avg_reaction, 0) / wR.length) : 0;
   })();
+  const fmtTime = s => s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m` : `${s}s`;
+
+  // Main score metric per row: hits for useHits, accuracy% for tracking, score for others
+  const rowMetric = h => {
+    if (isTrack(h.mode))    return { val: `${h.accuracy??0}%`,                 label: 'On-Target' };
+    if (isUseHits(h.mode))  return { val: (h.hits??0).toString(),              label: 'Hits' };
+    return                         { val: Number(h.score).toLocaleString(),     label: 'Score' };
+  };
 
   el.innerHTML = `
-    <!-- Mode filter tabs -->
+    <!-- Category filter tabs -->
     <div class="hist-filter-wrap">
-      ${modes.map(m => `<button class="hist-filter-btn${_historyFilter===m?' active':''}" onclick="_historySetFilter('${m}')">${m==='all'? 'Tous les modes' : modeLabel(san(m))}</button>`).join('')}
+      ${cats.map(c => `<button class="hist-filter-btn${_historyFilter===c?' active':''}" onclick="_historySetFilter('${c}')">${_CAT_LABELS_H[c]||c}</button>`).join('')}
     </div>
 
     <!-- Stats summary strip -->
     <div class="hist-summary-strip">
       <div class="hist-summary-item">
-        <span class="hist-summary-val">${totalGames}</span>
+        <span class="hist-summary-val">${n}</span>
         <span class="hist-summary-lbl">${icon('gamepad',13)} Parties</span>
       </div>
       <div class="hist-summary-item">
-        <span class="hist-summary-val" style="color:var(--accent)">${fmtScore(bestScore)}</span>
-        <span class="hist-summary-lbl">${icon('trophy',13)} Meilleur</span>
+        <span class="hist-summary-val">${fmtTime(totalTime)}</span>
+        <span class="hist-summary-lbl">${icon('training',13)} Temps total</span>
       </div>
       <div class="hist-summary-item">
         <span class="hist-summary-val">${avgAcc}%</span>
@@ -3909,30 +3975,39 @@ function _renderHistoryUI(history) {
     </div>
 
     <!-- History table -->
-    <div style="overflow-x:auto;margin-top:12px">
+    <div class="hist-table-scroll">
       <table class="admin-table hist-table">
         <thead><tr>
-          <th>Mode</th>
-          <th style="text-align:right">Score</th>
+          <th>Scénario</th>
+          <th>Catégorie</th>
+          <th style="text-align:right">Perf.</th>
           <th style="text-align:right">Précision</th>
           <th style="text-align:right">Hits</th>
           <th style="text-align:right">Misses</th>
           <th style="text-align:right">Réaction</th>
-          <th style="text-align:right">Best Combo</th>
+          <th style="text-align:right">Combo</th>
           <th style="text-align:right">Durée</th>
           <th style="text-align:right">Date</th>
         </tr></thead>
         <tbody>${filtered.map(h => {
           const isPB = pbByMode[h.mode] === h.score && h.score > 0;
-          const dur = h.duration ? `${h.duration}s` : '—';
+          const rm   = rowMetric(h);
+          const catKey = mCat(h.mode);
+          const catLbl = _CAT_LABELS_H[catKey] || catKey;
+          const catClr = catKey==='control_tracking'?'#60a5fa':catKey==='reactive_tracking'?'#c084fc':catKey==='flick_tech'?'#fbbf24':catKey==='click_timing'?'#4ade80':'#94a3b8';
+          const dur  = h.duration ? `${h.duration}s` : '—';
           return `<tr class="${isPB ? 'hist-row-pb' : ''}">
-            <td><span class="hist-mode-badge">${modeLabel(san(h.mode))}</span>${isPB ? `<span class="hist-pb-tag">${icon('star',11)} PB</span>` : ''}</td>
-            <td style="text-align:right;color:var(--accent);font-weight:700">${fmtScore(h.score)}</td>
+            <td>
+              <span class="hist-mode-badge">${san(mLabel(h.mode))}</span>
+              ${isPB ? `<span class="hist-pb-tag">${icon('star',11)} PB</span>` : ''}
+            </td>
+            <td><span class="hist-cat-pill" style="color:${catClr};border-color:${catClr}20;background:${catClr}12">${catLbl}</span></td>
+            <td style="text-align:right;font-weight:700;color:var(--accent)">${san(rm.val)}</td>
             <td style="text-align:right">${h.accuracy ?? '—'}%</td>
             <td style="text-align:right;color:#4ade80">${h.hits ?? '—'}</td>
-            <td style="text-align:right;color:#ff4655">${h.misses ?? '—'}</td>
+            <td style="text-align:right;color:#f87171">${h.misses ?? '—'}</td>
             <td style="text-align:right">${fmtR(h.avg_reaction)}</td>
-            <td style="text-align:right">${h.best_combo > 0 ? `x${h.best_combo}` : '—'}</td>
+            <td style="text-align:right">${h.best_combo > 0 ? `×${h.best_combo}` : '—'}</td>
             <td style="text-align:right;color:var(--dim)">${dur}</td>
             <td style="text-align:right;color:var(--dim)">${fmt(h.played_at)}</td>
           </tr>`;
@@ -3940,15 +4015,14 @@ function _renderHistoryUI(history) {
       </table>
     </div>`;
 
-  // Chart rendered after innerHTML (canvas is outside el, but ensures DOM is ready)
   requestAnimationFrame(() => renderHistoryChart(filtered));
 }
 
-function _historySetFilter(mode) {
-  _historyFilter = mode;
+function _historySetFilter(cat) {
+  _historyFilter = cat;
   if (_historyData && _historyData.length) _renderHistoryUI(_historyData);
 }
-window._historySetFilter = _historySetFilter; // expose for onclick in innerHTML
+window._historySetFilter = _historySetFilter;
 
 function renderHistoryChart(history) {
   const canvas = document.getElementById('ch-history-chart');
