@@ -2977,6 +2977,27 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .trk-qtab:hover { color: var(--txt); }
 .trk-qtab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+/* Act filter tabs (secondary filter — pill style) */
+.trk-act-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+}
+.trk-atab {
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 6px 12px; font-size: 0.75rem; font-weight: 600;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px); color: var(--dim); cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  font-family: var(--font); line-height: 1.1;
+}
+.trk-atab:hover { color: var(--txt); border-color: rgba(255,255,255,0.16); }
+.trk-atab.active {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(255, 70, 85, 0.06);
+}
+.trk-atab-lbl   { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.3px; }
+.trk-atab-range { font-size: 0.6rem;  color: var(--dim); font-weight: 500; letter-spacing: 0.2px; }
+.trk-atab.active .trk-atab-range { color: var(--accent); opacity: 0.75; }
+
 /* ── Stats Strip ── */
 .trk-stats-strip {
   display: grid; grid-template-columns: repeat(8, 1fr);

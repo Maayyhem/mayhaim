@@ -4301,10 +4301,41 @@ function _rankEmblemUrl(rankStr) {
 
 // ── Tracker state ─────────────────────────────────────────────────────
 let _trackerMode      = 'competitive'; // current queue filter
+let _trackerAct       = '';            // current act filter ('' = all)
 let _trackerCtx       = 'self';        // 'self' | 'search'
 let _trackerSearch    = null;          // { name, tag, region } for search context
 let _trackerRawData   = null;          // full unfiltered data (self)
 let _trackerSrchRaw   = null;          // full unfiltered data (search)
+
+// Build a consistent key for a match (season_id from API, or year-month fallback)
+function _trkMatchActKey(m) {
+  if (m?.season_id) return String(m.season_id);
+  const d = m?.date ? String(m.date) : '';
+  return d ? 'month-' + d.substring(0, 7) : 'unknown';
+}
+
+// Group matches by act (season_id), sorted by recency (most recent group first)
+function _trkSeasonGroups(matches) {
+  const map = new Map();
+  for (const m of (matches || [])) {
+    const key = _trkMatchActKey(m);
+    if (!map.has(key)) map.set(key, { id: key, matches: [], firstDate: m.date, lastDate: m.date });
+    const g = map.get(key);
+    g.matches.push(m);
+    if (m.date && (!g.firstDate || m.date < g.firstDate)) g.firstDate = m.date;
+    if (m.date && (!g.lastDate  || m.date > g.lastDate )) g.lastDate  = m.date;
+  }
+  const groups = [...map.values()];
+  groups.sort((a,b) => (b.lastDate||'').localeCompare(a.lastDate||''));
+  // Labels: "Acte courant", "Acte −1", etc. + readable date range
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '';
+  groups.forEach((g, i) => {
+    g.label = i === 0 ? 'Acte courant' : `Acte −${i}`;
+    g.range = g.firstDate && g.lastDate ? `${fmt(g.firstDate)} → ${fmt(g.lastDate)}` : '';
+    g.count = g.matches.length;
+  });
+  return groups;
+}
 
 // Normalise Henrik's mode string to our filter key
 function _normMode(str) {
@@ -4316,17 +4347,31 @@ function _trackerApplyFilter(rawData, wrapId) {
   const wrap = document.getElementById(wrapId);
   if (!wrap || !rawData) return;
   const all = rawData.recent_matches || [];
-  const filtered = _trackerMode
+  // Build act groups from ALL matches (so tabs always reflect the full history)
+  const seasonGroups = _trkSeasonGroups(all);
+  // Reset act filter if the selected act no longer exists in the data
+  if (_trackerAct && !seasonGroups.some(g => g.id === _trackerAct)) _trackerAct = '';
+  let filtered = _trackerMode
     ? all.filter(m => _normMode(m.mode) === _trackerMode)
     : all;
+  if (_trackerAct) {
+    filtered = filtered.filter(m => _trkMatchActKey(m) === _trackerAct);
+  }
   // Recompute stats from filtered matches
   let wins=0,losses=0,tK=0,tD=0,tA=0,tHS=0,tSh=0,tSc=0,tRd=0,tDmg=0,tDmgRcv=0;
+  let tKastSum=0,tKastN=0,tPlants=0,tDefuses=0,tClutches=0,tFirstBloods=0,tFirstDeaths=0;
   const agentMap={}, mapMap={};
   for (const m of filtered) {
     const isWin = m.result === 'WIN'; if(isWin) wins++; else losses++;
     tK+=m.kills||0; tD+=m.deaths||0; tA+=m.assists||0;
     const sh = m._shots||0; tHS+=m._hs||0; tSh+=sh;
     tSc+=m._score||0; tRd+=m._rounds||0; tDmg+=m._dmg||0; tDmgRcv+=m._dmgRcv||0;
+    if (m.kast != null) { tKastSum += m.kast; tKastN++; }
+    tPlants      += m.plants      || 0;
+    tDefuses     += m.defuses     || 0;
+    tClutches    += m.clutches    || 0;
+    if (m.first_blood) tFirstBloods++;
+    if (m.first_death) tFirstDeaths++;
     const ag=m.agent||'Unknown', mp=m.map||'Unknown';
     if(!agentMap[ag]) agentMap[ag]={games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0,kast:0,kastN:0};
     agentMap[ag].games++; if(isWin) agentMap[ag].wins++;
@@ -4348,6 +4393,9 @@ function _trackerApplyFilter(rawData, wrapId) {
       avg_hs_pct: tSh>0 ? Math.round(tHS/tSh*100) : 0,
       avg_damage: tRd>0 ? Math.round(tDmg/tRd) : 0,
       avg_damage_received: tRd>0 ? Math.round(tDmgRcv/tRd) : 0,
+      avg_kast: tKastN>0 ? Math.round(tKastSum/tKastN) : null,
+      total_plants: tPlants, total_defuses: tDefuses, total_clutches: tClutches,
+      total_first_bloods: tFirstBloods, total_first_deaths: tFirstDeaths,
     },
     top_agents: Object.entries(agentMap).map(([agent,d])=>({
       agent, games:d.games, wins:d.wins, kills:d.kills, deaths:d.deaths,
@@ -4357,6 +4405,7 @@ function _trackerApplyFilter(rawData, wrapId) {
     })).sort((a,b)=>b.games-a.games).slice(0,5),
     top_maps: Object.entries(mapMap).map(([map,d])=>({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
     recent_matches: filtered,
+    season_groups: seasonGroups,
   };
   trackerRender(recomputed, wrap);
 }
@@ -4364,6 +4413,15 @@ function _trackerApplyFilter(rawData, wrapId) {
 window._trackerSetMode = function(mode) {
   _trackerMode = mode;
   document.querySelectorAll('.trk-qtab').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  if (_trackerCtx === 'search') {
+    _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
+  } else {
+    _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
+  }
+};
+
+window._trackerSetAct = function(actId) {
+  _trackerAct = actId || '';
   if (_trackerCtx === 'search') {
     _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
   } else {
@@ -4440,6 +4498,18 @@ function _trkQueueTabs() {
   return `<div class="trk-queue-tabs">${queues.map(q =>
     `<button class="trk-qtab${_trackerMode===q.mode?' active':''}" data-mode="${q.mode}" onclick="_trackerSetMode('${q.mode}')">${q.label}</button>`
   ).join('')}</div>`;
+}
+
+function _trkActTabs(groups) {
+  if (!groups || groups.length < 2) return '';
+  const all = `<button class="trk-atab${!_trackerAct?' active':''}" data-act="" onclick="_trackerSetAct('')">Tous actes</button>`;
+  const tabs = groups.map(g =>
+    `<button class="trk-atab${_trackerAct===g.id?' active':''}" data-act="${san(g.id)}" onclick="_trackerSetAct('${san(g.id)}')" title="${san(g.range)} · ${g.count} parties">
+      <span class="trk-atab-lbl">${san(g.label)}</span>
+      <span class="trk-atab-range">${san(g.range)}</span>
+    </button>`
+  ).join('');
+  return `<div class="trk-act-tabs">${all}${tabs}</div>`;
 }
 
 async function trackerLinkRiot() {
@@ -4633,6 +4703,7 @@ function trackerRender(data, el) {
   const matches = data.recent_matches || [];
   const agents  = data.top_agents || [];
   const maps    = data.top_maps   || [];
+  const seasonGroups = data.season_groups || [];
 
   // Colour helpers
   const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
@@ -4807,6 +4878,7 @@ function trackerRender(data, el) {
   }).join('') : `<p style="color:var(--dim);font-size:0.85rem;padding:24px 0;text-align:center">Aucune partie trouvée pour ce mode.</p>`;
 
   el.innerHTML = `
+    ${_trkActTabs(seasonGroups)}
     ${statsHtml}
     <div class="trk-split">
       ${agentTableHtml}

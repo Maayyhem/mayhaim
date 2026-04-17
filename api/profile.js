@@ -57,6 +57,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
     const agent = me.character || 'Unknown', map = m.metadata?.map || 'Unknown';
     const queueMode = m.metadata?.mode || 'Competitive';
     const matchId = m.metadata?.matchid || null;
+    const seasonId = m.metadata?.season_id || m.metadata?.season || null;
 
     // Per-agent aggregation
     if (!agentMap[agent]) agentMap[agent] = {games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0,kast_sum:0,kast_games:0};
@@ -184,6 +185,7 @@ function _processHenrikMatches(matches, name, tag, rrMap) {
       rr_change: rrChange,
       ability_casts: { c: ab.c_cast||0, q: ab.q_cast||0, e: ab.e_cast||0, x: ab.x_cast||0 },
       plants: matchPlants, defuses: matchDefuses, clutches: matchClutches, first_death: matchFirstDeaths > 0,
+      season_id: seasonId,
       date: m.metadata?.game_start ? new Date(m.metadata.game_start * 1000).toISOString() : null,
       // raw fields for client-side re-aggregation
       _shots: shots, _hs: st.headshots||0, _score: st.score||0, _rounds: rTotal,
