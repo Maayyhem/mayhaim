@@ -3089,18 +3089,18 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .trk-card-rr { font-size: 0.7rem; font-weight: 700; margin-top: 3px; letter-spacing: 0.3px; }
 
 .trk-card-stats {
-  display: flex; flex: 1; justify-content: flex-end;
+  display: flex; flex: 1; justify-content: flex-end; align-items: stretch;
   font-variant-numeric: tabular-nums;
 }
 .trk-card-stat {
-  padding: 10px 12px; text-align: center; min-width: 62px;
+  padding: 10px 14px; text-align: center; min-width: 66px;
   border-right: 1px solid rgba(255,255,255,0.05);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
 }
 .trk-card-stat:last-child { border-right: none; }
-.trk-card-stat-sec .trk-card-stat-val { color: var(--dim); font-weight: 600; font-size: 0.88rem; }
-.trk-card-stat-val { font-size: 0.93rem; font-weight: 700; line-height: 1.2; }
-.trk-card-stat-lbl { font-size: 0.56rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px; font-weight: 600; }
+.trk-card-stat-val { font-size: 0.92rem; font-weight: 700; line-height: 1; color: var(--txt); }
+.trk-card-stat-lbl { font-size: 0.56rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.trk-card-stat-sec .trk-card-stat-val { color: var(--dim); font-weight: 500; font-size: 0.85rem; }
 
 /* KDA death dim */
 .trk-d-dim { opacity: 0.5; }

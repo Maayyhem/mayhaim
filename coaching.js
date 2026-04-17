@@ -4765,18 +4765,18 @@ function trackerRender(data, el) {
           <div class="trk-card-stat-val">${m.acs ?? '—'}</div>
           <div class="trk-card-stat-lbl">ACS</div>
         </div>
-        ${m.hs_pct != null ? `<div class="trk-card-stat trk-card-stat-sec">
-          <div class="trk-card-stat-val">${m.hs_pct}%</div>
+        <div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.hs_pct != null ? m.hs_pct+'%' : '—'}</div>
           <div class="trk-card-stat-lbl">HS%</div>
-        </div>` : ''}
-        ${m.damage != null ? `<div class="trk-card-stat trk-card-stat-sec">
-          <div class="trk-card-stat-val">${m.damage}</div>
+        </div>
+        <div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.damage ?? '—'}</div>
           <div class="trk-card-stat-lbl">D/R</div>
-        </div>` : ''}
-        ${m.kast != null ? `<div class="trk-card-stat trk-card-stat-sec">
-          <div class="trk-card-stat-val">${m.kast}%</div>
+        </div>
+        <div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.kast != null ? m.kast+'%' : '—'}</div>
           <div class="trk-card-stat-lbl">KAST</div>
-        </div>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('') : `<p style="color:var(--dim);font-size:0.85rem;padding:24px 0;text-align:center">Aucune partie trouvée pour ce mode.</p>`;
