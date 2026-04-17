@@ -98,7 +98,8 @@
     "publish": {
       "provider": "github",
       "owner": "Maayyhem",
-      "repo": "mayhaim"
+      "repo": "mayhaim",
+      "releaseType": "release"
     }
   }
 }
