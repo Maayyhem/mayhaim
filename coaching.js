@@ -4318,7 +4318,7 @@ async function _reloadSearchStats() {
   wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement…</div>`;
   try {
     const { name, tag, region } = _trackerSearch;
-    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
     const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
     const data = await res.json();
     if (!res.ok) { wrap.innerHTML = `<p style="color:#ff4655;padding:16px">${san(data.error)}</p>`; return; }
@@ -4452,7 +4452,7 @@ async function trackerLoadStats(btn) {
   if (btn) btn.disabled = true;
   wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats ${_trackerMode || 'toutes queues'}…</div>`;
   try {
-    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
     const res  = await fetch(`${API_BASE}/profile?action=tracker${modeQ}`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
@@ -4497,7 +4497,7 @@ async function trackerSearchPlayer() {
   resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
 
   try {
-    const modeQ = _trackerMode ? `&mode=${encodeURIComponent(_trackerMode)}` : '';
+    const modeQ = `&mode=${encodeURIComponent(_trackerMode || 'all')}`;
     const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}${modeQ}`);
     const data = await res.json();
     if (!res.ok) {

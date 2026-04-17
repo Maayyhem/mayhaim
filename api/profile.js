@@ -190,7 +190,7 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker-search') {
       const { name, tag } = req.query || {};
       const region = (['eu','na','ap','br','latam','kr'].includes(req.query?.region)) ? req.query.region : 'eu';
-      const ALLOWED_MODES = ['competitive','unrated','spikerush','deathmatch',''];
+      const ALLOWED_MODES = ['competitive','unrated','spikerush','deathmatch','all'];
       const mode = ALLOWED_MODES.includes(req.query?.mode) ? req.query.mode : 'competitive';
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
@@ -204,8 +204,8 @@ module.exports = async function handler(req, res) {
           lp   = mmr.data.data.current_data.ranking_in_tier   ?? null;
         }
 
-        // 2. Fetch matches (filtered by mode when specified)
-        const filterQ = mode ? `?filter=${encodeURIComponent(mode)}&size=15` : '?size=15';
+        // 2. Fetch matches (filtered by mode when specified, 'all' = no filter)
+        const filterQ = (mode && mode !== 'all') ? `?filter=${encodeURIComponent(mode)}&size=15` : '?size=20';
         const result = await fetchHenrik(
           `/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}${filterQ}`
         );
@@ -272,7 +272,7 @@ module.exports = async function handler(req, res) {
     if (action === 'tracker') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
-      const ALLOWED_MODES_T = ['competitive','unrated','spikerush','deathmatch',''];
+      const ALLOWED_MODES_T = ['competitive','unrated','spikerush','deathmatch','all'];
       const trackerMode = ALLOWED_MODES_T.includes(req.query?.mode) ? req.query.mode : 'competitive';
 
       const rows = await sql`
@@ -362,7 +362,7 @@ module.exports = async function handler(req, res) {
       try {
         // Try stored region first; if missing/invalid, probe all regions
         const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
-        const filterQ = trackerMode ? `?filter=${encodeURIComponent(trackerMode)}&size=15` : '?size=15';
+        const filterQ = (trackerMode && trackerMode !== 'all') ? `?filter=${encodeURIComponent(trackerMode)}&size=15` : '?size=20';
         let result = null;
         for (const r of regionList) {
           const attempt = await fetchHenrik(
