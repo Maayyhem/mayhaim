@@ -4830,6 +4830,17 @@ window._trkOpenMatch = async function(matchId) {
     overlay.className = 'trk-match-overlay';
     overlay.innerHTML = '<div class="trk-match-modal" id="trk-match-modal"></div>';
     overlay.addEventListener('click', e => { if (e.target === overlay) _trkCloseMatch(); });
+    // Delegated click: player name → search their profile
+    overlay.addEventListener('click', e => {
+      const nameEl = e.target.closest('.trk-sb-clickable');
+      if (nameEl && nameEl.dataset.riotName) {
+        e.stopPropagation();
+        _trkSearchFromModal(
+          encodeURIComponent(nameEl.dataset.riotName),
+          encodeURIComponent(nameEl.dataset.riotTag || '')
+        );
+      }
+    });
     document.body.appendChild(overlay);
   }
   const modal = document.getElementById('trk-match-modal');
@@ -4948,7 +4959,7 @@ function _trkRenderMatchModal(d, modal) {
           ${agIcon ? `<img class="trk-sb-agent-img" src="${agIcon}" alt="">` : `<div class="trk-sb-agent-ph"></div>`}
         </div>
         <div class="trk-sb-pinfo">
-          <div class="trk-sb-name trk-sb-clickable" onclick="event.stopPropagation(); _trkSearchFromModal('${encodeURIComponent(p.name||'')}','${encodeURIComponent(p.tag||'')}')" title="Voir le profil de ${san(p.name)}#${san(p.tag)}">${san(p.name)}<span class="trk-sb-tag">#${san(p.tag)}</span>${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
+          <div class="trk-sb-name trk-sb-clickable" data-riot-name="${san(p.name||'')}" data-riot-tag="${san(p.tag||'')}" title="Voir le profil de ${san(p.name)}#${san(p.tag)}">${san(p.name)}<span class="trk-sb-tag">#${san(p.tag)}</span>${p.first_blood ? ' <span class="trk-fb-badge">FB</span>' : ''}</div>
           <div class="trk-sb-rank" style="color:${rankClr(p.rank)}">${san(p.rank||'Unranked')} · Niv.${p.level||'?'}</div>
         </div>
       </td>
