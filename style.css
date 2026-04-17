@@ -1794,6 +1794,23 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 /* ── History chart ── */
 .history-chart-wrap { height:180px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px; }
 
+/* ── History filter + summary ── */
+.hist-filter-wrap { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.hist-filter-btn { padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--dim); font-size:0.75rem; font-family:var(--font); cursor:pointer; transition:all 0.12s; }
+.hist-filter-btn:hover { border-color:var(--accent); color:var(--txt); }
+.hist-filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+.hist-summary-strip { display:flex; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:4px; }
+.hist-summary-item { flex:1; padding:10px 14px; text-align:center; border-right:1px solid var(--border); }
+.hist-summary-item:last-child { border-right:none; }
+.hist-summary-val { display:block; font-size:1.1rem; font-weight:800; color:var(--txt); font-variant-numeric:tabular-nums; }
+.hist-summary-lbl { display:flex; align-items:center; justify-content:center; gap:4px; font-size:0.68rem; color:var(--dim); margin-top:2px; text-transform:uppercase; letter-spacing:0.05em; }
+.hist-summary-lbl svg { opacity:0.6; }
+.hist-table { font-size:0.8rem; }
+.hist-mode-badge { display:inline-block; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.06); font-size:0.72rem; font-weight:600; }
+.hist-pb-tag { margin-left:6px; padding:1px 5px; border-radius:3px; background:rgba(240,196,63,0.15); color:#f0c43f; font-size:0.65rem; font-weight:700; display:inline-flex; align-items:center; gap:2px; vertical-align:middle; }
+.hist-pb-tag svg { opacity:0.9; }
+.hist-row-pb td { background:rgba(240,196,63,0.04) !important; }
+
 /* ═══════════ LEADERBOARD ═══════════ */
 .lb-controls { margin-bottom: 16px; }
 .lb-select { background: var(--card); color: var(--txt); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-family: var(--font); font-size: 0.85rem; cursor: pointer; }

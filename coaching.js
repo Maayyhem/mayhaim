@@ -3833,13 +3833,14 @@ function meUpdateScenarioBanner() {
 
 // ============ HISTORIQUE ============
 
+let _historyFilter = 'all';
 async function coachingRenderHistory() {
   const el = document.getElementById('ch-history-content');
   if (!el) return;
   if (!coachingToken) { el.innerHTML = '<p class="ch-empty">Connecte-toi pour voir ton historique.</p>'; return; }
   el.innerHTML = '<p class="ch-empty">Chargement...</p>';
   try {
-    const res = await fetch(`${API_BASE}/history?limit=50`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
+    const res = await fetch(`${API_BASE}/history?limit=100`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
     if (!res.ok) throw new Error('Erreur serveur');
     const { history } = await res.json();
     if (!history || !history.length) {
@@ -3848,21 +3849,103 @@ async function coachingRenderHistory() {
       return;
     }
     _historyData = history;
-    renderHistoryChart(history);
-    const modeLabel = m => m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-    const fmt = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    el.innerHTML = `<div style="overflow-x:auto"><table class="admin-table">
-      <thead><tr><th>Mode</th><th style="text-align:right">Score</th><th style="text-align:right">Précision</th><th style="text-align:right">Hits</th><th style="text-align:right">Réaction</th><th style="text-align:right">Date</th></tr></thead>
-      <tbody>${history.map(h => `<tr>
-        <td>${modeLabel(san(h.mode))}</td>
-        <td style="text-align:right;color:var(--accent);font-weight:700">${Number(h.score).toLocaleString()}</td>
-        <td style="text-align:right">${h.accuracy}%</td>
-        <td style="text-align:right">${h.hits}</td>
-        <td style="text-align:right">${h.avg_reaction ? h.avg_reaction+'ms' : '—'}</td>
-        <td style="text-align:right;color:var(--dim)">${fmt(h.played_at)}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+    _renderHistoryUI(history);
   } catch(e) { el.innerHTML = `<p class="ch-empty">Erreur: ${san(e.message)}</p>`; }
+}
+
+function _renderHistoryUI(history) {
+  const el = document.getElementById('ch-history-content');
+  if (!el) return;
+  const modeLabel = m => m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const fmt = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const fmtR = v => v > 0 ? v+'ms' : '—';
+  const fmtScore = v => Number(v).toLocaleString();
+
+  // Get unique modes for filter tabs
+  const modes = ['all', ...[...new Set(history.map(h => h.mode))].sort()];
+
+  // Filter
+  const filtered = _historyFilter === 'all' ? history : history.filter(h => h.mode === _historyFilter);
+
+  // Compute per-mode PBs
+  const pbByMode = {};
+  history.forEach(h => {
+    if (!pbByMode[h.mode] || h.score > pbByMode[h.mode]) pbByMode[h.mode] = h.score;
+  });
+
+  // Stats summary for filtered set
+  const totalGames = filtered.length;
+  const avgAcc = totalGames ? Math.round(filtered.reduce((s,h) => s + (h.accuracy||0), 0) / totalGames) : 0;
+  const bestScore = totalGames ? Math.max(...filtered.map(h => h.score)) : 0;
+  const avgReact = (() => {
+    const with_rt = filtered.filter(h => h.avg_reaction > 0);
+    return with_rt.length ? Math.round(with_rt.reduce((s,h) => s + h.avg_reaction, 0) / with_rt.length) : 0;
+  })();
+
+  renderHistoryChart(filtered);
+
+  el.innerHTML = `
+    <!-- Mode filter tabs -->
+    <div class="hist-filter-wrap">
+      ${modes.map(m => `<button class="hist-filter-btn${_historyFilter===m?' active':''}" onclick="_historySetFilter('${m}')">${m==='all'? 'Tous les modes' : modeLabel(san(m))}</button>`).join('')}
+    </div>
+
+    <!-- Stats summary strip -->
+    <div class="hist-summary-strip">
+      <div class="hist-summary-item">
+        <span class="hist-summary-val">${totalGames}</span>
+        <span class="hist-summary-lbl">${icon('gamepad',13)} Parties</span>
+      </div>
+      <div class="hist-summary-item">
+        <span class="hist-summary-val" style="color:var(--accent)">${fmtScore(bestScore)}</span>
+        <span class="hist-summary-lbl">${icon('trophy',13)} Meilleur</span>
+      </div>
+      <div class="hist-summary-item">
+        <span class="hist-summary-val">${avgAcc}%</span>
+        <span class="hist-summary-lbl">${icon('target',13)} Précision moy.</span>
+      </div>
+      ${avgReact ? `<div class="hist-summary-item">
+        <span class="hist-summary-val">${avgReact}ms</span>
+        <span class="hist-summary-lbl">${icon('zap',13)} Réaction moy.</span>
+      </div>` : ''}
+    </div>
+
+    <!-- History table -->
+    <div style="overflow-x:auto;margin-top:12px">
+      <table class="admin-table hist-table">
+        <thead><tr>
+          <th>Mode</th>
+          <th style="text-align:right">Score</th>
+          <th style="text-align:right">Précision</th>
+          <th style="text-align:right">Hits</th>
+          <th style="text-align:right">Misses</th>
+          <th style="text-align:right">Réaction</th>
+          <th style="text-align:right">Best Combo</th>
+          <th style="text-align:right">Durée</th>
+          <th style="text-align:right">Date</th>
+        </tr></thead>
+        <tbody>${filtered.map(h => {
+          const isPB = pbByMode[h.mode] === h.score && h.score > 0;
+          const dur = h.duration ? `${h.duration}s` : '—';
+          return `<tr class="${isPB ? 'hist-row-pb' : ''}">
+            <td><span class="hist-mode-badge">${modeLabel(san(h.mode))}</span>${isPB ? `<span class="hist-pb-tag">${icon('star',11)} PB</span>` : ''}</td>
+            <td style="text-align:right;color:var(--accent);font-weight:700">${fmtScore(h.score)}</td>
+            <td style="text-align:right">${h.accuracy ?? '—'}%</td>
+            <td style="text-align:right;color:#4ade80">${h.hits ?? '—'}</td>
+            <td style="text-align:right;color:#ff4655">${h.misses ?? '—'}</td>
+            <td style="text-align:right">${fmtR(h.avg_reaction)}</td>
+            <td style="text-align:right">${h.best_combo > 0 ? `x${h.best_combo}` : '—'}</td>
+            <td style="text-align:right;color:var(--dim)">${dur}</td>
+            <td style="text-align:right;color:var(--dim)">${fmt(h.played_at)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+function _historySetFilter(mode) {
+  _historyFilter = mode;
+  if (_historyData && _historyData.length) _renderHistoryUI(_historyData);
 }
 
 function renderHistoryChart(history) {

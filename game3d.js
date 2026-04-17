@@ -1941,9 +1941,19 @@ function endGame() {
   // ─── BATCH A: analytics (gauges, histogram, sparkline, run history) ───
   try {
     const scores = computeRunScores();
-    renderGauge('.res-gauge[data-gauge="precision"]',   scores.precision);
-    renderGauge('.res-gauge[data-gauge="speed"]',       scores.speed);
-    renderGauge('.res-gauge[data-gauge="consistency"]', scores.consistency);
+    const isTrack = (typeof isTrackMode === 'function') && isTrackMode(G.mode);
+
+    // Show/hide speed & consistency gauges based on meaningful data
+    const speedGaugeEl = document.querySelector('.res-gauge[data-gauge="speed"]');
+    const consiGaugeEl = document.querySelector('.res-gauge[data-gauge="consistency"]');
+    const hasReactions = G.reactionTimes && G.reactionTimes.length >= 3;
+
+    if (speedGaugeEl) speedGaugeEl.style.opacity = (!isTrack && !hasReactions) ? '0.4' : '1';
+    if (consiGaugeEl) consiGaugeEl.style.opacity = (!isTrack && !hasReactions) ? '0.4' : '1';
+
+    renderGauge('.res-gauge[data-gauge="precision"]',   scores.precision   ?? 0);
+    renderGauge('.res-gauge[data-gauge="speed"]',       scores.speed       ?? 0);
+    renderGauge('.res-gauge[data-gauge="consistency"]', scores.consistency ?? 0);
 
     // Persist run history (before sparkline so the current run shows)
     const runEntry = {
@@ -1955,6 +1965,7 @@ function endGame() {
     saveRunHistoryEntry(G.mode, runEntry);
 
     renderRunsSparkline(G.mode);
+    renderReactionHistogram();
   } catch(e) { console.warn('[BATCH A] analytics failed', e); }
 
   showScreen('results-screen');
@@ -2058,42 +2069,43 @@ function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
  *                 For track: mapped from trackOnTarget% directly (stable = high).
  */
 function computeRunScores() {
-  const isTrack = (typeof isTrackMode === 'function') && isTrackMode(G.mode);
-  const total   = G.hits + G.misses;
+  try {
+    const isTrack = (typeof isTrackMode === 'function') && isTrackMode(G.mode);
+    const total   = G.hits + G.misses;
+    let precision, speed, consistency;
 
-  let precision, speed, consistency;
-
-  if (isTrack) {
-    const onT = G.trackFrames > 0 ? G.trackOnTarget / G.trackFrames : 0;
-    precision   = Math.round(onT * 100);
-    // Speed for track is less meaningful — use onT scaled between 40-95 bands.
-    speed       = Math.round(_clamp((onT - 0.3) / 0.6 * 100, 0, 100));
-    // Consistency: how close to constant on-target. We approximate via onT itself
-    // (high onT => you weren't losing tracking) with a gentler curve.
-    consistency = Math.round(_clamp(onT * 110 - 10, 0, 100));
-  } else {
-    const acc = total > 0 ? G.hits / total : 0;
-    precision = Math.round(acc * 100);
-
-    const rt = G.reactionTimes.slice();
-    const avg = _mean(rt);
-    if (avg > 0) {
-      // 200ms → 100, 800ms → 0
-      speed = Math.round(_clamp((800 - avg) / 6, 0, 100));
+    if (isTrack) {
+      const onT = (G.trackFrames > 0) ? G.trackOnTarget / G.trackFrames : 0;
+      precision   = Math.round(onT * 100);
+      speed       = Math.round(_clamp((onT - 0.3) / 0.6 * 100, 0, 100));
+      consistency = Math.round(_clamp(onT * 110 - 10, 0, 100));
     } else {
-      speed = 0;
-    }
+      const acc = total > 0 ? G.hits / total : 0;
+      precision = Math.round(acc * 100);
 
-    if (rt.length >= 3) {
-      const sd = _stdev(rt);
-      // 30ms stdev → 100, 250ms stdev → 0
-      consistency = Math.round(_clamp((250 - sd) / 2.2, 0, 100));
-    } else {
-      consistency = precision; // not enough data — mirror precision
+      const rt = (G.reactionTimes || []).filter(v => v > 0 && v < 5000);
+      const avg = _mean(rt);
+      if (avg > 0) {
+        speed = Math.round(_clamp((800 - avg) / 6, 0, 100));
+      } else {
+        speed = 0;
+      }
+      if (rt.length >= 3) {
+        const sd = _stdev(rt);
+        consistency = Math.round(_clamp((250 - sd) / 2.2, 0, 100));
+      } else {
+        consistency = precision;
+      }
     }
+    return {
+      precision:   isNaN(precision)   ? 0 : precision,
+      speed:       isNaN(speed)       ? 0 : speed,
+      consistency: isNaN(consistency) ? 0 : consistency
+    };
+  } catch(e) {
+    console.warn('[computeRunScores] failed:', e);
+    return { precision: 0, speed: 0, consistency: 0 };
   }
-
-  return { precision, speed, consistency };
 }
 
 // ---- GAUGE RENDER ----

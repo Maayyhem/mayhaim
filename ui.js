@@ -152,7 +152,7 @@
 
     const icon = document.createElement('span');
     icon.className = 'toast-icon';
-    icon.textContent = opts.icon != null ? opts.icon : TOAST_ICONS[type] || '';
+    icon.innerHTML = opts.icon != null ? opts.icon : TOAST_ICONS[type] || '';
     el.appendChild(icon);
 
     const body = document.createElement('div');
