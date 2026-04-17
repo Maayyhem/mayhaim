@@ -18,11 +18,11 @@ async function ensureRiotColumns(sql) {
   _riotColReady = true;
 }
 
-async function fetchHenrik(path) {
+async function fetchHenrik(path, timeoutMs = 8000) {
   const key = process.env.HENRIK_API_KEY;
   const headers = key ? { 'Authorization': key } : {};
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`https://api.henrikdev.xyz${path}`, { headers, signal: controller.signal });
     let data;
@@ -31,6 +31,152 @@ async function fetchHenrik(path) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Fetch multiple pages of stored-matches to build a full history (paginated).
+// Returns an array of normalized match objects (same shape as _processHenrikMatches.recent).
+// NB: stored-matches has less detail (no round events) → plants/defuses/clutches/KAST are null.
+async function fetchStoredMatchesAll(region, name, tag, { maxPages = 5, pageSize = 25 } = {}) {
+  const all = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `/valorant/v1/stored-matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=${pageSize}&page=${page}`;
+    const r = await fetchHenrik(url, 10000);
+    if (r.status === 429) break;                    // rate limited, stop politely
+    if (r.status !== 200) break;                    // no more data or error
+    const rows = Array.isArray(r.data?.data) ? r.data.data : [];
+    if (rows.length === 0) break;                   // empty page → end of history
+    all.push(...rows);
+    if (rows.length < pageSize) break;              // last page
+  }
+  return all;
+}
+
+// Normalize a stored-matches row into the same shape as _processHenrikMatches.recent items.
+// Round-level fields (plants/defuses/clutches/kast/multikills/ability_casts) are left null/0.
+function _normalizeStoredMatch(row) {
+  const meta   = row?.meta || {};
+  const stats  = row?.stats || {};
+  const teams  = row?.teams || {};
+  const shotsObj = stats.shots || {};
+  const headshots = shotsObj.head || 0;
+  const bodyshots = shotsObj.body || 0;
+  const legshots  = shotsObj.leg  || 0;
+  const totalShots = headshots + bodyshots + legshots;
+
+  const myTeam = (stats.team || '').toLowerCase();
+  const rRed   = teams.red  ?? 0;
+  const rBlue  = teams.blue ?? 0;
+  const rTotal = rRed + rBlue;
+  const myR    = myTeam === 'blue' ? rBlue : rRed;
+  const oppR   = myTeam === 'blue' ? rRed  : rBlue;
+  const won    = myR > oppR;
+
+  const agent  = (typeof stats.character === 'object' && stats.character !== null)
+    ? (stats.character.name || 'Unknown')
+    : (stats.character || 'Unknown');
+  const mapName = (typeof meta.map === 'object' && meta.map !== null)
+    ? (meta.map.name || 'Unknown')
+    : (meta.map || 'Unknown');
+  const seasonId = meta.season?.id || meta.season?.short || meta.season_id || null;
+
+  const acs   = rTotal > 0 ? Math.round((stats.score || 0) / rTotal) : 0;
+  const hsPct = totalShots > 0 ? Math.round((headshots / totalShots) * 100) : 0;
+  const dmgMade = stats.damage?.made ?? stats.damage_made ?? 0;
+  const dmgRcv  = stats.damage?.received ?? stats.damage_received ?? 0;
+  const dpr    = rTotal > 0 ? Math.round(dmgMade / rTotal) : null;
+  const dprRcv = rTotal > 0 ? Math.round(dmgRcv  / rTotal) : null;
+
+  return {
+    match_id: meta.id || null,
+    map: mapName,
+    agent,
+    mode: meta.mode || 'Competitive',
+    result: won ? 'WIN' : 'LOSS',
+    score: `${myR}-${oppR}`,
+    kills: stats.kills || 0,
+    deaths: stats.deaths || 0,
+    assists: stats.assists || 0,
+    acs,
+    hs_pct: hsPct,
+    damage: dpr,
+    damage_received: dprRcv,
+    multikills: { twoK: 0, threeK: 0, fourK: 0, aces: 0 },
+    first_blood: false,
+    kast: null,
+    rr_change: null,
+    ability_casts: { c: 0, q: 0, e: 0, x: 0 },
+    plants: null, defuses: null, clutches: null, first_death: null,
+    season_id: seasonId,
+    date: meta.started_at || null,
+    _source: 'stored',
+    _shots: totalShots, _hs: headshots, _score: stats.score || 0, _rounds: rTotal,
+    _dmg: dmgMade, _dmgRcv: dmgRcv,
+  };
+}
+
+// Aggregate stats + top_agents + top_maps from a merged normalized match list.
+// Keeps nullable fields nullable in the aggregate (e.g. avg_kast = null if no v3 data).
+function _aggregateFromRecent(recent) {
+  let wins=0, losses=0, tK=0, tD=0, tA=0, tHS=0, tSh=0, tSc=0, tRd=0, tDmg=0;
+  let tPlants=0, tDefuses=0, tClutches=0, tFirstDeaths=0, tFirstBloods=0, tKastSum=0, tKastGames=0;
+  const agentMap={}, mapMap={};
+  for (const m of (recent || [])) {
+    if (m.result === 'WIN') wins++; else losses++;
+    tK += m.kills||0; tD += m.deaths||0; tA += m.assists||0;
+    tHS += m._hs||0; tSh += m._shots||0; tSc += m._score||0; tRd += m._rounds||0; tDmg += m._dmg||0;
+    const agent = m.agent || 'Unknown';
+    if (!agentMap[agent]) agentMap[agent] = {games:0,wins:0,kills:0,deaths:0,score:0,rounds:0,hs:0,shots:0,kast_sum:0,kast_games:0};
+    agentMap[agent].games++; if (m.result==='WIN') agentMap[agent].wins++;
+    agentMap[agent].kills += m.kills||0; agentMap[agent].deaths += m.deaths||0;
+    agentMap[agent].score += m._score||0; agentMap[agent].rounds += m._rounds||0;
+    agentMap[agent].hs += m._hs||0; agentMap[agent].shots += m._shots||0;
+    if (m.kast != null) { agentMap[agent].kast_sum += m.kast; agentMap[agent].kast_games++; tKastSum += m.kast; tKastGames++; }
+    const map = m.map || 'Unknown';
+    if (!mapMap[map]) mapMap[map] = {games:0,wins:0};
+    mapMap[map].games++; if (m.result==='WIN') mapMap[map].wins++;
+    if (typeof m.plants  === 'number') tPlants  += m.plants;
+    if (typeof m.defuses === 'number') tDefuses += m.defuses;
+    if (typeof m.clutches=== 'number') tClutches+= m.clutches;
+    if (m.first_death === true) tFirstDeaths++;
+    if (m.first_blood === true) tFirstBloods++;
+  }
+  const n = wins + losses;
+  return {
+    stats: {
+      matches_analyzed: n, wins, losses,
+      win_rate: n > 0 ? Math.round(wins/n*100) : 0,
+      kda: tD > 0 ? parseFloat(((tK + tA*0.5)/tD).toFixed(2)) : tK,
+      avg_acs: tRd > 0 ? Math.round(tSc/tRd) : 0,
+      avg_hs_pct: tSh > 0 ? Math.round(tHS/tSh*100) : 0,
+      avg_damage: tRd > 0 ? Math.round(tDmg/tRd) : 0,
+      avg_kast: tKastGames > 0 ? Math.round(tKastSum / tKastGames) : null,
+      total_plants: tPlants, total_defuses: tDefuses,
+      total_clutches: tClutches, total_first_bloods: tFirstBloods, total_first_deaths: tFirstDeaths,
+    },
+    top_agents: Object.entries(agentMap).map(([agent, d]) => ({
+      agent, games: d.games, wins: d.wins, kills: d.kills, deaths: d.deaths,
+      avg_acs: d.rounds > 0 ? Math.round(d.score / d.rounds) : null,
+      avg_hs_pct: d.shots > 0 ? Math.round(d.hs / d.shots * 100) : null,
+      avg_kast: d.kast_games > 0 ? Math.round(d.kast_sum / d.kast_games) : null,
+    })).sort((a,b) => b.games - a.games).slice(0, 5),
+    top_maps: Object.entries(mapMap).map(([map,d]) => ({map,...d})).sort((a,b)=>b.games-a.games).slice(0,5),
+    recent_matches: recent,
+  };
+}
+
+// Merge v3 (detailed) + stored (basic) match lists by match_id. v3 wins on conflict.
+// Returns a deduped array sorted by date descending.
+function _mergeMatchLists(v3List, storedList) {
+  const byId = new Map();
+  for (const m of (v3List || [])) {
+    if (m.match_id) byId.set(m.match_id, m);
+  }
+  for (const m of (storedList || [])) {
+    if (m.match_id && !byId.has(m.match_id)) byId.set(m.match_id, m);
+  }
+  const merged = [...byId.values()];
+  merged.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  return merged;
 }
 
 // ── Shared match processor (Henrik v3) ────────────────────────────────
@@ -379,9 +525,11 @@ module.exports = async function handler(req, res) {
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
-        // Parallel: matches + MMR rank + MMR history (for RR per game)
-        const [matchResult, mmrResult, mmrHistResult] = await Promise.all([
+        // Parallel: v3 matches (detailed, last 25) + stored-matches (full history, paginated)
+        //        + MMR rank + MMR history (for RR per game)
+        const [matchResult, storedRows, mmrResult, mmrHistResult] = await Promise.all([
           fetchHenrik(`/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`),
+          fetchStoredMatchesAll(region, name, tag, { maxPages: 5, pageSize: 25 }),
           fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
           fetchHenrik(`/valorant/v3/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
         ]);
@@ -389,7 +537,9 @@ module.exports = async function handler(req, res) {
         if (matchResult.status === 429 || mmrResult.status === 429) {
           return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         }
-        if (matchResult.status !== 200) return res.status(502).json({ error: `API indisponible (${matchResult.status})` });
+        if (matchResult.status !== 200 && (!storedRows || storedRows.length === 0)) {
+          return res.status(502).json({ error: `API indisponible (${matchResult.status})` });
+        }
 
         // Rank + peak rank
         let rank = null, lp = null, peakRank = null;
@@ -405,8 +555,13 @@ module.exports = async function handler(req, res) {
           if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
         }
 
-        const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
-        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...processed });
+        const v3Processed = _processHenrikMatches(matchResult.data?.data || [], name, tag, rrMap);
+        const storedNorm  = (storedRows || []).map(_normalizeStoredMatch).filter(x => x.match_id);
+        // Apply rrMap to stored matches too
+        for (const m of storedNorm) if (rrMap[m.match_id] != null) m.rr_change = rrMap[m.match_id];
+        const merged = _mergeMatchLists(v3Processed.recent_matches, storedNorm);
+        const aggregated = _aggregateFromRecent(merged);
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...aggregated });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
@@ -623,8 +778,16 @@ module.exports = async function handler(req, res) {
           }
         } catch {}
 
-        const processed = _processHenrikMatches(matchResult.data.data || [], name, tag, rrMap);
-        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...processed });
+        // Fetch full history via paginated stored-matches, merge with v3 detailed
+        let storedRows = [];
+        try { storedRows = await fetchStoredMatchesAll(foundRegion, name, tag, { maxPages: 5, pageSize: 25 }); } catch {}
+
+        const v3Processed = _processHenrikMatches(matchResult.data?.data || [], name, tag, rrMap);
+        const storedNorm  = (storedRows || []).map(_normalizeStoredMatch).filter(x => x.match_id);
+        for (const m of storedNorm) if (rrMap[m.match_id] != null) m.rr_change = rrMap[m.match_id];
+        const merged = _mergeMatchLists(v3Processed.recent_matches, storedNorm);
+        const aggregated = _aggregateFromRecent(merged);
+        return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...aggregated });
       } catch(err) {
         return res.status(502).json({ error: `Service indisponible: ${err.message}` });
       }
