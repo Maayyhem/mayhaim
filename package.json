@@ -1,6 +1,6 @@
 {
   "name": "mayhaim",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "description": "MayhAim — Aim trainer FPS + coaching hub",
   "author": "Maayyhem",
@@ -44,7 +44,6 @@
       "coaching.js",
       "coachplayer.js",
       "game3d.js",
-      "game.js",
       "audio.js",
       "ui.js",
       "style.css",
@@ -59,15 +58,11 @@
       "build/splash.html",
       "!build/icons/**",
       "!api/**",
-      "!netlify/**",
       "!scripts/**",
       "!.env*",
       "!**/*.md",
       "!dist/**",
-      "!serve.pl",
-      "!serve.ps1",
-      "!vercel.json",
-      "!netlify.toml"
+      "!vercel.json"
     ],
     "win": {
       "icon": "build/icon.ico",

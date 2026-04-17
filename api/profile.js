@@ -612,6 +612,19 @@ module.exports = async function handler(req, res) {
         const kills = d.kills || [];
         const rounds = d.rounds || [];
 
+        // Pre-bucket kills by their k.round value once (shared across all players).
+        // Henrik's round objects have no stable id field, so we align by kill.round
+        // and detect 0- vs 1-based indexing from the minimum key observed.
+        const killsByRoundKey = new Map();
+        for (const k of kills) {
+          if (typeof k.round !== 'number') continue;
+          if (!killsByRoundKey.has(k.round)) killsByRoundKey.set(k.round, []);
+          killsByRoundKey.get(k.round).push(k);
+        }
+        const _rkKeys = [...killsByRoundKey.keys()];
+        const _rkMin  = _rkKeys.length ? Math.min(..._rkKeys) : 0;
+        const rdKeyForIdx = (i) => i + _rkMin;
+
         // Build scoreboard: all 10 players with full stats
         const scoreboard = allPlayers.map(p => {
           const st = p.stats || {};
@@ -629,23 +642,31 @@ module.exports = async function handler(req, res) {
           }
           const mkVals = Object.values(mkByRound);
           const multikills = { twoK: mkVals.filter(v=>v===2).length, threeK: mkVals.filter(v=>v===3).length, fourK: mkVals.filter(v=>v===4).length, aces: mkVals.filter(v=>v>=5).length };
-          // KAST per player
+          // KAST per player — align kills with round index via detected base,
+          // skip rounds with no logged kill events to avoid inflating the ratio.
           let kastRounds = 0;
-          for (const rd of rounds) {
-            const rn = rd.id ?? rd.round_num ?? null;
-            const K = kills.some(k => k.round===rn && k.killer_puuid===p.puuid);
-            const A = kills.some(k => k.round===rn && (k.assistants||[]).some(a=>a.assistant_puuid===p.puuid));
-            const died = kills.some(k => k.round===rn && k.victim_puuid===p.puuid);
+          let kastEligible = 0;
+          for (let i = 0; i < rounds.length; i++) {
+            const rdKills = killsByRoundKey.get(rdKeyForIdx(i)) || [];
+            if (rdKills.length === 0) continue;
+            kastEligible++;
+            const K = rdKills.some(k => k.killer_puuid === p.puuid);
+            const A = rdKills.some(k => (k.assistants||[]).some(a => a.assistant_puuid === p.puuid));
+            const myDeath = rdKills.find(k => k.victim_puuid === p.puuid);
+            const survived = !myDeath;
             let T = false;
-            if (died) {
-              const myDeath = kills.find(k => k.round===rn && k.victim_puuid===p.puuid);
-              if (myDeath) {
-                T = kills.some(k => k.round===rn && k.victim_puuid===myDeath.killer_puuid && (k.kill_time_in_round||0)<=(myDeath.kill_time_in_round||0)+3000);
-              }
+            if (myDeath) {
+              const tradeWin = (myDeath.kill_time_in_round||0) + 3000;
+              T = rdKills.some(k =>
+                k.victim_puuid === myDeath.killer_puuid &&
+                (k.kill_time_in_round||0) > (myDeath.kill_time_in_round||0) &&
+                (k.kill_time_in_round||0) <= tradeWin &&
+                k.killer_puuid !== p.puuid
+              );
             }
-            if (K||A||!died||T) kastRounds++;
+            if (K || A || survived || T) kastRounds++;
           }
-          const kast = rounds.length > 0 ? Math.round(kastRounds/rounds.length*100) : null;
+          const kast = kastEligible > 0 ? Math.round(kastRounds / kastEligible * 100) : null;
           // First blood
           const sortedKills = [...kills].sort((a,b)=>(a.kill_time_in_match||0)-(b.kill_time_in_match||0));
           const firstBlood = sortedKills.length > 0 && sortedKills[0].killer_puuid === p.puuid;

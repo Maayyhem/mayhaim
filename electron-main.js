@@ -93,8 +93,9 @@ function createMainWindow() {
     if (input.type === 'keyDown' && input.key === 'F11') {
       mainWindow.setFullScreen(!mainWindow.isFullScreen());
     }
-    // Ctrl+Shift+I → devtools (dev convenience)
-    if (input.type === 'keyDown' && input.control && input.shift && input.key.toLowerCase() === 'i') {
+    // Ctrl+Shift+I → devtools (dev convenience only — disabled in packaged builds
+    // so end-users can't accidentally pop open devtools and expose internals).
+    if (!app.isPackaged && input.type === 'keyDown' && input.control && input.shift && input.key.toLowerCase() === 'i') {
       mainWindow.webContents.toggleDevTools();
     }
   });

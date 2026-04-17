@@ -1,5 +1,17 @@
 # Changelog — MayhAim
 
+## 2.0.2 — 2026-04-17
+
+### 🛠 Fixes & correctness
+- **KAST scoreboard** — fixed round-index alignment so per-player KAST% is no longer stuck at 100%
+- **GPU memory** — `clearScene` now disposes target/room geometries between rounds (shared materials preserved)
+- **Race-safe hits** — `hitTarget` guards against late clicks on targets destroyed mid-frame
+- **Packaged builds** — Ctrl+Shift+I devtools shortcut disabled outside dev mode
+
+### 🧹 Cleanup
+- Removed dead legacy files: `game.js` (old 2D trainer), `netlify/`, `serve.pl`, `serve.ps1`, `netlify.toml`
+- Pruned stale build exclusions from `package.json`
+
 ## 1.0.0 — 2026-04-15
 
 **Initial public release 🎉**

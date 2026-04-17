@@ -500,7 +500,36 @@ const M = {
   tDim: new THREE.MeshStandardMaterial({color:0x333333,emissive:0x222222,emissiveIntensity:0.08}),
 };
 
-function clearScene() { while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); while(targetsGroup.children.length) targetsGroup.remove(targetsGroup.children[0]); if(G._gridDots){G._gridDots.forEach(m=>roomGroup.remove(m));G._gridDots=[];} scene.fog=null; applyRoomTheme(); setupRoomLights(); }
+// Dispose the per-instance GPU resources of a mesh. Materials live in the shared
+// M map and are reused across many spheres, so we only dispose geometry here
+// (disposing shared materials would break subsequent spawns).
+function _disposeMesh(obj) {
+  if (!obj) return;
+  if (obj.geometry && typeof obj.geometry.dispose === 'function') obj.geometry.dispose();
+  // Note: materials intentionally not disposed — they are shared globals (M.t1, M.t4, …)
+  if (obj.children && obj.children.length) {
+    for (const c of [...obj.children]) _disposeMesh(c);
+  }
+}
+function clearScene() {
+  while (roomGroup.children.length) {
+    const c = roomGroup.children[0];
+    _disposeMesh(c);
+    roomGroup.remove(c);
+  }
+  while (targetsGroup.children.length) {
+    const c = targetsGroup.children[0];
+    _disposeMesh(c);
+    targetsGroup.remove(c);
+  }
+  if (G._gridDots) {
+    G._gridDots.forEach(m => { _disposeMesh(m); roomGroup.remove(m); });
+    G._gridDots = [];
+  }
+  scene.fog = null;
+  applyRoomTheme();
+  setupRoomLights();
+}
 
 function setupRoomLights() {
   scene.children.filter(c=>c.isLight).forEach(l=>scene.remove(l));
@@ -1628,6 +1657,9 @@ function _missPos() {
 }
 
 function hitTarget(t) {
+  // Guard against late clicks after a target has been destroyed between the
+  // raycast find and this handler (async spawn/update can race).
+  if (!t || !t.alive || !t.mesh) return;
   const rt=Date.now()-t.spawnTime; G.reactionTimes.push(rt);
   G.hits++; G.combo++; G.bestCombo=Math.max(G.bestCombo,G.combo);
   try { const sp=t.mesh.position.clone().project(camera); G.clickLog.push({x:(sp.x+1)/2,y:(1-sp.y)/2,hit:true,t:Date.now()-G.startTime}); } catch(e){}
