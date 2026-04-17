@@ -4625,15 +4625,10 @@ function trackerRender(data, el) {
   const agents  = data.top_agents || [];
   const maps    = data.top_maps   || [];
 
-  // Colour helpers
-  const clrWR   = v => v >= 50 ? '#4ade80' : '#f87171';
-  const clrKDA  = v => v >= 1.5 ? '#4ade80' : v >= 1 ? '#fbbf24' : '#f87171';
-  const clrACS  = v => v >= 220 ? '#4ade80' : v >= 160 ? '#fbbf24' : 'var(--accent)';
-  const clrHS   = v => v == null ? 'var(--dim)' : v >= 25 ? '#4ade80' : v >= 15 ? '#fbbf24' : 'var(--dim)';
-  const clrDmg  = v => v == null ? 'var(--dim)' : v >= 150 ? '#4ade80' : '#fbbf24';
-  const clrKAST = v => v == null ? 'var(--dim)' : v >= 75 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171';
-  const clrRR   = v => v == null ? 'var(--dim)' : v > 0 ? '#4ade80' : '#f87171';
-  const fmtKDA  = (k,d,a) => `<span style="color:#f87171">${k}</span>/<span style="color:#94a3b8">${d}</span>/<span style="color:#60a5fa">${a}</span>`;
+  // Colour helpers — Win% et RR uniquement
+  const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
+  const clrRR  = v => v == null ? 'var(--dim)' : v > 0 ? '#4ade80' : '#f87171';
+  const fmtKDA = (k, d, a) => `${k}/<span class="trk-d-dim">${d}</span>/${a}`;
   const fmtRR   = v => v == null ? null : `${v > 0 ? '+' : ''}${v} RR`;
   const relTime = iso => {
     if (!iso) return '';
@@ -4657,29 +4652,29 @@ function trackerRender(data, el) {
   const statsHtml = `
     <div class="trk-stats-strip">
       <div class="trk-stat-cell">
-        <div class="trk-stat-big" style="color:${clrWR(s.win_rate)}">${s.win_rate ?? '—'}%</div>
+        <div class="trk-stat-big trk-stat-wr" style="color:${clrWR(s.win_rate)}">${s.win_rate ?? '—'}%</div>
         <div class="trk-stat-lbl">Win Rate</div>
-        <div class="trk-stat-sub">${s.wins ?? 0}W · ${s.losses ?? 0}L</div>
+        <div class="trk-stat-sub">${s.wins ?? 0}V · ${s.losses ?? 0}D</div>
       </div>
       <div class="trk-stat-cell">
-        <div class="trk-stat-big" style="color:${clrKDA(s.kda)}">${s.kda ?? '—'}</div>
+        <div class="trk-stat-big">${s.kda ?? '—'}</div>
         <div class="trk-stat-lbl">K/D Ratio</div>
         <div class="trk-stat-sub">${s.matches_analyzed ?? 0} parties</div>
       </div>
       <div class="trk-stat-cell">
-        <div class="trk-stat-big" style="color:${clrACS(s.avg_acs)}">${s.avg_acs ?? '—'}</div>
+        <div class="trk-stat-big">${s.avg_acs ?? '—'}</div>
         <div class="trk-stat-lbl">ACS moyen</div>
-        <div class="trk-stat-sub">Combat score</div>
+        <div class="trk-stat-sub">combat score</div>
       </div>
       <div class="trk-stat-cell">
-        <div class="trk-stat-big" style="color:${clrHS(s.avg_hs_pct)}">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</div>
-        <div class="trk-stat-lbl">Headshot %</div>
+        <div class="trk-stat-big">${s.avg_hs_pct != null ? s.avg_hs_pct + '%' : '—'}</div>
+        <div class="trk-stat-lbl">HS%</div>
         <div class="trk-stat-sub">précision tête</div>
       </div>
       <div class="trk-stat-cell">
-        <div class="trk-stat-big" style="color:${clrDmg(s.avg_damage)}">${s.avg_damage != null ? s.avg_damage : '—'}</div>
+        <div class="trk-stat-big">${s.avg_damage ?? '—'}</div>
         <div class="trk-stat-lbl">Dégâts/Round</div>
-        <div class="trk-stat-sub">${s.avg_damage_received ? `reçus: ${s.avg_damage_received}` : 'impact moyen'}</div>
+        <div class="trk-stat-sub">${s.avg_damage_received ? `reçus: ${s.avg_damage_received}` : 'impact'}</div>
       </div>
     </div>`;
 
@@ -4700,12 +4695,12 @@ function trackerRender(data, el) {
               ${agIcon ? `<img src="${agIcon}" class="trk-agent-thumb" alt="">` : ''}
               <span>${san(a.agent)}</span>
             </td>
-            <td>${a.games}</td>
-            <td style="color:${clrWR(wr)};font-weight:700">${wr}%</td>
-            <td style="color:${clrKDA(kd)}">${kd}</td>
-            <td style="color:${clrACS(a.avg_acs)}">${a.avg_acs ?? '—'}</td>
-            <td style="color:${clrHS(a.avg_hs_pct)}">${a.avg_hs_pct != null ? a.avg_hs_pct+'%' : '—'}</td>
-            <td style="color:${clrKAST(a.avg_kast)}">${a.avg_kast != null ? a.avg_kast+'%' : '—'}</td>
+            <td class="trk-td-dim">${a.games}</td>
+            <td class="trk-td-wr" style="color:${clrWR(wr)}">${wr}%</td>
+            <td>${kd}</td>
+            <td>${a.avg_acs ?? '—'}</td>
+            <td class="trk-td-sec">${a.avg_hs_pct != null ? a.avg_hs_pct+'%' : '—'}</td>
+            <td class="trk-td-sec">${a.avg_kast != null ? a.avg_kast+'%' : '—'}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>
@@ -4723,10 +4718,10 @@ function trackerRender(data, el) {
           const wr = m.games > 0 ? Math.round(m.wins / m.games * 100) : 0;
           const bar = `<div class="trk-mini-bar"><div style="width:${wr}%;background:${clrWR(wr)};height:100%;border-radius:2px"></div></div>`;
           return `<tr>
-            <td style="font-weight:600">${san(m.map)}</td>
-            <td>${m.games}</td>
-            <td style="color:${clrWR(wr)};font-weight:700">${wr}%</td>
-            <td style="min-width:80px">${bar}</td>
+            <td class="trk-td-name">${san(m.map)}</td>
+            <td class="trk-td-dim">${m.games}</td>
+            <td class="trk-td-wr" style="color:${clrWR(wr)}">${wr}%</td>
+            <td>${bar}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>
@@ -4762,24 +4757,24 @@ function trackerRender(data, el) {
           <div class="trk-card-stat-val">${fmtKDA(m.kills, m.deaths, m.assists)}</div>
           <div class="trk-card-stat-lbl">K / D / A</div>
         </div>
-        <div class="trk-card-stat">
-          <div class="trk-card-stat-val" style="color:${clrKDA(parseFloat(kd))}">${kd}</div>
+        <div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${kd}</div>
           <div class="trk-card-stat-lbl">K/D</div>
         </div>
         <div class="trk-card-stat">
-          <div class="trk-card-stat-val" style="color:${clrACS(m.acs)}">${m.acs ?? '—'}</div>
+          <div class="trk-card-stat-val">${m.acs ?? '—'}</div>
           <div class="trk-card-stat-lbl">ACS</div>
         </div>
-        ${m.hs_pct != null ? `<div class="trk-card-stat">
-          <div class="trk-card-stat-val" style="color:${clrHS(m.hs_pct)}">${m.hs_pct}%</div>
+        ${m.hs_pct != null ? `<div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.hs_pct}%</div>
           <div class="trk-card-stat-lbl">HS%</div>
         </div>` : ''}
-        ${m.damage != null ? `<div class="trk-card-stat">
-          <div class="trk-card-stat-val" style="color:${clrDmg(m.damage)}">${m.damage}</div>
+        ${m.damage != null ? `<div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.damage}</div>
           <div class="trk-card-stat-lbl">D/R</div>
         </div>` : ''}
-        ${m.kast != null ? `<div class="trk-card-stat">
-          <div class="trk-card-stat-val" style="color:${clrKAST(m.kast)}">${m.kast}%</div>
+        ${m.kast != null ? `<div class="trk-card-stat trk-card-stat-sec">
+          <div class="trk-card-stat-val">${m.kast}%</div>
           <div class="trk-card-stat-lbl">KAST</div>
         </div>` : ''}
       </div>
