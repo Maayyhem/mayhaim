@@ -2325,6 +2325,25 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .dt-exercise-locked { opacity: 0.55; }
 .dt-locked-badge { grid-column: 3; grid-row: 1 / 3; font-size: 0.72rem; color: var(--dim); white-space: nowrap; align-self: center; cursor: default; }
 
+/* ─ Daily summary bar (X/5 complétés) ─ */
+.dt-summary { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.dt-summary-label { font-size: 0.72rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.dt-summary-progress { display: flex; align-items: center; gap: 10px; flex: 1; }
+.dt-summary-bar { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.dt-summary-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ff7a88); border-radius: 4px; transition: width 0.5s cubic-bezier(.2,.7,.2,1); }
+.dt-summary-count { font-size: 0.78rem; font-weight: 800; color: var(--txt); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.dt-summary-done { border-color: #22c55e66; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.03)); }
+.dt-summary-done .dt-summary-label { color: #22c55e; }
+.dt-summary-done .dt-summary-fill { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+/* ─ Completed exercise state (checkmark + accent) ─ */
+.dt-exercise-done { border-color: rgba(34,197,94,0.35); background: linear-gradient(135deg, rgba(34,197,94,0.05), transparent); }
+.dt-exercise-done:hover { border-color: rgba(34,197,94,0.65); }
+.dt-exercise-done .dt-ex-name { color: var(--dim); }
+.dt-ex-check { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #22c55e; color: #0b1a10; flex-shrink: 0; }
+.dt-launch-redo { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.3); color: #60a5fa; display: inline-flex; align-items: center; gap: 5px; }
+.dt-launch-redo:hover { background: rgba(96,165,250,0.22); border-color: #60a5fa; }
+
 /* Coach modal enriched stats */
 .cp-modal-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
 .cp-ms { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 6px; text-align:center; }

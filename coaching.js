@@ -1951,12 +1951,116 @@ function coachingCloseVodModal() {
 }
 
 // ============ DAILY TRAINING ============
+// Flow: at most one "plan" (5 scenarios + their tiers) is generated per local
+// calendar day. Once generated it is frozen in localStorage — completing an
+// exercise checks it off but never rewrites the remaining picks or upgrades
+// them mid-day. Rotation happens at local midnight via _dtCleanupOld().
+//
+// Storage keys (per day):
+//   dt_plan_YYYY-MM-DD  = { picks:[key×5], tiers:[tier×5] }
+//   dt_done_YYYY-MM-DD  = [key,…]  scenarios validated today
 
 const _DT_CAT_LABELS = {
   control_tracking:'Control Tracking', reactive_tracking:'Reactive Tracking',
   flick_tech:'Flick Tech', click_timing:'Click Timing'
 };
 const _DT_TIER_COLOR = { easier:'#4ade80', medium:'#60a5fa', hard:'#f87171' };
+
+function _dtDateKey(d) {
+  // Local-date YYYY-MM-DD so the reset happens at the user's midnight, not UTC's.
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function _dtDayNum(d) {
+  // Integer day-of-rotation. Uses local-date parts so it flips at local midnight
+  // and stays aligned with _dtDateKey.
+  d = d || new Date();
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
+function _dtComputeRecTier(vd, key) {
+  const eT  = vd.calcThreadsFor(key, vd.getBestFor(key,'easier'), 'easier');
+  const eMt = vd.maxThreadsFor('easier');
+  const mT  = vd.calcThreadsFor(key, vd.getBestFor(key,'medium'), 'medium');
+  const mMt = vd.maxThreadsFor('medium');
+  let rec = 'easier';
+  if (eT >= eMt) rec = 'medium';
+  if (eT >= eMt && mT >= mMt) rec = 'hard';
+  if (!vd.isScenarioUnlocked(key, rec)) rec = 'easier';
+  return rec;
+}
+
+function _dtGetOrCreatePlan(vd) {
+  const key = `dt_plan_${_dtDateKey()}`;
+  try {
+    const cached = JSON.parse(localStorage.getItem(key));
+    if (cached && Array.isArray(cached.picks) && cached.picks.length === 5 && Array.isArray(cached.tiers)) {
+      return cached;
+    }
+  } catch {}
+
+  // Fresh roll — same deterministic sequence as before, tier frozen at creation
+  const allKeys = Object.keys(vd.SCENARIOS).filter(k => vd.SCENARIOS[k].th);
+  const dayNum = _dtDayNum();
+  const picks = [];
+  const used = new Set();
+  for (let i = 0; picks.length < 5 && i < allKeys.length * 2; i++) {
+    const k = allKeys[(dayNum * 7 + i * 3 + 13) % allKeys.length];
+    if (!used.has(k)) { used.add(k); picks.push(k); }
+  }
+  const tiers = picks.map(k => _dtComputeRecTier(vd, k));
+  const plan = { picks, tiers };
+  try { localStorage.setItem(key, JSON.stringify(plan)); } catch {}
+  return plan;
+}
+
+function _dtLoadDone() {
+  try { return JSON.parse(localStorage.getItem(`dt_done_${_dtDateKey()}`)) || []; }
+  catch { return []; }
+}
+
+function _dtSaveDone(arr) {
+  try { localStorage.setItem(`dt_done_${_dtDateKey()}`, JSON.stringify(arr)); } catch {}
+}
+
+function _dtMarkDone(scenarioKey) {
+  // Called from endGame via window._dtMarkDone. Only marks keys that are part
+  // of today's plan — spurious completions from free play are ignored.
+  try {
+    const plan = JSON.parse(localStorage.getItem(`dt_plan_${_dtDateKey()}`));
+    if (!plan || !plan.picks || !plan.picks.includes(scenarioKey)) return;
+    const done = _dtLoadDone();
+    if (!done.includes(scenarioKey)) {
+      done.push(scenarioKey);
+      _dtSaveDone(done);
+    }
+  } catch {}
+}
+
+function _dtCleanupOld() {
+  // Drop any dt_plan_*/dt_done_* entries older than 7 days to keep localStorage tidy.
+  const today = _dtDateKey();
+  const cutoff = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return _dtDateKey(d);
+  })();
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      const m = /^dt_(?:plan|done)_(\d{4}-\d{2}-\d{2})$/.exec(k);
+      if (m && m[1] !== today && m[1] < cutoff) localStorage.removeItem(k);
+    }
+  } catch {}
+}
+
+// Expose for the end-game hook in game3d.js
+window._dtMarkDone = _dtMarkDone;
 
 function dailyTrainingLoad() {
   const el = document.getElementById('dt-content');
@@ -1969,64 +2073,72 @@ function dailyTrainingLoad() {
     return;
   }
 
-  // All benchmark scenarios (th defined)
-  const allKeys = Object.keys(vd.SCENARIOS).filter(k => vd.SCENARIOS[k].th);
-  if (!allKeys.length) { el.innerHTML = '<p class="ch-empty">Aucun scénario disponible.</p>'; return; }
+  _dtCleanupOld();
 
-  // Date-seeded daily rotation — 5 unique picks
-  const d = new Date();
-  const dayNum = Math.floor(d / 86400000); // days since epoch
-  const picks = [];
-  const used = new Set();
-  for (let i = 0; picks.length < 5 && i < allKeys.length * 2; i++) {
-    const key = allKeys[(dayNum * 7 + i * 3 + 13) % allKeys.length];
-    if (!used.has(key)) { used.add(key); picks.push(key); }
+  const plan = _dtGetOrCreatePlan(vd);
+  if (!plan || !plan.picks.length) {
+    el.innerHTML = '<p class="ch-empty">Aucun scénario disponible.</p>';
+    return;
   }
+  const done = _dtLoadDone();
+  const doneCount = plan.picks.filter(k => done.includes(k)).length;
+  const allDone = doneCount >= plan.picks.length;
 
+  const d = new Date();
   const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Countdown to the reset (local midnight)
+  const nextReset = new Date(d); nextReset.setHours(24, 0, 0, 0);
+  const msLeft = nextReset - d;
+  const hLeft = Math.floor(msLeft / 3600000);
+  const mLeft = Math.floor((msLeft % 3600000) / 60000);
 
   el.innerHTML = `
     <h2 class="ch-section-title">${icon('calendar',18)} Daily Training</h2>
     <div class="dt-date">${dateStr}</div>
-    <p class="dt-desc">5 exercices du jour — complète les threads du tier recommandé pour progresser&nbsp;!</p>
+    <p class="dt-desc">5 exercices du jour — valide-les pour compléter ton Daily. Nouveau set dans ${hLeft}h${String(mLeft).padStart(2,'0')}.</p>
+
+    <div class="dt-summary ${allDone ? 'dt-summary-done' : ''}">
+      <div class="dt-summary-label">${allDone ? `${icon('check-circle',16)} Daily complété 🎉` : 'Progression du jour'}</div>
+      <div class="dt-summary-progress">
+        <div class="dt-summary-bar"><div class="dt-summary-fill" style="width:${doneCount/plan.picks.length*100}%"></div></div>
+        <span class="dt-summary-count">${doneCount}/${plan.picks.length}</span>
+      </div>
+    </div>
+
     <div class="dt-list">
-      ${picks.map(key => {
+      ${plan.picks.map((key, i) => {
         const sc = vd.SCENARIOS[key];
-
-        // Recommended tier: follow Viscose progression logic
-        // Move to next tier only when current tier is fully maxed (8/8 or 6/6)
-        const eT  = vd.calcThreadsFor(key, vd.getBestFor(key,'easier'), 'easier');
-        const eMt = vd.maxThreadsFor('easier'); // 8
-        const mT  = vd.calcThreadsFor(key, vd.getBestFor(key,'medium'), 'medium');
-        const mMt = vd.maxThreadsFor('medium'); // 8
-        let recTier = 'easier';
-        if (eT >= eMt) recTier = 'medium';
-        if (eT >= eMt && mT >= mMt) recTier = 'hard';
-
-        // If the recommended tier is locked (shouldn't normally happen given above logic,
-        // but guard against edge cases like missing thH/thE), fallback
-        if (!vd.isScenarioUnlocked(key, recTier)) recTier = 'easier';
-
-        const best    = vd.getBestFor(key, recTier);
-        const threads = vd.calcThreadsFor(key, best, recTier);
-        const mt      = vd.maxThreadsFor(recTier);
+        const tier = plan.tiers[i] || 'easier';
+        const best    = vd.getBestFor(key, tier);
+        const threads = vd.calcThreadsFor(key, best, tier);
+        const mt      = vd.maxThreadsFor(tier);
         const pct     = Math.min(100, threads / mt * 100);
-        const color   = _DT_TIER_COLOR[recTier];
-        const tierLbl = recTier === 'easier' ? 'Easier' : recTier === 'medium' ? 'Medium' : 'Hard';
-        const label   = recTier === 'easier' ? (sc.labelE || sc.label)
-                      : recTier === 'hard'   ? (sc.labelH || sc.label) : sc.label;
-        const cat = _DT_CAT_LABELS[sc.cat] || sc.cat;
+        const color   = _DT_TIER_COLOR[tier];
+        const tierLbl = tier === 'easier' ? 'Easier' : tier === 'medium' ? 'Medium' : 'Hard';
+        const label   = tier === 'easier' ? (sc.labelE || sc.label)
+                      : tier === 'hard'   ? (sc.labelH || sc.label) : sc.label;
+        const cat     = _DT_CAT_LABELS[sc.cat] || sc.cat;
 
-        // Lock check: Medium/Hard need at least 1 thread on prev tier
-        const locked = !vd.isScenarioUnlocked(key, recTier);
-        const prevTierLbl = recTier === 'hard' ? 'Medium' : 'Easier';
-        const launchBtn = locked
-          ? `<span class="dt-locked-badge" title="Faire au moins 1 session en ${prevTierLbl} pour débloquer">${icon('lock',14)} Verrouillé</span>`
-          : `<button class="dt-launch-btn" onclick="dtLaunch('${key}','${recTier}')">▶ Lancer</button>`;
+        const isDone = done.includes(key);
+        const locked = !vd.isScenarioUnlocked(key, tier);
+        const prevTierLbl = tier === 'hard' ? 'Medium' : 'Easier';
 
-        return `<div class="dt-exercise${locked?' dt-exercise-locked':''}">
+        let actionBtn;
+        if (locked && !isDone) {
+          actionBtn = `<span class="dt-locked-badge" title="Faire au moins 1 session en ${prevTierLbl} pour débloquer">${icon('lock',14)} Verrouillé</span>`;
+        } else if (isDone) {
+          actionBtn = `<button class="dt-launch-btn dt-launch-redo" onclick="dtLaunch('${key}','${tier}')" title="Rejouer pour améliorer ton score">${icon('refresh-cw',14)} Rejouer</button>`;
+        } else {
+          actionBtn = `<button class="dt-launch-btn" onclick="dtLaunch('${key}','${tier}')">▶ Lancer</button>`;
+        }
+
+        return `<div class="dt-exercise${locked && !isDone ? ' dt-exercise-locked' : ''}${isDone ? ' dt-exercise-done' : ''}">
           <div class="dt-ex-header">
-            <div class="dt-ex-name">${san(label)}</div>
+            <div class="dt-ex-name">
+              ${isDone ? `<span class="dt-ex-check" aria-label="Terminé">${icon('check-circle',14)}</span>` : ''}
+              ${san(label)}
+            </div>
             <span class="dt-ex-tier" style="color:${color};border-color:${color}40;background:${color}15">${tierLbl}</span>
           </div>
           <div class="dt-ex-cat">${cat}</div>
@@ -2034,7 +2146,7 @@ function dailyTrainingLoad() {
             <div class="dt-ex-bar"><div class="dt-ex-fill" style="width:${pct}%;background:${color}"></div></div>
             <span class="dt-ex-threads">${threads}/${mt}</span>
           </div>
-          ${launchBtn}
+          ${actionBtn}
         </div>`;
       }).join('')}
     </div>`;
@@ -2043,7 +2155,7 @@ function dailyTrainingLoad() {
 function dtLaunch(key, tier) {
   const vd = window._viscData;
   if (vd) vd.setTier(tier);
-  window._coachLaunchSource = { tab: 'ch-daily-training' };
+  window._coachLaunchSource = { tab: 'ch-daily-training', dailyKey: key };
   // NE PAS passer par .mode-card.click() — ce listener force G.benchmarkMode=false
   // On appelle startGame directement avec benchmarkMode=true déjà positionné
   if (window._G) window._G.benchmarkMode = true;

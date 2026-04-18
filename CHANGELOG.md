@@ -1,5 +1,18 @@
 # Changelog — MayhAim
 
+## 2.0.3 — 2026-04-18
+
+### ✨ Daily Training — vraie rotation quotidienne
+- **5 exercices par jour, figés** jusqu'à minuit (local) — le plan est généré une fois par jour à partir d'un seed déterministe et mis en cache dans `localStorage` (`dt_plan_YYYY-MM-DD`)
+- **Validation, pas remplacement** — terminer un exo le coche (✅) et l'affiche en vert au lieu de le remplacer par un autre ; l'exo reste visible avec un bouton « Rejouer » pour améliorer son score
+- **Barre de progression du jour** — `X/5` visible en haut, passe en vert quand le Daily est complété 🎉
+- **Compte à rebours** jusqu'au prochain reset (minuit local) au lieu de texte statique
+- **Nettoyage auto** — purge les plans/completions > 7 jours pour garder `localStorage` propre
+
+### 🔧 Fiabilité
+- Le marquage « terminé » utilise la date locale (pas UTC), donc plus de cas où un exo terminé à 23h50 apparaît non-validé le lendemain matin à 00h10
+- Free-play (hors Daily) ne pollue plus la complétion du jour — seul un lancement depuis la liste Daily compte
+
 ## 2.0.2 — 2026-04-17
 
 ### 🛠 Fixes & correctness

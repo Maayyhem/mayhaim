@@ -1894,6 +1894,12 @@ function endGame() {
     // Return destination depends on launch source
     const _src = window._coachLaunchSource;
     if (_src && _src.tab === 'ch-daily-training') {
+      // Mark this scenario as "done for today" in the Daily Training rotation.
+      // Only fires when the scenario was launched from the Daily list (dailyKey
+      // was set by dtLaunch); free-play completions don't count.
+      if (_src.dailyKey && typeof window._dtMarkDone === 'function') {
+        try { window._dtMarkDone(_src.dailyKey); } catch {}
+      }
       $('#btn-menu').innerHTML = `${icon('calendar',16)} Daily Training`;
       $('#btn-menu').onclick = () => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
