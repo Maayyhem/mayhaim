@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 function setCors(req, res) {
   const o = req.headers.origin || '';
   const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
-  res.setHeader('Access-Control-Allow-Origin', (o===a||/^https:\/\/mayhaim[^.]*\.vercel\.app$/.test(o))?o:a);
+  res.setHeader('Access-Control-Allow-Origin', o === a ? o : a);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
@@ -26,6 +26,12 @@ module.exports = async function handler(req, res) {
       decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
     } catch (e) {
       return res.status(401).json({ error: 'Token invalide' });
+    }
+
+    // Defense-in-depth: reject partial tokens (pre-MFA) and any full token
+    // that was somehow issued without MFA verification.
+    if (decoded.partial || !decoded.mfa_verified) {
+      return res.status(401).json({ error: 'MFA requis' });
     }
 
     if (decoded.role !== 'admin') {

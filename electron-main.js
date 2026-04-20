@@ -1,7 +1,9 @@
 // Electron main process for MayhAim
 // Loads the site locally and routes /api/* calls to Vercel.
 // Handles Discord OAuth via a dedicated popup window that captures
-// the returned discord_token/discord_error query params.
+// the returned discord_token / discord_error values from the URL fragment
+// (the server now redirects to `…#discord_token=…` instead of `?…=…`
+// so the token never leaks via server logs or Referer headers).
 
 const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('electron');
 const path = require('node:path');
@@ -126,14 +128,20 @@ function createMainWindow() {
   });
 
   // When the Discord popup opens, watch its navigation for the final
-  // redirect back to mayhaim.vercel.app?discord_token=... or ?discord_error=...
+  // redirect back to mayhaim.vercel.app#discord_token=... or #discord_error=...
+  // The token is in the URL fragment (not the query-string) so it never leaks
+  // via server logs or Referer headers. We still accept legacy ?discord_token
+  // format for a few releases to handle already-in-flight redirects.
   mainWindow.webContents.on('did-create-window', (child) => {
     const catchToken = (targetUrl) => {
       try {
         const u = new URL(targetUrl);
         if (!u.origin.includes('mayhaim.vercel.app')) return false;
-        const token = u.searchParams.get('discord_token');
-        const error = u.searchParams.get('discord_error');
+        const hashParams = new URLSearchParams(
+          u.hash.startsWith('#') ? u.hash.slice(1) : ''
+        );
+        const token = hashParams.get('discord_token') || u.searchParams.get('discord_token');
+        const error = hashParams.get('discord_error') || u.searchParams.get('discord_error');
         if (token || error) {
           mainWindow.webContents.send('discord-auth-result', { token, error });
           child.close();

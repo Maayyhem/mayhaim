@@ -1,5 +1,21 @@
 # Changelog — MayhAim
 
+## 2.0.4 — 2026-04-19
+
+### 🔒 Sécurité (sprint audit)
+- **CORS strict** — la regex `mayhaim[^.]*.vercel.app` acceptait n'importe quel sous-domaine Vercel commençant par "mayhaim" (ex: un projet Vercel tiers nommé `mayhaimclone`). Remplacée par un match exact sur `ALLOWED_ORIGIN` (par défaut `https://mayhaim.vercel.app`)
+- **Content-Security-Policy** — header `Content-Security-Policy` ajouté dans `vercel.json` : bloque l'injection de scripts tiers, iframes non-autorisés, plugins, etc. Tolère les embeds YouTube et les images HTTPS (Discord/Riot CDN)
+- **Token Discord OAuth protégé** — après auth Discord, le token JWT est désormais renvoyé via le fragment d'URL (`#discord_token=…`) au lieu de la query-string. Les fragments ne sont ni envoyés au serveur, ni loggés par Vercel, ni inclus dans le header `Referer` vers d'autres sites
+- **MFA défense-en-profondeur** — `api/update-role.js` (actions admin : lock, unlock, reset-mfa, delete-user, change-role) rejette désormais les tokens partiels ou non-vérifiés MFA
+- **Warning JWT_SECRET faible** — détection automatique au cold-start d'un secret trop court (<32 chars) ou correspondant à un pattern dictionnaire connu. Log console immédiat
+
+### ⚠️ Action requise côté ops
+Le `JWT_SECRET` actuel en production correspond au pattern faible détecté. Pour rotater :
+```
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+puis mettre la valeur dans Vercel → Settings → Environment Variables → `JWT_SECRET`. Cette rotation **invalide toutes les sessions existantes** (utilisateurs devront se reconnecter une fois).
+
 ## 2.0.3 — 2026-04-18
 
 ### ✨ Daily Training — vraie rotation quotidienne

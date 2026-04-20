@@ -6766,10 +6766,15 @@ async function settMfaDisableConfirm() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Discord OAuth callback : token ou erreur passés en query param
-  const _urlParams = new URLSearchParams(window.location.search);
-  const _discordToken = _urlParams.get('discord_token');
-  const _discordError = _urlParams.get('discord_error');
+  // Discord OAuth callback : token ou erreur passés via URL fragment (#).
+  // Le fragment n'est jamais envoyé au serveur → ne fuite pas dans les logs
+  // Vercel ni dans le header Referer vers d'autres sites. Fallback query param
+  // pour compat avec d'anciens redirects en cache.
+  const _hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+  const _hashParams = new URLSearchParams(_hash);
+  const _queryParams = new URLSearchParams(window.location.search);
+  const _discordToken = _hashParams.get('discord_token') || _queryParams.get('discord_token');
+  const _discordError = _hashParams.get('discord_error') || _queryParams.get('discord_error');
   if (_discordToken) {
     coachingToken = _discordToken;
     localStorage.setItem('ch_token', _discordToken);

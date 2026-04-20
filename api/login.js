@@ -3,10 +3,30 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 
+// Fail-fast on weak or missing JWT_SECRET (logged once per cold start).
+// A short or dictionary-like secret lets anyone with source-code access
+// forge valid tokens. Rotate via:
+//   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+// then set JWT_SECRET in Vercel env vars (invalidates existing sessions).
+(function checkJwtSecret() {
+  const s = process.env.JWT_SECRET;
+  if (!s) {
+    console.error('[SECURITY] JWT_SECRET is not set — all logins will fail.');
+    return;
+  }
+  if (s.length < 32) {
+    console.warn(`[SECURITY] JWT_SECRET is only ${s.length} chars. Use ≥32 random hex bytes.`);
+  }
+  // Known weak default (shipped in repo `.env` history before 2.0.4).
+  if (/mayhaim.*coaching.*hub.*secret/i.test(s) || /^(test|dev|secret|password|change[-_ ]?me)$/i.test(s)) {
+    console.warn('[SECURITY] JWT_SECRET matches a known weak/default pattern. Rotate it immediately.');
+  }
+})();
+
 function setCors(req, res) {
   const o = req.headers.origin || '';
   const a = process.env.ALLOWED_ORIGIN || 'https://mayhaim.vercel.app';
-  res.setHeader('Access-Control-Allow-Origin', (o===a||/^https:\/\/mayhaim[^.]*\.vercel\.app$/.test(o))?o:a);
+  res.setHeader('Access-Control-Allow-Origin', o === a ? o : a);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -29,7 +49,7 @@ module.exports = async function handler(req, res) {
   // ── Discord: redirect vers la page d'autorisation ──────────────────
   if (req.method === 'GET' && action === 'discord') {
     if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) {
-      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent('Discord non configuré')}`);
+      res.setHeader('Location', `${SITE_URL}#discord_error=${encodeURIComponent('Discord non configuré')}`);
       return res.status(302).end();
     }
     const params = new URLSearchParams({
@@ -46,7 +66,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET' && action === 'discord-callback') {
     const { code, error } = req.query;
     if (error || !code) {
-      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent(error || 'Accès refusé')}`);
+      res.setHeader('Location', `${SITE_URL}#discord_error=${encodeURIComponent(error || 'Accès refusé')}`);
       return res.status(302).end();
     }
     try {
@@ -123,12 +143,13 @@ module.exports = async function handler(req, res) {
         { expiresIn: '7d' }
       );
 
-      res.setHeader('Location', `${SITE_URL}?discord_token=${encodeURIComponent(token)}`);
+      // Token in URL fragment (#) — never sent to server, never logged, never leaks via Referer.
+      res.setHeader('Location', `${SITE_URL}#discord_token=${encodeURIComponent(token)}`);
       return res.status(302).end();
 
     } catch (err) {
       console.error('Discord callback error:', err);
-      res.setHeader('Location', `${SITE_URL}?discord_error=${encodeURIComponent('Erreur de connexion Discord')}`);
+      res.setHeader('Location', `${SITE_URL}#discord_error=${encodeURIComponent('Erreur de connexion Discord')}`);
       return res.status(302).end();
     }
   }

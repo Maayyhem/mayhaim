@@ -64,20 +64,21 @@ window.fetch = function (input, init) {
 
 // ───── Discord OAuth handoff ─────
 // electron-main sends us { token, error } when the popup finishes.
-// We drop the token into localStorage and replay the query-string the
-// frontend already knows how to parse (see coaching.js:4753+).
+// We drop the token in localStorage and replay the value via the URL fragment
+// (#discord_token=...) the frontend reads (see coaching.js DOMContentLoaded
+// handler). Fragment instead of query-string: never reaches Electron's URL
+// bar logs or Referer headers.
 ipcRenderer.on('discord-auth-result', (_, { token, error }) => {
   if (token) {
     try { localStorage.setItem('ch_token', token); } catch {}
-    // Trigger the existing client-side handler
     const url = new URL(location.href);
-    url.searchParams.delete('discord_error');
-    url.searchParams.set('discord_token', token);
+    url.search = ''; // strip any stray discord_* query args
+    url.hash = '#discord_token=' + encodeURIComponent(token);
     location.replace(url.toString());
   } else if (error) {
     const url = new URL(location.href);
-    url.searchParams.delete('discord_token');
-    url.searchParams.set('discord_error', error);
+    url.search = '';
+    url.hash = '#discord_error=' + encodeURIComponent(error);
     location.replace(url.toString());
   }
 });
