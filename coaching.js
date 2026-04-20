@@ -2,12 +2,12 @@
 
 const API_BASE = '/api';
 
-// XSS sanitization — wrap all user data before inserting in innerHTML
-function san(str) {
-  return String(str == null ? '' : str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
-}
+// XSS sanitization — centralized in ui.js as `window.san` since 2.0.5.
+// Local alias kept for readability in string templates below.
+const san = window.san;
+// logErr(context, err, opts?) — shared from ui.js for consistent network
+// error telemetry (see logErr() in ui.js).
+const logErr = window.logErr;
 
 // Rank badge HTML
 const VALORANT_RANK_COLORS = {
@@ -501,7 +501,7 @@ async function fetchAgentEditsFromDB() {
     const all = getCustomAgents();
     data.forEach(entry => { all[entry.data_key] = entry.data_value; });
     localStorage.setItem('ch_custom_agents', JSON.stringify(all));
-  } catch {}
+  } catch (e) { logErr('sync-custom-agents', e); }
 }
 
 async function fetchStratsFromDB() {
@@ -515,7 +515,7 @@ async function fetchStratsFromDB() {
     const all = JSON.parse(localStorage.getItem('me_scenario_maps') || '{}');
     data.forEach(entry => { all[entry.data_key] = entry.data_value; });
     localStorage.setItem('me_scenario_maps', JSON.stringify(all));
-  } catch {}
+  } catch (e) { logErr('sync-scenario-maps', e); }
 }
 
 async function pushAgentEditToDB(name, agentData) {
@@ -799,7 +799,7 @@ async function loadAnnouncements() {
     if (!res.ok) return;
     const d = await res.json();
     renderAnnouncements(d.announcements || []);
-  } catch {}
+  } catch (e) { logErr('load-announcements', e); }
 }
 
 function renderAnnouncements(list) {
@@ -838,7 +838,7 @@ function exportToCSV(rows, filename, cols) {
 }
 
 function exportUsersCSV() {
-  if (!_adminUsers.length) { alert('Charge le panel admin d\'abord.'); return; }
+  if (!_adminUsers.length) { showToast.warn('Charge le panel admin d\'abord.'); return; }
   exportToCSV(_adminUsers, 'utilisateurs.csv', [
     { key: 'id',           label: 'ID' },
     { key: 'username',     label: 'Pseudo' },
@@ -855,7 +855,7 @@ function exportUsersCSV() {
 let _historyData = [];
 
 function exportHistoryCSV() {
-  if (!_historyData.length) { alert('Charge l\'historique d\'abord.'); return; }
+  if (!_historyData.length) { showToast.warn('Charge l\'historique d\'abord.'); return; }
   exportToCSV(_historyData, 'historique.csv', [
     { key: 'played_at',    label: 'Date' },
     { key: 'mode',         label: 'Mode' },
@@ -2602,7 +2602,7 @@ async function adminLoadStats() {
     set('astat-locked', d.locked);
     set('astat-mfa', d.mfa_enabled);
     set('astat-top-score', d.top_score ? d.top_score.toLocaleString() : '—');
-  } catch {}
+  } catch (e) { logErr('admin-load-stats', e); }
 }
 
 async function adminLoadUsers() {
@@ -2660,12 +2660,12 @@ async function adminChangeRole(userId, role) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
       body: JSON.stringify({ userId, role })
     });
-    if (!res.ok) { const d = await res.json(); alert('Erreur: ' + d.error); return; }
+    if (!res.ok) { const d = await res.json(); showToast.error('Erreur : ' + d.error); return; }
     const u = _adminUsers.find(x => x.id === userId);
     if (u) u.role = role;
     adminRenderUsers();
     adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-change-role', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminLockUser(userId, username) {
@@ -2679,7 +2679,7 @@ async function adminLockUser(userId, username) {
       body: JSON.stringify({ action: 'lock', userId, minutes })
     });
     adminLoadUsers(); adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-lock', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminUnlockUser(userId) {
@@ -2690,7 +2690,7 @@ async function adminUnlockUser(userId) {
       body: JSON.stringify({ action: 'unlock', userId })
     });
     adminLoadUsers(); adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-unlock', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminResetMfa(userId) {
@@ -2702,7 +2702,7 @@ async function adminResetMfa(userId) {
       body: JSON.stringify({ action: 'reset-mfa', userId })
     });
     adminLoadUsers(); adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-reset-mfa', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminDeleteUser(userId, username) {
@@ -2714,9 +2714,9 @@ async function adminDeleteUser(userId, username) {
       body: JSON.stringify({ action: 'delete', userId })
     });
     const d = await res.json();
-    if (d.error) { alert('Erreur: ' + d.error); return; }
+    if (d.error) { showToast.error('Erreur : ' + d.error); return; }
     adminLoadUsers(); adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-delete-user', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminLoadRelations() {
@@ -2770,7 +2770,7 @@ async function adminLoadAllAnnouncements() {
     const res = await fetch(`${API_BASE}/coaching?view=all-announcements`, { headers: { 'Authorization': `Bearer ${coachingToken}` } });
     const d = await res.json();
     adminRenderAllAnnouncements(d.announcements || []);
-  } catch {}
+  } catch (e) { logErr('admin-load-all-announcements', e); el.innerHTML = '<p class="ch-empty">Erreur de chargement. <button class="ch-retry-btn" onclick="adminLoadAllAnnouncements()">Réessayer</button></p>'; }
 }
 
 function adminRenderAllAnnouncements(list) {
@@ -2801,19 +2801,19 @@ async function adminCreateAnnouncement() {
   const content = document.getElementById('ann-content')?.value.trim();
   const type    = document.getElementById('ann-type')?.value || 'info';
   const expires = document.getElementById('ann-expires')?.value || null;
-  if (!title || !content) { alert('Titre et contenu requis'); return; }
+  if (!title || !content) { showToast.warn('Titre et contenu requis'); return; }
   try {
     const res = await fetch(`${API_BASE}/coaching`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
       body: JSON.stringify({ action: 'create-announcement', title, content, type, expires_at: expires || null })
     });
-    if (!res.ok) { const d = await res.json(); alert('Erreur: ' + d.error); return; }
+    if (!res.ok) { const d = await res.json(); showToast.error('Erreur : ' + d.error); return; }
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-content').value = '';
     adminLoadAllAnnouncements();
     loadAnnouncements();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-create-announcement', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminToggleAnnouncement(id) {
@@ -2824,7 +2824,7 @@ async function adminToggleAnnouncement(id) {
       body: JSON.stringify({ action: 'toggle-announcement', ann_id: id })
     });
     adminLoadAllAnnouncements(); loadAnnouncements();
-  } catch {}
+  } catch (e) { logErr('admin-toggle-announcement', e); showToast.error('Erreur réseau'); }
 }
 
 async function adminDeleteAnnouncement(id) {
@@ -2836,7 +2836,7 @@ async function adminDeleteAnnouncement(id) {
       body: JSON.stringify({ action: 'delete-announcement', ann_id: id })
     });
     adminLoadAllAnnouncements(); loadAnnouncements();
-  } catch {}
+  } catch (e) { logErr('admin-delete-announcement', e); showToast.error('Erreur réseau'); }
 }
 
 // ── Audit logs ──────────────────────────────────────────────────────────────
@@ -2883,9 +2883,9 @@ async function adminDeleteRelation(relId) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
       body: JSON.stringify({ action: 'admin-delete-rel', rel_id: relId })
     });
-    if (!res.ok) { alert('Erreur serveur'); return; }
+    if (!res.ok) { showToast.error('Erreur serveur'); return; }
     adminLoadRelations(); adminLoadStats();
-  } catch { alert('Erreur réseau'); }
+  } catch (e) { logErr('admin-delete-rel', e); showToast.error('Erreur réseau'); }
 }
 
 async function coachingRenderStudents() {
@@ -2935,7 +2935,7 @@ async function coachingRenderStudents() {
               body: JSON.stringify({ userId: s.id, role: select.value })
             });
             coachingRenderStudents();
-          } catch (e) { alert('Erreur: ' + e.message); }
+          } catch (e) { logErr('coaching-role-change', e); showToast.error('Erreur : ' + e.message); }
         });
         const delBtn = card.querySelector('.ch-delete-user-btn');
         delBtn?.addEventListener('click', () => coachingDeleteUser(s.id, s.username));
@@ -2956,15 +2956,15 @@ async function coachingDeleteUser(userId, username) {
       body: JSON.stringify({ action: 'delete', userId })
     });
     const data = await res.json();
-    if (data.error) { alert('Erreur : ' + data.error); return; }
+    if (data.error) { showToast.error('Erreur : ' + data.error); return; }
     coachingRenderStudents();
-  } catch (e) { alert('Erreur réseau'); }
+  } catch (e) { logErr('coaching-delete-user', e); showToast.error('Erreur réseau'); }
 }
 
 // ============ ADMIN: MANAGE scenarios ============
 
 async function seedScenariosToDb() {
-  if (!coachingToken) return alert('Non connecte');
+  if (!coachingToken) { showToast.warn('Non connecté'); return; }
   const btn = document.getElementById('btn-seed-scenarios');
   if (btn) { btn.disabled = true; btn.textContent = 'Seeding...'; }
   try {
@@ -2974,11 +2974,12 @@ async function seedScenariosToDb() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erreur serveur');
-    alert(data.message || 'Seed termine !');
+    showToast.success(data.message || 'Seed terminé !');
     await fetchScenariosFromDB();
     coachingRenderManageScenarios();
   } catch (e) {
-    alert('Erreur seed : ' + e.message);
+    logErr('admin-seed-scenarios', e);
+    showToast.error('Erreur seed : ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Initialiser les scenarios (Seed DB)'; }
   }
@@ -5743,7 +5744,7 @@ async function loadNotifications() {
     const d = await res.json();
     renderNotifBell(d.unread_count || 0);
     renderNotifList(d.notifications || []);
-  } catch {}
+  } catch (e) { logErr('load-notifications', e); }
 }
 
 function renderNotifBell(count) {
@@ -5799,7 +5800,7 @@ async function clickNotif(id, tab) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
       body: JSON.stringify({ action: 'mark-read', id })
     });
-  } catch {}
+  } catch (e) { logErr('mark-notif-read', e); }
   loadNotifications();
   if (tab) {
     const _np = document.getElementById('ch-notif-panel');
@@ -5815,7 +5816,7 @@ async function markAllNotifRead() {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
       body: JSON.stringify({ action: 'mark-all-read' })
     });
-  } catch {}
+  } catch (e) { logErr('mark-all-notif-read', e); }
   loadNotifications();
 }
 
@@ -5891,7 +5892,7 @@ async function loadMessages() {
     if (!res.ok) return;
     const d = await res.json();
     renderMessages(d.messages || []);
-  } catch {}
+  } catch (e) { logErr('load-messages', e); }
 }
 
 function renderMessages(msgs) {
@@ -5927,7 +5928,8 @@ async function sendMessage() {
       body: JSON.stringify({ action: 'send-message', rel_id: _activeRelId, content })
     });
     if (res.ok) loadMessages();
-  } catch {}
+    else showToast.error('Message non envoyé');
+  } catch (e) { logErr('send-message', e); showToast.error('Erreur réseau — message non envoyé'); }
 }
 
 // ============ RETOUR COACHING DEPUIS RÉSULTATS ============
@@ -6007,7 +6009,7 @@ async function loadPbHistory() {
     _pbHistory = d.pb_history || [];
     _populatePbModeSelect();
     renderPbAllBests();
-  } catch {}
+  } catch (e) { logErr('load-pb-history', e); }
 }
 
 function _populatePbModeSelect() {
@@ -6092,7 +6094,7 @@ async function loadDailyChallenge() {
     if (!res.ok) return;
     const d = await res.json();
     renderDailyChallenge(d);
-  } catch {}
+  } catch (e) { logErr('load-daily-challenge', e); }
 }
 
 function renderDailyChallenge(d) {
@@ -6634,7 +6636,7 @@ function cpGenerateWarmup() {
             </div>
           </div>
           <div class="wu-reps">×${s.reps}</div>
-          <button class="wu-play-btn" onclick="${typeof G !== 'undefined' ? `G.benchmarkMode=true;startGame('${s.key}')` : `alert('Lance le jeu d\\'abord')`}">▶</button>
+          <button class="wu-play-btn" onclick="${typeof G !== 'undefined' ? `G.benchmarkMode=true;startGame('${s.key}')` : `showToast.warn('Lance le jeu d\\'abord')`}">▶</button>
         </div>`).join('')}
     </div>`;
 }

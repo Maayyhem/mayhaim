@@ -369,6 +369,91 @@
       .replace(/'/g, '&#39;');
   }
 
+  // san() — XSS sanitizer alias used by coaching.js / coachplayer.js.
+  // Historically these files had their own copy; centralising here avoids drift.
+  // Uses &#x27; (numeric hex) for the apostrophe to match the pre-2.0.5 output
+  // exactly, in case any cached render relies on byte equality.
+  function san(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  /* ============================================================
+     LOG ERR — centralized network/async error logger
+     Call sites do:
+         fetch(...).catch(e => logErr('load-profile', e));
+     instead of swallowing with `catch {}`. In dev this prints a
+     structured line to the console; the global error boundary still
+     handles uncaught throws separately.
+     Pass opts.toast = true to also surface a toast (default: silent —
+     the caller usually shows a contextual empty state).
+     ============================================================ */
+  function logErr(context, err, opts = {}) {
+    const msg = err && err.message ? err.message : String(err || 'unknown');
+    // Structured console entry — groups in DevTools under the context tag.
+    if (console && console.warn) {
+      console.warn('[mayhaim:' + context + ']', msg, err);
+    }
+    if (opts.toast) {
+      showToast.error(opts.toastMessage || 'Erreur : ' + msg.slice(0, 140));
+    }
+  }
+
+  /* ============================================================
+     NETWORK STATUS BANNER
+     A non-intrusive top banner when the browser reports offline.
+     Auto-clears once the connection comes back. Works in Electron too
+     (navigator.onLine is driven by the OS network stack).
+     ============================================================ */
+  function ensureNetBanner() {
+    let b = document.getElementById('mayhaim-net-banner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'mayhaim-net-banner';
+      b.setAttribute('role', 'status');
+      b.setAttribute('aria-live', 'polite');
+      b.style.cssText = [
+        'position:fixed', 'top:0', 'left:0', 'right:0',
+        'z-index:99999',
+        'background:#b63a3a', 'color:#fff',
+        'font:600 0.82rem/1 system-ui,sans-serif',
+        'text-align:center',
+        'padding:8px 12px',
+        'letter-spacing:0.4px',
+        'box-shadow:0 2px 8px rgba(0,0,0,0.35)',
+        'transform:translateY(-100%)',
+        'transition:transform 180ms ease',
+      ].join(';');
+      b.textContent = '⚠  Connexion perdue — les fonctionnalités en ligne sont indisponibles';
+      document.body && document.body.appendChild(b);
+    }
+    return b;
+  }
+  function setNetStatus(online) {
+    // Defer until body exists (script may load before DOMContentLoaded)
+    if (!document.body) {
+      document.addEventListener('DOMContentLoaded', () => setNetStatus(online), { once: true });
+      return;
+    }
+    const b = ensureNetBanner();
+    if (online) {
+      b.style.transform = 'translateY(-100%)';
+    } else {
+      b.style.transform = 'translateY(0)';
+    }
+  }
+  window.addEventListener('online',  () => { setNetStatus(true);  showToast.success('Connexion rétablie'); });
+  window.addEventListener('offline', () => { setNetStatus(false); });
+  // Initial state on load (in case we booted offline)
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    document.addEventListener('DOMContentLoaded', () => setNetStatus(false), { once: true });
+  }
+
   /* ============================================================
      ABOUT MODAL — version + changelog
      ============================================================ */
@@ -523,6 +608,8 @@
   window.showAbout = showAbout;
   window.copyToClipboard = copyToClipboard;
   window.escapeHtml = escapeHtml;
+  window.san = san;
+  window.logErr = logErr;
   window.mdToHtml = mdToHtml;
 
   /* ============================================================

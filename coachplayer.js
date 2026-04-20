@@ -1,14 +1,11 @@
 // ============================================================
 // coachplayer.js — Coach ↔ Joueur
-// Dépend de : coachingToken, coachingUser, coachingUserRole, API_BASE
+// Dépend de : coachingToken, coachingUser, coachingUserRole, API_BASE,
+//             san (centralisé dans ui.js, binding partagé via coaching.js)
 // ============================================================
-
-// XSS sanitization
-function san(str) {
-  return String(str == null ? '' : str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
-}
+// `san` is declared as `const san = window.san;` at the top of coaching.js
+// which is always loaded before this file — reuse that binding instead of
+// redeclaring (top-level const shadowing across <script> tags throws).
 
 // ── Helpers API ──────────────────────────────────────────────
 async function cpFetch(method, path, body) {
@@ -24,6 +21,7 @@ async function cpFetch(method, path, body) {
     const r = await fetch(API_BASE + path, opts);
     return await r.json();
   } catch (e) {
+    window.logErr && window.logErr('cp-fetch:' + method + ' ' + path, e);
     return { error: 'Erreur réseau' };
   }
 }

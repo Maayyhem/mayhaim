@@ -1,5 +1,22 @@
 # Changelog — MayhAim
 
+## 2.0.5 — 2026-04-20
+
+### 🔧 Robustesse (sprint fiabilité)
+- **Régression CSP corrigée** — la policy ajoutée en 2.0.4 bloquait `cdn.jsdelivr.net`, donc Chart.js ne se chargeait plus (graphiques vides sur le profil et le dashboard). `script-src` inclut désormais explicitement `https://cdn.jsdelivr.net`
+- **Banner de connexion** — un bandeau rouge apparaît en haut de l'écran dès que le navigateur passe offline, et s'efface automatiquement au retour (toast « Connexion rétablie »). Fonctionne aussi côté Electron (suit l'état réseau de l'OS)
+- **21 `alert()` remplacés par des toasts** — dans le panel admin (change-role, lock, unlock, reset-mfa, delete, create-announcement, delete-rel, seed-scenarios, etc.) : plus de popups bloquantes, messages contextuels avec icônes (warn / error / success)
+- **14 `catch {}` muets instrumentés** — tous les catch qui enveloppaient un `fetch()` appellent désormais `logErr(context, err)` pour un log console structuré (ex. `[mayhaim:admin-load-stats]`). Les caches localStorage corruption-tolerants restent silencieux (comportement volontaire)
+- **Helper `send-message` explicite** — un échec d'envoi de message dans le chat coach ↔ élève est maintenant notifié à l'utilisateur (« Message non envoyé »), au lieu d'être silencieusement perdu
+
+### ♻️ Refactor
+- **`san()` centralisé** — dédupliqué (3 copies) vers `window.san` dans `ui.js`, avec `window.logErr()` associé
+- **Naming conventions** — messages d'erreur harmonisés ("Erreur : " au lieu de "Erreur: ")
+
+### 📦 Sans impact utilisateur
+- Aucun changement de format localStorage, pas de migration nécessaire
+- Aucune modification d'API : les clients 2.0.4 restent compatibles
+
 ## 2.0.4 — 2026-04-19
 
 ### 🔒 Sécurité (sprint audit)
