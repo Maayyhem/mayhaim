@@ -1,5 +1,19 @@
 # Changelog — MayhAim
 
+## 2.1.0 — 2026-04-21
+
+### 📊 Benchmark Analytics (sprint fiabilité des runs)
+- **Rate limit `/api/benchmark`** — 100 runs/heure, 2000 runs/jour par utilisateur non-admin. Ces bornes sont volontairement très larges (un grinder sérieux fait ~500 runs/jour) ; elles existent surtout pour empêcher l'empoisonnement automatisé de la table des percentiles. 429 avec message explicite si dépassé
+- **Anti-outlier soft** — tout score soumis > 2.5 × max all-time du scénario (à difficulté égale, et seulement si le record existant > 100) est loggé dans `console.warn` avec `[benchmark] Suspicious score`, sans rejet. Faux positifs possibles quand un joueur bat réellement un record, donc on préfère logger pour review plutôt que bloquer
+- **Offline queue (`window.bgFetch`)** — les POST `/api/history` et `/api/benchmark` sont désormais mis en file dans `localStorage` si le joueur est offline ou si le serveur renvoie 5xx. Rejoués automatiquement au retour du réseau. Cap : 100 entrées (FIFO), TTL 7 jours, les 4xx (token expiré, payload invalide) sont drop immédiatement. Les GET ne sont pas queues (les réessais naturels suffisent)
+- **Nouveau `GET /api/benchmark?view=stats`** — renvoie `p10 / p25 / p50 / p75 / p90`, `run_count`, `unique_users`, `avg_score`, `max_score`, `avg_accuracy` pour un couple `(scenario, difficulty)` sur une fenêtre glissante (défaut 30j, max 365j). Calcul via `PERCENTILE_CONT WITHIN GROUP`. Servira aux tooltips « tu es dans le top X% » et à un futur onglet admin Analytics
+- **Script `scripts/purge-old-runs.js`** — rétention 90j pour les runs benchmark (configurable via `RETENTION_DAYS`), 30j pour les free-play. **Les best-of-all-time par `(user_id, scenario, difficulty)` sont exemptés** pour préserver la progression longue-durée. Supporte `DRY_RUN=1` pour inspecter avant suppression
+
+### 📦 Sans impact utilisateur
+- Aucun changement de schéma DB (la table `benchmark_runs` existe depuis 1.0.0)
+- Aucune migration localStorage — les clients 2.0.x continuent de fonctionner (la queue `mayhaim_bg_queue` est créée à la première utilisation)
+- L'API reste rétrocompatible : les clients qui n'utilisent pas `view=stats` ne voient aucune différence
+
 ## 2.0.5 — 2026-04-20
 
 ### 🔧 Robustesse (sprint fiabilité)

@@ -37,6 +37,37 @@ module.exports = async function handler(req, res) {
 
     if (!scenario) return res.status(400).json({ error: 'scenario requis' });
 
+    // Rate limit: 100/heure · 2000/jour par utilisateur. Ces bornes sont
+    // très larges — un grinder sérieux fait ~500 runs/jour. Elles existent
+    // surtout pour empêcher l'empoisonnement automatisé de la table.
+    // Admins contournent le rate limit (pour les tests/import).
+    if (decoded.role !== 'admin') {
+      const [hourC, dayC] = await Promise.all([
+        sql`SELECT COUNT(*)::int AS c FROM benchmark_runs WHERE user_id = ${decoded.id} AND played_at > NOW() - INTERVAL '1 hour'`,
+        sql`SELECT COUNT(*)::int AS c FROM benchmark_runs WHERE user_id = ${decoded.id} AND played_at > NOW() - INTERVAL '1 day'`,
+      ]);
+      if (hourC[0].c >= 100) return res.status(429).json({ error: 'Trop de runs — max 100/heure' });
+      if (dayC[0].c >= 2000) return res.status(429).json({ error: 'Limite journalière atteinte (2000 runs/jour)' });
+    }
+
+    // Anti-outlier (soft) : on log les scores absurdement au-dessus du max
+    // all-time pour review manuelle, sans rejeter — faux positifs possibles
+    // quand un joueur bat réellement un record.
+    try {
+      const diff = difficulty || 'medium';
+      const mx = await sql`
+        SELECT COALESCE(MAX(score), 0)::int AS m FROM benchmark_runs
+        WHERE scenario = ${scenario} AND difficulty = ${diff} AND is_benchmark = true
+      `;
+      const currentMax = mx[0].m;
+      if (currentMax > 100 && Number(score) > currentMax * 2.5) {
+        console.warn('[benchmark] Suspicious score', {
+          user_id: decoded.id, scenario, difficulty: diff,
+          submitted: Number(score), current_max: currentMax,
+        });
+      }
+    } catch {}
+
     await sql`
       INSERT INTO benchmark_runs
         (user_id, scenario, score, accuracy, hits, misses, energy, rank_name, difficulty, duration, is_benchmark)
@@ -175,7 +206,39 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ error: 'view requis : best | history | recent | coach-overview | profile' });
+    // Stats agrégées (percentiles) pour un scénario + difficulté — sert pour les
+    // tooltips "tu es dans le top X%" et l'onglet admin Analytics. Ne renvoie
+    // que des agrégats (pas de données nominatives). Fenêtre glissante 30j.
+    if (view === 'stats') {
+      if (!scenario) return res.status(400).json({ error: 'scenario requis' });
+      const diff = req.query.difficulty || 'medium';
+      const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
+
+      const rows = await sql`
+        SELECT
+          COUNT(*)::int AS run_count,
+          COUNT(DISTINCT user_id)::int AS unique_users,
+          ROUND(AVG(score)::numeric, 1) AS avg_score,
+          MAX(score) AS max_score,
+          PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY score) AS p10,
+          PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY score) AS p25,
+          PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY score) AS p50,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY score) AS p75,
+          PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY score) AS p90,
+          ROUND(AVG(accuracy)::numeric, 1) AS avg_accuracy
+        FROM benchmark_runs
+        WHERE scenario = ${scenario}
+          AND difficulty = ${diff}
+          AND is_benchmark = true
+          AND played_at > NOW() - (${days} || ' days')::interval
+      `;
+      return res.status(200).json({
+        scenario, difficulty: diff, window_days: days,
+        stats: rows[0] || {},
+      });
+    }
+
+    return res.status(400).json({ error: 'view requis : best | history | recent | coach-overview | profile | stats' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

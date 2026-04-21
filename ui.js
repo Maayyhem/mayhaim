@@ -455,6 +455,107 @@
   }
 
   /* ============================================================
+     BACKGROUND FETCH + OFFLINE QUEUE
+     Fire-and-forget POST helper. Si l'utilisateur est offline ou si
+     le serveur renvoie 5xx, l'appel est mis en file (localStorage) et
+     rejoué au retour du réseau. Les GET ne sont jamais queues (les
+     réessais naturels suffisent). Limite 100 entrées (FIFO — on drop
+     les plus anciennes), TTL 7 jours, 4xx = drop immédiat (pas de
+     retry sur un token expiré).
+     NB: ne marche qu'avec des bodies JSON-sérialisables (string/null).
+     ============================================================ */
+  var BG_QUEUE_KEY = 'mayhaim_bg_queue';
+  var BG_QUEUE_MAX = 100;
+  var BG_QUEUE_TTL_MS = 7 * 24 * 3600 * 1000;
+
+  function bgQueueRead() {
+    try {
+      var raw = localStorage.getItem(BG_QUEUE_KEY);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function bgQueueWrite(list) {
+    try {
+      // Garde les N dernières si on dépasse le cap (on sacrifie les plus vieilles)
+      var trimmed = list.length > BG_QUEUE_MAX ? list.slice(-BG_QUEUE_MAX) : list;
+      localStorage.setItem(BG_QUEUE_KEY, JSON.stringify(trimmed));
+    } catch {}
+  }
+  function bgQueuePush(entry) {
+    var list = bgQueueRead();
+    list.push(entry);
+    bgQueueWrite(list);
+  }
+
+  function bgFetch(url, opts) {
+    opts = opts || {};
+    var method = (opts.method || 'GET').toUpperCase();
+    var shouldQueue = method !== 'GET';
+
+    // Offline : on queue direct et on retourne un objet "ok: false, queued"
+    if (shouldQueue && typeof navigator !== 'undefined' && navigator.onLine === false) {
+      bgQueuePush({ url: url, opts: opts, method: method, ts: Date.now() });
+      return Promise.resolve({ ok: false, queued: true, offline: true });
+    }
+
+    return fetch(url, opts).then(function (r) {
+      // 5xx = problème serveur, on queue pour retry
+      if (!r.ok && shouldQueue && r.status >= 500) {
+        bgQueuePush({ url: url, opts: opts, method: method, ts: Date.now() });
+      }
+      return r;
+    }).catch(function (e) {
+      if (shouldQueue) {
+        bgQueuePush({ url: url, opts: opts, method: method, ts: Date.now() });
+      }
+      logErr('bgFetch:' + method + ' ' + url, e);
+      return { ok: false, queued: shouldQueue, error: e };
+    });
+  }
+
+  async function flushBgQueue() {
+    var list = bgQueueRead();
+    if (list.length === 0) return { flushed: 0, requeued: 0, dropped: 0 };
+    // Drop les entrées > TTL avant de retry
+    var now = Date.now();
+    var fresh = list.filter(function (e) { return (now - (e.ts || 0)) < BG_QUEUE_TTL_MS; });
+    var droppedStale = list.length - fresh.length;
+    // On vide la file immédiatement — les échecs seront remis à la fin
+    bgQueueWrite([]);
+
+    var ok = 0;
+    var requeue = [];
+    for (var i = 0; i < fresh.length; i++) {
+      var e = fresh[i];
+      try {
+        var r = await fetch(e.url, e.opts);
+        if (r.ok) { ok++; }
+        else if (r.status >= 500) { requeue.push(e); }
+        // 4xx → on drop (token expiré, payload rejeté, etc.)
+      } catch (err) {
+        requeue.push(e);
+      }
+    }
+    if (requeue.length) bgQueueWrite(requeue);
+    if (ok > 0 || droppedStale > 0) {
+      console.info('[mayhaim:bg-flush]', { flushed: ok, requeued: requeue.length, dropped_stale: droppedStale });
+    }
+    return { flushed: ok, requeued: requeue.length, dropped: droppedStale };
+  }
+
+  // Flush automatique au retour online
+  window.addEventListener('online', function () {
+    // Léger delay pour laisser le réseau se stabiliser
+    setTimeout(flushBgQueue, 500);
+  });
+  // Flush aussi au boot (si on a démarré online avec une queue pending)
+  if (typeof navigator !== 'undefined' && navigator.onLine !== false) {
+    setTimeout(flushBgQueue, 2000);
+  }
+
+  /* ============================================================
      ABOUT MODAL — version + changelog
      ============================================================ */
   // Mini-markdown → HTML (headings, bold, italic, lists, links). Safe: escapes first.
@@ -611,6 +712,8 @@
   window.san = san;
   window.logErr = logErr;
   window.mdToHtml = mdToHtml;
+  window.bgFetch = bgFetch;
+  window.flushBgQueue = flushBgQueue;
 
   /* ============================================================
      AUTO-INIT: replace data-icon placeholders with SVG icons
