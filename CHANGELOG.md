@@ -1,5 +1,11 @@
 # Changelog — MayhAim
 
+## 2.2.2 — 2026-04-21
+
+### 🔧 Fix · version affichée dans le "À propos"
+- **Le site web affichait toujours `v2.0.2`** — le fallback hardcodé dans `ui.js` (ajouté en release 2.0.2 et jamais bumpé depuis) était utilisé quand `window.MAYHAIM_VERSION` est absent, c'est-à-dire **sur la version web** (le preload Electron qui injecte la version n'y tourne pas). Résultat : toutes les releases 2.0.3 → 2.2.1 étaient invisibles côté site
+- **Nouveau mécanisme robuste** — la version est maintenant lue depuis une balise `<meta name="app-version">` présente dans `index.html` et `profile.html`. Source de vérité : (1) Electron preload (desktop), (2) meta tag (web), (3) fallback. À bumper à chaque release en même temps que `package.json`
+
 ## 2.2.1 — 2026-04-21
 
 ### 🔧 Fix · badges percentile sur le profil
