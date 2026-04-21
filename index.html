@@ -1477,6 +1477,30 @@
             <button class="wu-btn" style="font-size:0.78rem;padding:5px 12px" onclick="exportUsersCSV()">&#8595; Utilisateurs CSV</button>
           </div>
 
+          <!-- Analytics benchmark -->
+          <div class="admin-section-header" style="margin-top:28px">
+            <h3 class="cp-sub-title" style="margin:0">&#128202; Analytics benchmark</h3>
+            <select id="ana-days" class="admin-btn admin-btn-role" style="padding:6px 10px;font-size:0.8rem" onchange="adminAnalyticsRefresh()">
+              <option value="7">7 jours</option>
+              <option value="30" selected>30 jours</option>
+              <option value="90">90 jours</option>
+            </select>
+            <button class="wu-btn" style="font-size:0.78rem;padding:5px 12px" onclick="adminAnalyticsRefresh()">&#8635;</button>
+          </div>
+          <div id="analytics-totals" class="admin-stats-grid" style="margin-top:10px"></div>
+          <div class="admin-section-header" style="margin-top:14px;gap:10px">
+            <select id="ana-scen" class="admin-btn admin-btn-role" style="padding:6px 10px;font-size:0.8rem;flex:1;min-width:160px" onchange="adminAnalyticsRenderChart()"></select>
+            <select id="ana-diff" class="admin-btn admin-btn-role" style="padding:6px 10px;font-size:0.8rem" onchange="adminAnalyticsRenderChart()">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;height:220px">
+            <canvas id="ana-trend-chart"></canvas>
+          </div>
+          <div id="analytics-table" style="overflow-x:auto;margin-top:14px"></div>
+
           <!-- Logs d'activité -->
           <div class="admin-section-header" style="margin-top:28px">
             <h3 class="cp-sub-title" style="margin:0">Logs d'activité</h3>

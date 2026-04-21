@@ -2586,6 +2586,7 @@ async function adminLoad() {
   adminLoadRelations();
   adminLoadAllAnnouncements();
   adminLoadAuditLogs();
+  adminAnalyticsRefresh();
 }
 
 async function adminLoadStats() {
@@ -2873,6 +2874,166 @@ function adminRenderAuditLogs(logs) {
       </tr>`;
     }).join('')}</tbody>
   </table>`;
+}
+
+// ============ ADMIN ANALYTICS (benchmark) ============
+// Lit benchmark_stats_daily (pré-agrégé par scripts/aggregate-benchmark-stats.js).
+// Si le cron n'a jamais tourné la table est vide et l'onglet l'explique.
+
+let _anaChart = null;
+let _anaOverview = [];   // liste des (scenario, difficulty, …) du dernier refresh
+
+async function adminAnalyticsRefresh() {
+  const days = document.getElementById('ana-days')?.value || '30';
+  try {
+    const res = await fetch(`${API_BASE}/benchmark?view=stats-overview&days=${days}`, {
+      headers: { 'Authorization': `Bearer ${coachingToken}` }
+    });
+    if (!res.ok) {
+      const totalsEl = document.getElementById('analytics-totals');
+      if (totalsEl) totalsEl.innerHTML = '<p class="ch-empty" style="grid-column:1/-1">Accès refusé (admin uniquement).</p>';
+      return;
+    }
+    const d = await res.json();
+    _anaOverview = d.overview || [];
+    adminAnalyticsRenderTotals(d.totals || {}, d.window_days);
+    adminAnalyticsRenderTable(_anaOverview);
+    adminAnalyticsPopulateScenarioSelect(_anaOverview);
+    adminAnalyticsRenderChart();
+  } catch (e) {
+    logErr('admin-analytics-refresh', e);
+  }
+}
+
+function adminAnalyticsRenderTotals(t, days) {
+  const el = document.getElementById('analytics-totals');
+  if (!el) return;
+  const hours = Math.round(((t.total_seconds || 0) / 3600) * 10) / 10;
+  el.innerHTML = `
+    <div class="admin-stat-card"><div class="admin-stat-val">${(t.total_runs||0).toLocaleString()}</div><div class="admin-stat-lbl">Runs (${days}j)</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">${(t.benchmark_runs||0).toLocaleString()}</div><div class="admin-stat-lbl">dont benchmark</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">${(t.unique_users||0).toLocaleString()}</div><div class="admin-stat-lbl">Users actifs</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-val">${hours.toLocaleString()}h</div><div class="admin-stat-lbl">Temps cumulé</div></div>
+  `;
+}
+
+function adminAnalyticsRenderTable(rows) {
+  const el = document.getElementById('analytics-table');
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = `<p class="ch-empty">
+      Aucune donnée agrégée sur la fenêtre choisie.<br>
+      <small style="color:var(--dim)">Lance <code>node scripts/aggregate-benchmark-stats.js</code> avec <code>DATABASE_URL</code> pour peupler la table.</small>
+    </p>`;
+    return;
+  }
+  // Tri par run_count desc par défaut
+  const sorted = [...rows].sort((a,b) => (b.run_count||0) - (a.run_count||0));
+  el.innerHTML = `<table class="admin-table">
+    <thead><tr>
+      <th>Scénario</th><th>Diff.</th>
+      <th style="text-align:right">Runs</th><th style="text-align:right">Users</th>
+      <th style="text-align:right">Avg</th><th style="text-align:right">p50</th>
+      <th style="text-align:right">p90</th><th style="text-align:right">Max</th>
+    </tr></thead>
+    <tbody>${sorted.map(r => `
+      <tr style="cursor:pointer" onclick="adminAnalyticsSelectRow('${san(r.scenario)}','${san(r.difficulty)}')">
+        <td><strong>${san(r.scenario)}</strong></td>
+        <td><span class="admin-badge">${san(r.difficulty)}</span></td>
+        <td style="text-align:right">${Number(r.run_count).toLocaleString()}</td>
+        <td style="text-align:right">${Number(r.unique_users).toLocaleString()}</td>
+        <td style="text-align:right">${Number(r.avg_score).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:700">${Number(r.p50 || 0).toLocaleString()}</td>
+        <td style="text-align:right;color:#fbbf24">${Number(r.p90 || 0).toLocaleString()}</td>
+        <td style="text-align:right;color:var(--dim)">${Number(r.max_score).toLocaleString()}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function adminAnalyticsPopulateScenarioSelect(rows) {
+  const sel = document.getElementById('ana-scen');
+  if (!sel) return;
+  // Dé-duplique les scenarios
+  const scenarios = Array.from(new Set(rows.map(r => r.scenario))).sort();
+  // Préserve la sélection courante si possible
+  const prev = sel.value;
+  sel.innerHTML = scenarios.length === 0
+    ? '<option value="">(aucun scénario)</option>'
+    : scenarios.map(s => `<option value="${san(s)}"${s===prev?' selected':''}>${san(s)}</option>`).join('');
+  if (!prev && scenarios.length) sel.value = scenarios[0];
+}
+
+function adminAnalyticsSelectRow(scenario, difficulty) {
+  const scenSel = document.getElementById('ana-scen');
+  const diffSel = document.getElementById('ana-diff');
+  if (scenSel) scenSel.value = scenario;
+  if (diffSel) diffSel.value = difficulty;
+  adminAnalyticsRenderChart();
+  // Scroll doucement vers le chart
+  document.getElementById('ana-trend-chart')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function adminAnalyticsRenderChart() {
+  const scenario = document.getElementById('ana-scen')?.value;
+  const difficulty = document.getElementById('ana-diff')?.value || 'medium';
+  const days = document.getElementById('ana-days')?.value || '30';
+  const canvas = document.getElementById('ana-trend-chart');
+  if (!canvas || !scenario) return;
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/benchmark?view=stats&scenario=${encodeURIComponent(scenario)}&difficulty=${encodeURIComponent(difficulty)}&days=${days}`,
+      { headers: { 'Authorization': `Bearer ${coachingToken}` } }
+    );
+    if (!res.ok) return;
+    const d = await res.json();
+    const trend = d.trend || [];
+
+    if (_anaChart) _anaChart.destroy();
+    if (!trend.length) {
+      // Affiche un placeholder si pas de data
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '0.85rem system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('Pas de données pour ' + scenario + ' / ' + difficulty, canvas.width/2, 40);
+      return;
+    }
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff4655';
+    _anaChart = new Chart(canvas, {
+      data: {
+        labels: trend.map(r => r.day.slice(5)),  // MM-DD
+        datasets: [
+          {
+            type: 'line', label: 'Score médian (p50)',
+            data: trend.map(r => Number(r.p50) || 0),
+            borderColor: accent, backgroundColor: accent + '22',
+            borderWidth: 2, tension: 0.25, yAxisID: 'y',
+          },
+          {
+            type: 'bar', label: 'Runs / jour',
+            data: trend.map(r => Number(r.run_count) || 0),
+            backgroundColor: '#60a5fa44', borderColor: '#60a5fa', borderWidth: 1,
+            yAxisID: 'y1',
+          },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#c9d1d9', font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { color: '#666', maxTicksLimit: 10, font: { size: 9 } }, grid: { display: false } },
+          y:  { position: 'left', ticks: { color: accent, font: { size: 9 } }, grid: { color: '#ffffff11' } },
+          y1: { position: 'right', ticks: { color: '#60a5fa', font: { size: 9 } }, grid: { display: false }, beginAtZero: true },
+        }
+      }
+    });
+  } catch (e) {
+    logErr('admin-analytics-chart', e);
+  }
 }
 
 async function adminDeleteRelation(relId) {

@@ -232,13 +232,59 @@ module.exports = async function handler(req, res) {
           AND is_benchmark = true
           AND played_at > NOW() - (${days} || ' days')::interval
       `;
+      // Trend : série quotidienne (p50 + run_count) pour un Chart.js côté admin.
+      // Lu depuis le snapshot pré-agrégé si dispo, sinon fallback raw.
+      const trendPre = await sql`
+        SELECT day::text, run_count, unique_users, p50, avg_score
+        FROM benchmark_stats_daily
+        WHERE scenario = ${scenario}
+          AND difficulty = ${diff}
+          AND day > CURRENT_DATE - (${days} || ' days')::interval
+        ORDER BY day ASC
+      `;
       return res.status(200).json({
         scenario, difficulty: diff, window_days: days,
         stats: rows[0] || {},
+        trend: trendPre,
       });
     }
 
-    return res.status(400).json({ error: 'view requis : best | history | recent | coach-overview | profile | stats' });
+    // Vue admin : résumé de TOUS les (scénario, difficulté) pour l'onglet
+    // Analytics. Lit uniquement depuis benchmark_stats_daily (pré-agrégé)
+    // pour rester cheap. Prend le snapshot le plus récent (≤ days) par
+    // couple. Admin-only.
+    if (view === 'stats-overview') {
+      if (decoded.role !== 'admin') {
+        return res.status(403).json({ error: 'Rôle admin requis' });
+      }
+      const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
+      const rows = await sql`
+        SELECT DISTINCT ON (scenario, difficulty)
+          scenario, difficulty, day::text AS snapshot_day,
+          run_count, unique_users, avg_score, max_score,
+          p10, p25, p50, p75, p90, avg_accuracy, computed_at
+        FROM benchmark_stats_daily
+        WHERE day > CURRENT_DATE - (${days} || ' days')::interval
+        ORDER BY scenario, difficulty, day DESC
+      `;
+      // Agrégat global sur la fenêtre (pour le header de l'onglet)
+      const totals = await sql`
+        SELECT
+          COUNT(*)::int AS total_runs,
+          COUNT(DISTINCT user_id)::int AS unique_users,
+          COALESCE(SUM(duration),0)::int AS total_seconds,
+          COUNT(*) FILTER (WHERE is_benchmark)::int AS benchmark_runs
+        FROM benchmark_runs
+        WHERE played_at > NOW() - (${days} || ' days')::interval
+      `;
+      return res.status(200).json({
+        window_days: days,
+        totals: totals[0] || {},
+        overview: rows,
+      });
+    }
+
+    return res.status(400).json({ error: 'view requis : best | history | recent | coach-overview | profile | stats | stats-overview' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

@@ -68,6 +68,15 @@
     /* STREAK BADGE */
     .pub-streak { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#f59e0b22,#f59e0b11); border: 1px solid #f59e0b44; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #f59e0b; margin-top: 5px; }
 
+    /* TRAINING HOURS BADGE */
+    .pub-hours { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#60a5fa22,#60a5fa11); border: 1px solid #60a5fa44; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #60a5fa; margin-top: 5px; margin-left: 6px; }
+
+    /* PERCENTILE BADGE sur les top modes */
+    .pub-mode-badge { display: inline-block; font-size: 0.66rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-right: 6px; vertical-align: middle; letter-spacing: 0.03em; }
+    .pub-mode-badge.top-10 { background: linear-gradient(135deg,#fbbf2433,#fbbf2411); border: 1px solid #fbbf2466; color: #fbbf24; }
+    .pub-mode-badge.top-25 { background: linear-gradient(135deg,#c084fc33,#c084fc11); border: 1px solid #c084fc66; color: #c084fc; }
+    .pub-mode-badge.top-50 { background: #ffffff10; border: 1px solid #ffffff22; color: var(--dim); }
+
     /* EMPTY / ERROR / LOADING */
     .pub-loading { text-align: center; color: var(--dim); padding: 60px 0; font-size: 0.9rem; }
     .pub-error { text-align: center; padding: 60px 20px; }
@@ -142,6 +151,27 @@ function memberSince(iso) {
   return 'Membre depuis ' + d.toLocaleDateString('fr-FR', { year:'numeric', month:'long' });
 }
 
+// Convertit un percentile rank (0-99, où higher = better) en badge "top X%".
+// On ne montre le badge qu'à partir du top 50% pour ne pas saouler l'UI avec
+// des "top 75%" sur des modes peu joués. Retourne string HTML ou ''.
+function percentileBadge(p) {
+  if (p == null || !isFinite(p)) return '';
+  if (p >= 90) return '<span class="pub-mode-badge top-10">TOP 10%</span>';
+  if (p >= 75) return '<span class="pub-mode-badge top-25">TOP 25%</span>';
+  if (p >= 50) return '<span class="pub-mode-badge top-50">TOP 50%</span>';
+  return '';
+}
+
+// Formate les secondes d'entraînement en "Xh Ymin" ou "Ymin" pour < 1h
+function formatTrainingTime(sec) {
+  sec = Number(sec) || 0;
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h === 0) return m + ' min';
+  if (h < 10) return h + 'h ' + m + 'min';
+  return h + 'h';
+}
+
 function copyShareLink() {
   navigator.clipboard.writeText(location.href).then(() => {
     const el = document.getElementById('pub-copied');
@@ -164,6 +194,7 @@ function render(data) {
         ${user.current_rank ? `<div class="pub-rank-badge">🎮 ${user.current_rank}</div>` : ''}
         ${user.objective ? `<div class="pub-objective">🎯 ${user.objective}</div>` : ''}
         ${stats.streak > 0 ? `<div class="pub-streak">🔥 ${stats.streak} jour${stats.streak>1?'s':''} de streak</div>` : ''}
+        ${stats.training_seconds > 0 ? `<div class="pub-hours">⏱ ${formatTrainingTime(stats.training_seconds)} d'entraînement</div>` : ''}
         <div class="pub-member-since">${memberSince(user.created_at)}</div>
       </div>
       ${stats.rank ? `<div class="pub-global-rank">
@@ -202,6 +233,7 @@ function render(data) {
             <div class="pub-mode-item">
               <div class="pub-mode-name">${modeLabel(m.mode)}</div>
               <div>
+                ${percentileBadge(m.percentile)}
                 <span class="pub-mode-score">${Number(m.best_score).toLocaleString()}</span>
                 <span class="pub-mode-acc"> · ${m.avg_acc}%</span>
               </div>

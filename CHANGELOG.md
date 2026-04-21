@@ -1,5 +1,35 @@
 # Changelog — MayhAim
 
+## 2.2.0 — 2026-04-21
+
+### 📊 Benchmark Analytics (sprint « les chiffres parlent »)
+- **Nouvelle table `benchmark_stats_daily`** — snapshot quotidien pré-agrégé par `(scenario, difficulty, day)` contenant `p10 / p25 / p50 / p75 / p90`, `run_count`, `unique_users`, `avg_score`, `max_score`, `avg_accuracy`. Les lectures de percentiles deviennent O(1) au lieu de re-scanner `benchmark_runs` à chaque call
+- **Script `scripts/aggregate-benchmark-stats.js`** — idempotent. Modes : hier+aujourd'hui (défaut, à caller quotidiennement), `BACKFILL_DAYS=N`, `FULL_BACKFILL=1`, ou un jour précis avec `DAY=YYYY-MM-DD`. Upsert `ON CONFLICT DO UPDATE`. Ne touche pas aux runs free-play (`is_benchmark=false`)
+- **Badges percentile sur les profils publics** — chaque mode du top affiche un badge « TOP 10% / 25% / 50% » estimé par interpolation linéaire entre les breakpoints p10…p90 pré-calculés. Masqué en dessous du top 50% pour ne pas shame les joueurs. Basé sur la difficulté medium (la plus jouée)
+- **Compteur d'heures d'entraînement** — nouveau pill bleu sur les profils : « ⏱ 42h d'entraînement ». Inclut free-play + benchmark (somme de `duration`). Formatage intelligent (`X min` / `Xh Ymin` / `Xh`)
+- **Onglet Admin Analytics** — nouveau bloc dans le panneau `/admin` :
+  - 4 cartes résumé : runs, benchmark runs, users actifs, temps cumulé (fenêtre 7/30/90j)
+  - Table triable des `(scenario, difficulty)` avec runs, users, avg, p50, p90, max — cliquer une ligne sélectionne le chart
+  - Chart.js mixte : ligne p50 quotidienne + barres run_count sur la fenêtre choisie
+- **Nouveau `GET /api/benchmark?view=stats-overview`** (admin-only) — alimente le dashboard Analytics. Retourne la dernière snapshot par `(scenario, difficulty)` + totaux globaux sur la fenêtre
+- **`GET /api/benchmark?view=stats`** étendu — renvoie maintenant aussi un champ `trend` (série quotidienne p50 + run_count) lu depuis la snapshot pré-agrégée
+
+### ⚠️ Action requise côté ops (un seul coup, puis cron quotidien)
+Premier backfill manuel après le déploiement de 2.2.0 (la table `benchmark_stats_daily` sera créée automatiquement au premier run) :
+```
+DATABASE_URL=... FULL_BACKFILL=1 node scripts/aggregate-benchmark-stats.js
+```
+Puis planifier un cron quotidien (Vercel Cron, GitHub Actions nightly, etc.) :
+```
+DATABASE_URL=... node scripts/aggregate-benchmark-stats.js
+```
+Tant que le cron n'a pas tourné, les badges et l'onglet Analytics affichent gracieusement « pas encore de données ».
+
+### 📦 Sans impact utilisateur
+- API rétrocompatible : `/api/coaching?view=public-profile` garde tous ses champs existants, on n'a fait qu'ajouter `training_hours`, `training_seconds`, `benchmark_runs_count` dans `stats` et `percentile` sur chaque `top_modes[]`
+- Pas de migration localStorage — aucun changement client-side sur les caches existants
+- Les clients 2.1.x continuent de fonctionner (les nouveaux champs sont ignorés par l'UI ancienne)
+
 ## 2.1.0 — 2026-04-21
 
 ### 📊 Benchmark Analytics (sprint fiabilité des runs)

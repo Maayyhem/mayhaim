@@ -21,6 +21,37 @@ function verifyToken(req) {
   catch { return null; }
 }
 
+// Estime le percentile rank d'un score donné à partir des breakpoints
+// p10/p25/p50/p75/p90 pré-calculés dans benchmark_stats_daily. Renvoie un
+// entier 0-99 (jamais 100, pour garder une marge sémantique) ou null si
+// pas assez de data. Linear interpolation entre les points connus — pas
+// exact mais suffisant pour un badge "top X%".
+// Retourne `percentile = 90` → affichage "top 10%" côté client.
+function estimatePercentile(score, bp) {
+  if (score == null || !isFinite(score)) return null;
+  const pts = [
+    [10, bp.p10 != null ? Number(bp.p10) : null],
+    [25, bp.p25 != null ? Number(bp.p25) : null],
+    [50, bp.p50 != null ? Number(bp.p50) : null],
+    [75, bp.p75 != null ? Number(bp.p75) : null],
+    [90, bp.p90 != null ? Number(bp.p90) : null],
+  ].filter(([, v]) => v != null && isFinite(v));
+  if (pts.length === 0) return null;
+  // Sous le plus bas point connu
+  if (score <= pts[0][1]) return pts[0][0];
+  // Au-dessus du plus haut point connu — cap à 99 (ne jamais dire "top 0%")
+  if (score >= pts[pts.length - 1][1]) return 99;
+  for (let i = 1; i < pts.length; i++) {
+    const [pA, vA] = pts[i - 1];
+    const [pB, vB] = pts[i];
+    if (score >= vA && score <= vB) {
+      if (vB === vA) return pB;
+      return Math.round(pA + (pB - pA) * (score - vA) / (vB - vA));
+    }
+  }
+  return null;
+}
+
 let _tablesReady = false;
 async function ensureTables(sql) {
   if (_tablesReady) return;
@@ -143,7 +174,7 @@ module.exports = async function handler(req, res) {
     const u = userRows[0];
     const uid = u.id;
 
-    const [statsRow, rankRow, topModes, recentGames] = await Promise.all([
+    const [statsRow, rankRow, topModes, recentGames, benchmarkStats] = await Promise.all([
       sql`SELECT COUNT(*)::int AS total_games,
             COALESCE(MAX(score),0)::int AS best_score,
             COALESCE(ROUND(AVG(score)),0)::int AS avg_score,
@@ -158,8 +189,61 @@ module.exports = async function handler(req, res) {
           GROUP BY mode ORDER BY best_score DESC LIMIT 6`,
       sql`SELECT mode, score, accuracy, played_at
           FROM game_history WHERE user_id = ${uid}
-          ORDER BY played_at DESC LIMIT 5`
+          ORDER BY played_at DESC LIMIT 5`,
+      // Agrégats benchmark : duration totale + nombre de runs benchmark
+      sql`SELECT
+            COALESCE(SUM(duration), 0)::int AS total_training_seconds,
+            COUNT(*)::int AS total_runs,
+            COUNT(*) FILTER (WHERE is_benchmark)::int AS benchmark_runs_count
+          FROM benchmark_runs WHERE user_id = ${uid}`,
     ]);
+
+    // Pour chaque mode du top, on veut : (a) le meilleur score benchmark
+    // du joueur en difficulty medium, (b) les breakpoints p10…p90 de la
+    // communauté pour ce même couple (mode, medium). On JOIN avec le
+    // snapshot le plus récent (≤ 30j) de benchmark_stats_daily. Si la table
+    // est vide (déploiement frais avant le premier cron) ou si le joueur
+    // n'a pas joué en medium, le champ `percentile` sera null et le client
+    // masquera le badge.
+    const topModeNames = topModes.map(m => m.mode);
+    let percentileByMode = {};
+    if (topModeNames.length > 0) {
+      const perc = await sql`
+        WITH user_best AS (
+          SELECT scenario, MAX(score)::int AS best_score
+          FROM benchmark_runs
+          WHERE user_id = ${uid}
+            AND is_benchmark = true
+            AND difficulty = 'medium'
+            AND scenario = ANY(${topModeNames})
+          GROUP BY scenario
+        ),
+        latest AS (
+          SELECT DISTINCT ON (scenario) scenario, p10, p25, p50, p75, p90
+          FROM benchmark_stats_daily
+          WHERE difficulty = 'medium'
+            AND scenario = ANY(${topModeNames})
+            AND day > CURRENT_DATE - INTERVAL '30 days'
+          ORDER BY scenario, day DESC
+        )
+        SELECT ub.scenario, ub.best_score,
+               l.p10, l.p25, l.p50, l.p75, l.p90
+        FROM user_best ub
+        LEFT JOIN latest l USING (scenario)
+      `;
+      for (const row of perc) {
+        percentileByMode[row.scenario] = estimatePercentile(
+          Number(row.best_score),
+          { p10: row.p10, p25: row.p25, p50: row.p50, p75: row.p75, p90: row.p90 }
+        );
+      }
+    }
+
+    // Enrichi top_modes avec le percentile quand dispo
+    const topModesOut = topModes.map(m => ({
+      ...m,
+      percentile: percentileByMode[m.mode] ?? null,
+    }));
 
     const streakRows = await sql`
       WITH days AS (SELECT DISTINCT DATE(played_at) AS d FROM game_history WHERE user_id = ${uid} ORDER BY d DESC),
@@ -172,10 +256,19 @@ module.exports = async function handler(req, res) {
       FROM game_history WHERE user_id = ${uid} AND played_at >= NOW() - INTERVAL '30 days'
       GROUP BY DATE(played_at) ORDER BY day`;
 
+    const totalSec = benchmarkStats[0]?.total_training_seconds || 0;
     return res.status(200).json({
       user: { username: u.username, current_rank: u.current_rank, objective: u.objective, created_at: u.created_at },
-      stats: { ...statsRow[0], streak: streakRows[0]?.streak || 0, rank: rankRow[0]?.rank || null },
-      top_modes: topModes,
+      stats: {
+        ...statsRow[0],
+        streak: streakRows[0]?.streak || 0,
+        rank: rankRow[0]?.rank || null,
+        // Heures d'entraînement cumulées — inclut free-play + benchmark
+        training_hours: Math.round((totalSec / 3600) * 10) / 10,
+        training_seconds: totalSec,
+        benchmark_runs_count: benchmarkStats[0]?.benchmark_runs_count || 0,
+      },
+      top_modes: topModesOut,
       recent_games: recentGames,
       activity_30: activity30
     });
