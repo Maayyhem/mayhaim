@@ -198,38 +198,38 @@ module.exports = async function handler(req, res) {
           FROM benchmark_runs WHERE user_id = ${uid}`,
     ]);
 
-    // Pour chaque mode du top, on veut : (a) le meilleur score benchmark
-    // du joueur en difficulty medium, (b) les breakpoints p10…p90 de la
-    // communauté pour ce même couple (mode, medium). On JOIN avec le
-    // snapshot le plus récent (≤ 30j) de benchmark_stats_daily. Si la table
-    // est vide (déploiement frais avant le premier cron) ou si le joueur
-    // n'a pas joué en medium, le champ `percentile` sera null et le client
-    // masquera le badge.
+    // Pour chaque mode du top, on prend le MEILLEUR score du joueur toutes
+    // difficultés confondues (DISTINCT ON + ORDER BY score DESC) et on JOIN
+    // les breakpoints p10…p90 pour CETTE MÊME (scenario, difficulty) — c'est
+    // cohérent : les scores ne sont pas comparables entre easier/medium/hard,
+    // donc on compare le joueur à la bonne distribution. Si le snapshot n'est
+    // pas encore populé pour ce couple, `percentile` reste null et le badge
+    // est masqué côté client.
     const topModeNames = topModes.map(m => m.mode);
     let percentileByMode = {};
     if (topModeNames.length > 0) {
       const perc = await sql`
         WITH user_best AS (
-          SELECT scenario, MAX(score)::int AS best_score
+          SELECT DISTINCT ON (scenario)
+            scenario, difficulty, score::int AS best_score
           FROM benchmark_runs
           WHERE user_id = ${uid}
             AND is_benchmark = true
-            AND difficulty = 'medium'
             AND scenario = ANY(${topModeNames})
-          GROUP BY scenario
-        ),
-        latest AS (
-          SELECT DISTINCT ON (scenario) scenario, p10, p25, p50, p75, p90
-          FROM benchmark_stats_daily
-          WHERE difficulty = 'medium'
-            AND scenario = ANY(${topModeNames})
-            AND day > CURRENT_DATE - INTERVAL '30 days'
-          ORDER BY scenario, day DESC
+          ORDER BY scenario, score DESC
         )
-        SELECT ub.scenario, ub.best_score,
+        SELECT ub.scenario, ub.difficulty, ub.best_score,
                l.p10, l.p25, l.p50, l.p75, l.p90
         FROM user_best ub
-        LEFT JOIN latest l USING (scenario)
+        LEFT JOIN LATERAL (
+          SELECT p10, p25, p50, p75, p90
+          FROM benchmark_stats_daily
+          WHERE scenario = ub.scenario
+            AND difficulty = ub.difficulty
+            AND day > CURRENT_DATE - INTERVAL '30 days'
+          ORDER BY day DESC
+          LIMIT 1
+        ) l ON true
       `;
       for (const row of perc) {
         percentileByMode[row.scenario] = estimatePercentile(

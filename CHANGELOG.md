@@ -1,5 +1,10 @@
 # Changelog — MayhAim
 
+## 2.2.1 — 2026-04-21
+
+### 🔧 Fix · badges percentile sur le profil
+- **Le badge suit désormais la difficulté du joueur** — en 2.2.0 la recherche de percentile était hard-codée sur `medium`, donc les joueurs qui font tout en `easier` ou `hard` ne voyaient jamais de badge. On prend maintenant le couple `(scenario, difficulty)` où le joueur a son meilleur score et on compare à la distribution de CETTE difficulté précise. Cohérent : les scores ne sont pas comparables entre tiers
+
 ## 2.2.0 — 2026-04-21
 
 ### 📊 Benchmark Analytics (sprint « les chiffres parlent »)
