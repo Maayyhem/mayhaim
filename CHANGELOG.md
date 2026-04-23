@@ -1,5 +1,17 @@
 # Changelog — MayhAim
 
+## 2.3.1 — 2026-04-23
+
+### 🔧 Fix · tracker Valorant (API Henrik v4.0.0 breaking changes)
+Le tracker Valorant ne répondait plus depuis que Henrik a poussé sa v4.0.0 :
+
+- **URL v3 mmr** : depuis v4.0.0, `/valorant/v3/mmr/{region}/{name}/{tag}` a été remplacé par `/valorant/v3/mmr/{region}/{platform}/{name}/{tag}` — le segment `/pc/` manquant faisait 404 sur tous les clients. Migré l'extraction de l'historique RR vers l'endpoint dédié `/valorant/v2/mmr-history/{region}/pc/{name}/{tag}` qui retourne exactement ce dont on a besoin (map `match_id` → RR delta) et qui reste le path recommandé post-v4
+- **Parser résilient** : la nouvelle structure renvoie `data[]` (array plat) avec `mmr_change_to_last_game`, alors que l'ancienne v3 exposait `data.history[]` avec `last_change`. Le code tente maintenant les deux pour éviter une régression si Henrik rechange
+- **Clé API manquante côté serveur** : depuis v4.0.0, toutes les routes Henrik exigent un header `Authorization`. Si `HENRIK_API_KEY` n'est pas défini côté Vercel, `fetchHenrik` log désormais un warning explicite à chaque appel et les handlers renvoient un `503` clair (`"Service Valorant indisponible — clé API manquante ou invalide côté serveur"`) au lieu d'un 502 générique
+
+### 🔍 Observabilité
+- `fetchHenrik` log maintenant `[henrik] <status> <path> — <message>` sur toutes les erreurs 4xx/5xx (hors 404), visible directement dans les logs Vercel
+
 ## 2.3.0 — 2026-04-23
 
 ### 🎨 Refonte complète du système de rang → Viscose Benchmark

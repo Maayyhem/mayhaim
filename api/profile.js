@@ -18,8 +18,14 @@ async function ensureRiotColumns(sql) {
   _riotColReady = true;
 }
 
+// Note Henrik API v4.0.0 (déc. 2024) : clé requise, header `Authorization: <key>`.
+// Sans clé, tous les endpoints renvoient 401 — on log explicitement pour diagnostic Vercel.
+// Les URL v3 mmr et v4 matches requièrent maintenant un segment `/pc/` (ou /console/) après la région.
 async function fetchHenrik(path, timeoutMs = 8000) {
   const key = process.env.HENRIK_API_KEY;
+  if (!key) {
+    console.error('[henrik] HENRIK_API_KEY env var manquante — toutes les requêtes vont échouer en 401');
+  }
   const headers = key ? { 'Authorization': key } : {};
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -27,6 +33,10 @@ async function fetchHenrik(path, timeoutMs = 8000) {
     const res = await fetch(`https://api.henrikdev.xyz${path}`, { headers, signal: controller.signal });
     let data;
     try { data = await res.json(); } catch { data = {}; }
+    if (res.status >= 400 && res.status !== 404) {
+      const msg = data?.errors?.[0]?.message || data?.message || 'unknown';
+      console.error(`[henrik] ${res.status} ${path} — ${msg}`);
+    }
     return { status: res.status, data };
   } finally {
     clearTimeout(timer);
@@ -556,16 +566,19 @@ module.exports = async function handler(req, res) {
 
       try {
         // Parallel: v3 matches (detailed, last 25) + stored-matches (full history, paginated)
-        //        + MMR rank + MMR history (for RR per game)
+        //        + MMR rank (v2 rank+peak) + MMR history v2 (RR par game, /pc/ platform requis depuis v4.0.0)
         const [matchResult, storedRows, mmrResult, mmrHistResult] = await Promise.all([
           fetchHenrik(`/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`),
           fetchStoredMatchesAll(region, name, tag),
           fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
-          fetchHenrik(`/valorant/v3/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+          fetchHenrik(`/valorant/v2/mmr-history/${region}/pc/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
         ]);
 
         if (matchResult.status === 429 || mmrResult.status === 429) {
           return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        }
+        if (matchResult.status === 401 || mmrResult.status === 401) {
+          return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
         }
         if (matchResult.status !== 200 && (!storedRows || storedRows.length === 0)) {
           return res.status(502).json({ error: `API indisponible (${matchResult.status})` });
@@ -580,9 +593,15 @@ module.exports = async function handler(req, res) {
         }
 
         // RR history map: matchId → rr_change
+        // v2/mmr-history renvoie `data[]` avec {match_id, mmr_change_to_last_game}.
+        // On garde un fallback sur l'ancien format v3 (`data.history[].last_change`) au cas où.
         const rrMap = {};
-        for (const h of (mmrHistResult.data?.data?.history || [])) {
-          if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
+        const histRows = Array.isArray(mmrHistResult.data?.data)
+          ? mmrHistResult.data.data
+          : (mmrHistResult.data?.data?.history || []);
+        for (const h of histRows) {
+          const rr = h.mmr_change_to_last_game ?? h.last_change;
+          if (h.match_id && rr != null) rrMap[h.match_id] = rr;
         }
 
         const v3Processed = _processHenrikMatches(matchResult.data?.data || [], name, tag, rrMap);
@@ -806,23 +825,31 @@ module.exports = async function handler(req, res) {
       try {
         const regionList = (shard && shard !== 'null') ? [shard] : ['eu', 'na', 'ap', 'br', 'latam', 'kr'];
         let matchResult = null, foundRegion = shard || 'eu';
+        let sawAuthError = false;
         for (const r of regionList) {
           const attempt = await fetchHenrik(`/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`);
           if (attempt.status === 200) { matchResult = attempt; foundRegion = r; break; }
           if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+          if (attempt.status === 401 || attempt.status === 403) { sawAuthError = true; break; }
         }
+        if (sawAuthError) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
         if (!matchResult || matchResult.status !== 200) return res.status(502).json({ error: 'Joueur introuvable. Relie ton compte à nouveau.' });
 
-        // Fetch MMR history + v2 peak rank in parallel (best effort)
+        // Fetch MMR history (v2, requires /pc/) + v2 peak rank in parallel (best effort)
         const rrMap = {};
         let peakRank = null;
         try {
           const [mmrH, mmrV2] = await Promise.all([
-            fetchHenrik(`/valorant/v3/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
+            fetchHenrik(`/valorant/v2/mmr-history/${foundRegion}/pc/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
             fetchHenrik(`/valorant/v2/mmr/${foundRegion}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
           ]);
-          for (const h of (mmrH.data?.data?.history || [])) {
-            if (h.match_id && h.last_change != null) rrMap[h.match_id] = h.last_change;
+          // v2/mmr-history renvoie `data[]` (nouveau format), ancien v3 utilisait `data.history[]`.
+          const histRows = Array.isArray(mmrH.data?.data)
+            ? mmrH.data.data
+            : (mmrH.data?.data?.history || []);
+          for (const h of histRows) {
+            const rr = h.mmr_change_to_last_game ?? h.last_change;
+            if (h.match_id && rr != null) rrMap[h.match_id] = rr;
           }
           if (mmrV2.status === 200) {
             peakRank = mmrV2.data?.data?.highest_rank?.patched_tier ?? null;
@@ -999,6 +1026,7 @@ module.exports = async function handler(req, res) {
       // ── Henrik API fallback ────────────────────────────────────────
       try {
         const acc = await fetchHenrik(`/valorant/v1/account/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+        if (acc.status === 401 || acc.status === 403) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
         if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
         if (acc.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         if (acc.status !== 200 || !acc.data?.data?.puuid) {
@@ -1044,6 +1072,7 @@ module.exports = async function handler(req, res) {
 
       try {
         const mmr = await fetchHenrik(`/valorant/v2/mmr/${riot_region}/${encodeURIComponent(riot_gamename)}/${encodeURIComponent(riot_tagline)}`);
+        if (mmr.status === 401 || mmr.status === 403) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
         if (mmr.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
         let rank = null, lp = null;
         if (mmr.status === 200 && mmr.data?.data?.current_data) {
