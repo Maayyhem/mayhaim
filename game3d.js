@@ -579,7 +579,10 @@ function mkSwitchTargets(positions, r, props) {
   positions.forEach((p,i) => {
     const mat = i===0 ? M.t4 : M.tDim;
     const mesh = mkSphere(p[0],p[1],p[2],r,mat);
-    const t = { mesh, alive:true, x:p[0],y:p[1],z:p[2], idx:i, ...props, phase:rand(0,Math.PI*2), phaseY:rand(0,Math.PI*2) };
+    // baseX/baseY/baseZ = position de spawn, utilisée dans updateSwitchTargets pour
+    // que les oscillations se fassent autour de la position voulue (évite un ancien
+    // bug où l'array hardcodée [-3,0,3,4.5] override les positions passées).
+    const t = { mesh, alive:true, x:p[0],y:p[1],z:p[2], baseX:p[0],baseY:p[1],baseZ:p[2], idx:i, ...props, phase:rand(0,Math.PI*2), phaseY:rand(0,Math.PI*2) };
     switchTargets.push(t); G.targets.push(t);
   });
   G.switchActiveIdx=0; G.switchTimer=0;
@@ -649,7 +652,8 @@ function spawn_w1w3ts_reload() {
   if(!G.running) return;
   const d=DIFF[G.diff];
   G.targets = G.targets.filter(t=>t.alive);
-  const maxT = d.maxT || 3;
+  // Kovaaks "1wall3targets Reload" → 3 cibles sur 1 mur (2 en hard pour reload plus rapide).
+  const maxT = G.diff==='hard' ? 2 : 3;
   while(G.targets.filter(t=>t.alive).length < maxT) {
     const r=rand(d.pR[0],d.pR[1]), x=rand(-5,5), y=rand(0.8,3.5);
     const mesh=mkSphere(x,y,-12,r,M.t1);
@@ -682,9 +686,11 @@ function spawn_devts() {
   G.switchInterval = G.diff==='hard'?0.75:G.diff==='easy'?1.5:1;
 }
 function spawn_domiswitch() {
+  // Nom Kovaaks → grands déplacements latéraux ("dominant switching").
+  // Séparation ±5m + oscillation amplifiée pour ~10m de span en plein champ.
   const d=DIFF[G.diff];
-  mkSwitchTargets([[-3,1.7,-10],[3,1.7,-10]], tR(0.45), {mv:'switch_move', spd:d.spd});
-  G.switchInterval = G.diff==='hard'?1.4:G.diff==='easy'?3.0:2;
+  mkSwitchTargets([[-5,1.7,-10],[5,1.7,-10]], tR(0.48), {mv:'switch_move', spd:d.spd*0.7});
+  G.switchInterval = G.diff==='hard'?1.2:G.diff==='easy'?2.8:1.8;
 }
 function spawn_tamts() {
   const d=DIFF[G.diff];
@@ -731,10 +737,20 @@ function spawn_ctrlsphere_clk() {
   if(!G.running) return;
   G.targets=G.targets.filter(t=>t.alive);
   if(G.targets.filter(t=>t.alive).length >= 1) return;
-  const r=rand(0.3,0.4), x=rand(-4,4), y=rand(1,3);
-  const mesh=mkSphere(x,y,-11,r,M.t4);
-  // Orbiting click target
-  G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),dynamic:true,orbit:true,phase:rand(0,6.28),ox:x,oy:y});
+  // Kovaaks "Controlsphere Click" → 1 cible qui dérive librement dans un volume sphérique
+  // 3D (axes X/Y/Z), changements de direction périodiques pour forcer du click timing
+  // sur une trajectoire imprévisible mais continue.
+  const r = G.diff==='hard' ? rand(0.24,0.32) : G.diff==='easy' ? rand(0.38,0.48) : rand(0.30,0.40);
+  const cx=0, cy=1.9, cz=-11;
+  const mesh=mkSphere(cx,cy,cz,r,M.t4);
+  const speed = G.diff==='hard' ? 3.4 : G.diff==='easy' ? 2.0 : 2.7;
+  const dir = new THREE.Vector3(rand(-1,1),rand(-0.5,0.5),rand(-1,1)).normalize().multiplyScalar(speed);
+  G.targets.push({
+    mesh, alive:true, radius:r, spawnTime:Date.now(), dynamic:true,
+    ctrlsphere3d:true, cx, cy, cz, bound:1.6,
+    vx:dir.x, vy:dir.y, vz:dir.z,
+    ct:0, nc: G.diff==='hard' ? 0.7 : 1.1
+  });
 }
 function spawn_popcorn_mv() {
   if(!G.running) return;
@@ -762,7 +778,8 @@ function spawn_pasu_perfected() {
   if(!G.running) return;
   const d=DIFF[G.diff], sM=d.spd/2.5;
   G.targets=G.targets.filter(t=>t.alive);
-  const maxT = G.diff==='hard'?5:G.diff==='easy'?2:3;
+  // Voltaic "Pasu Perfected" (1w2ts-like) → 2 petites cibles, difficulté via taille+vitesse.
+  const maxT = 2;
   while(G.targets.filter(t=>t.alive).length < maxT) {
     const r=rand(d.pR[0]*0.6,d.pR[1]*0.7), x=rand(-4,4), y=rand(1,3.5);
     const mesh=mkSphere(x,y,-14,r,M.t6);
@@ -773,8 +790,9 @@ function spawn_pasu_perfected() {
 function spawn_pasu_micro() {
   if(!G.running) return;
   G.targets=G.targets.filter(t=>t.alive);
-  while(G.targets.filter(t=>t.alive).length < 4) {
-    const r=rand(0.2,0.3), x=rand(-5,5), y=rand(0.8,3.5);
+  // Kovaaks "Pasu Micro" (1w3ts micro) → 3 cibles minuscules qui dérivent, micro-adjust.
+  while(G.targets.filter(t=>t.alive).length < 3) {
+    const r=rand(0.18,0.26), x=rand(-5,5), y=rand(0.8,3.5);
     const mesh=mkSphere(x,y,-12,r,M.t1);
     const vx=rand(-2,2), vy=rand(-1.5,1.5);
     G.targets.push({mesh,alive:true,radius:r,spawnTime:Date.now(),vx,vy,dynamic:true});
@@ -1564,24 +1582,24 @@ function updateSwitchTargets(dt) {
     } else if(t.mv==='switch_float') {
       t.phase += dt*(t.spd||1)*0.3;
       t.phaseY += dt*(t.spd||1)*0.35;
-      const bx = t.idx===0?-2:2;
-      t.x = bx+Math.sin(t.phase)*3; t.y=2+Math.sin(t.phaseY)*1.5; t.z=-10+Math.sin(t.phase*0.5)*2;
+      t.x = t.baseX+Math.sin(t.phase)*3;
+      t.y = (t.baseY||2)+Math.sin(t.phaseY)*1.5;
+      t.z = t.baseZ+Math.sin(t.phase*0.5)*2;
     } else if(t.mv==='switch_micro') {
       t.phase += dt*(t.spd||1)*0.5;
-      const bx = [-3,0,3][t.idx]||0;
-      t.x = bx+Math.sin(t.phase)*0.8; t.y=(t.idx===1?2.8:1.5)+Math.cos(t.phase*1.3)*0.4;
+      t.x = t.baseX+Math.sin(t.phase)*0.8;
+      t.y = t.baseY+Math.cos(t.phase*1.3)*0.4;
     } else if(t.mv==='switch_smooth') {
       t.phase += dt*(t.spd||1)*0.2;
-      const bx = t.idx===0?-2:2;
-      t.x = bx+Math.sin(t.phase)*2; t.y=2+Math.sin(t.phase*0.7)*0.8;
+      t.x = t.baseX+Math.sin(t.phase)*2;
+      t.y = (t.baseY||2)+Math.sin(t.phase*0.7)*0.8;
     } else {
-      // switch_move (default)
+      // switch_move (default) — oscille autour de la position de spawn (baseX/baseY/baseZ)
       t.phase += dt*(t.spd||2)*0.3;
       t.phaseY += dt*(t.spd||2)*0.2;
-      const bx = [-3,0,3,4.5][t.idx]||0;
-      t.x = Math.max(-7, Math.min(7, bx+Math.sin(t.phase)*2.2));
-      t.y = (t.y||1.7)+Math.sin(t.phaseY)*0.02;
-      t.z = -10+Math.cos(t.phase*0.6)*1;
+      t.x = Math.max(-7, Math.min(7, t.baseX+Math.sin(t.phase)*2.2));
+      t.y = (t.baseY||1.7)+Math.sin(t.phaseY)*0.3;
+      t.z = t.baseZ+Math.cos(t.phase*0.6)*1;
     }
     t.mesh.position.set(t.x,Math.max(0.3,Math.min(4.5,t.y)),Math.min(-4,t.z));
   });
@@ -1620,10 +1638,34 @@ function updateDynamic(dt) {
       const age = (Date.now()-t.spawnTime)/1000;
       if(age > t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
       else { const frac=age/t.ttl; t.mesh.material.emissiveIntensity=0.3+frac*0.7; } // pulse red as timer runs out
-    } else if(t.orbit) {
-      t.phase += dt*1.5;
-      t.mesh.position.x = t.ox + Math.sin(t.phase)*1.5;
-      t.mesh.position.y = t.oy + Math.cos(t.phase)*1;
+    } else if(t.ctrlsphere3d) {
+      // Mouvement 3D borné dans une sphère (Kovaaks Controlsphere Click).
+      t.ct += dt;
+      if(t.ct >= t.nc) {
+        t.ct = 0;
+        t.nc = G.diff==='hard' ? rand(0.5,0.9) : G.diff==='easy' ? rand(1.0,1.8) : rand(0.8,1.4);
+        const spd = Math.hypot(t.vx,t.vy,t.vz);
+        const dir = new THREE.Vector3(rand(-1,1),rand(-0.5,0.5),rand(-1,1)).normalize().multiplyScalar(spd||2.5);
+        t.vx=dir.x; t.vy=dir.y; t.vz=dir.z;
+      }
+      t.mesh.position.x += t.vx*dt;
+      t.mesh.position.y += t.vy*dt;
+      t.mesh.position.z += t.vz*dt;
+      // Rebond élastique sur la sphère de confinement (reflet sur la normale).
+      const dx = t.mesh.position.x - t.cx;
+      const dy = t.mesh.position.y - t.cy;
+      const dz = t.mesh.position.z - t.cz;
+      const d2 = dx*dx+dy*dy+dz*dz;
+      if(d2 > t.bound*t.bound) {
+        const dN = Math.sqrt(d2);
+        const nx=dx/dN, ny=dy/dN, nz=dz/dN;
+        const vd = t.vx*nx + t.vy*ny + t.vz*nz;
+        t.vx -= 2*vd*nx; t.vy -= 2*vd*ny; t.vz -= 2*vd*nz;
+        // Ramener la cible à la frontière pour éviter qu'elle s'échappe.
+        t.mesh.position.x = t.cx + nx*t.bound;
+        t.mesh.position.y = t.cy + ny*t.bound;
+        t.mesh.position.z = t.cz + nz*t.bound;
+      }
     } else if(t.bounce) {
       t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += (t.vy||0)*dt;
       if(t.mesh.position.x<-5.5||t.mesh.position.x>5.5) t.vx*=-1;

@@ -587,7 +587,7 @@
     // Source de vérité : (1) Electron preload → package.json, (2) meta app-version (web),
     // (3) fallback hardcodé. Bump la meta dans index.html/profile.html à chaque release web.
     const metaVer = document.querySelector('meta[name="app-version"]')?.content;
-    const version = window.MAYHAIM_VERSION || metaVer || '2.2.3';
+    const version = window.MAYHAIM_VERSION || metaVer || '2.2.4';
     const isElectron = !!window.MAYHAIM_IS_ELECTRON;
     const changelog = window.MAYHAIM_CHANGELOG;
 

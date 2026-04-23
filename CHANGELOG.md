@@ -1,5 +1,19 @@
 # Changelog — MayhAim
 
+## 2.2.4 — 2026-04-23
+
+### 🎯 Fix · scénarios clicking / switching qui ne collaient pas au nom Kovaaks
+Second audit, cette fois sur les 17 scénarios click/switch. 5 corrections :
+
+- **Controlsphere Click** — était une petite orbite 2D plate (sinus/cosinus sur X et Y), rien à voir avec le Kovaaks éponyme. Refait en dérive 3D libre bornée dans une sphère de 1.6m avec rebond élastique sur la paroi et changements de direction aléatoires (0.5-1.8s selon difficulté). La cible se déplace vraiment sur les trois axes comme un vrai bot Controlsphere
+- **DomiSwitch** — séparation de 6m trop étroite pour un "dominant switching" + **bug** : `switch_move` utilisait `bx=[-3,0,3,4.5][idx]` hardcodé au lieu des positions passées à `mkSwitchTargets`, donc la cible idx=1 oscillait autour de x=0 au lieu de x=3. Corrigé : `mkSwitchTargets` capture maintenant les positions de spawn comme `baseX/baseY/baseZ`, utilisées par tous les movements `switch_*`. Séparation élargie à ±5m (10m de span)
+- **w1w3ts Reload** (label "1w3ts" / "1w2ts" en hard) — le nom annonce 3 cibles (2 en hard), l'impl en affichait 5/4/6 via `d.maxT`. Forcé à 3 (2 en hard) pour coller au nom
+- **Pasu Perfected** (label "1w2ts") — annonçait 2 cibles, en faisait 2/3/5 selon la difficulté. Forcé à 2 toujours
+- **Pasu Micro** (label "1w3ts") — annonçait 3 cibles, en affichait 4. Forcé à 3. Cibles un peu plus petites (0.18-0.26) pour un vrai ressenti "micro"
+
+### 🔧 Interne
+- `mkSwitchTargets` expose `baseX/baseY/baseZ` sur chaque cible switch → tous les patterns `switch_float` / `switch_micro` / `switch_smooth` / `switch_move` oscillent désormais autour de la position de spawn (fin des positions hardcodées qui ne survivaient pas aux réutilisations du factory)
+
 ## 2.2.3 — 2026-04-23
 
 ### 🎯 Fix · scénarios tracking qui ne collaient pas au nom Kovaaks
