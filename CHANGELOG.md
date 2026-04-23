@@ -1,5 +1,38 @@
 # Changelog — MayhAim
 
+## 2.4.0 — 2026-04-23
+
+### 🔊 Refonte audio — moins fatigant, plus modulable
+Le son "tir sur les boules" actuel dérangeait certains joueurs. Rework complet :
+- **3 nouveaux packs doux** : Wood (tock boisé, organique), Tonal (notes pures pentatoniques), Minimal (clic quasi inaudible)
+- **4 packs existants retunés** (clean/retro/soft/mechanical) avec volumes et fréquences moins aggressives
+- **Sub-volumes par type** : slider dédié au volume des hits (indépendant du master)
+- **Mute sélectif** : toggle pour désactiver le son de miss et le son de combo (tous les 5 hits) — le chime répété en combo était la source principale de fatigue
+- Stocké en localStorage (`soundVolumeHit`, `soundMissEnabled`, `soundComboEnabled`)
+
+### 🎯 4 nouveaux scénarios d'entraînement pur
+Hors benchmark, orientés gamesense + mécaniques spécifiques Valorant :
+- **Counter-Strafe** (tracking) — cible suit un pattern ADAD (stop/move) pour pratiquer le stop-shot
+- **Wide Peek** (clicking) — cible apparaît à l'extrême bord latéral, pour travailler les wide peeks
+- **Spray Control** (clicking) — Phantom/Vandal simulation avec recul vertical puis horizontal sur 30 balles, HP-based
+- **Flick + Delay** (clicking) — cible apparaît après délai variable (0.4-1.4s) pour entraîner la discipline + réactivité
+
+### 🔁 Mode Benchmark Run
+Enchaîne tous les scénarios débloqués du tier actuel en une seule session :
+- Écran de transition entre scénarios avec barre de progression, score du scénario précédent, threads gagnés
+- Bouton "Terminer maintenant" pour s'arrêter à tout moment (le partiel est conservé)
+- Écran de summary final : rang Viscose global atteint, breakdown par catégorie (Control/Reactive/Flick/Click timing), total threads, accuracy moyenne
+- Historique des 20 derniers runs via bouton "Historique" (clic sur une ligne pour re-voir le summary) — stocké en localStorage (`visc_bench_runs`)
+- Accessible depuis la hub Viscose (bouton gradient "Benchmark Run")
+
+### 📊 Corrélation Aim ↔ Valorant
+Nouvelle carte sur la page Profil qui met en regard l'aim pur avec les stats in-game :
+- **Côté aim** : 3 sous-scores (Tracking / Clicking / Flicking, 0-100) calculés depuis les threads Viscose du tier medium, plus une estimation de rang aim (Iron 1 → Radiant)
+- **Côté IG** : rang Valorant live (via Henrik), HS%, K/D, ACS, WR — récupéré automatiquement si le compte Riot est lié
+- **Delta de rang** : +X tiers quand l'aim dépasse l'IG (gamesense à travailler), -X quand l'IG dépasse l'aim pur (aim à bosser)
+- **Diagnostic ciblé** (jusqu'à 3 tips) : détecte par ex. "clicking élevé mais K/D < 1.0 → travaille sous pression", "tracking faible → Smoothbot/Controlsphere 10min/j", "HS% IG < aim flick → crosshair trop bas, travaille Pasu Angelic"
+- CTA vers le tracker si le compte Riot n'est pas encore lié
+
 ## 2.3.1 — 2026-04-23
 
 ### 🔧 Fix · tracker Valorant (API Henrik v4.0.0 breaking changes)

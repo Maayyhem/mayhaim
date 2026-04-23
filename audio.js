@@ -1,10 +1,16 @@
-// Audio engine — Web Audio API, zero dependencies, 4 distinct sound packs.
+// Audio engine — Web Audio API, zero dependencies.
+// Packs (7) + sous-volumes par type + mute ciblé (combo/miss).
+// Les hit sounds ont été retravaillés pour être moins fatigants / moins "pop".
 class AudioEngine {
   constructor() {
     this.ctx = null;
     this.enabled = true;
     this.volume = 0.5;
     this.pack = 'clean';
+    // Sous-volumes par type (multipliés avec le volume master).
+    this.subVolumes = { hit: 1, miss: 1, combo: 1, countdown: 1, start: 1, end: 1, headshot: 1 };
+    // Types de son désactivés individuellement (ex: combo seul).
+    this.muted = new Set();
   }
 
   init() {
@@ -14,13 +20,19 @@ class AudioEngine {
 
   setVolume(v) { this.volume = Math.max(0, Math.min(1, v)); }
   setPack(name) { this.pack = name; }
+  setSubVolume(type, v) { this.subVolumes[type] = Math.max(0, Math.min(1, v)); }
+  muteType(type, muted) { if (muted) this.muted.add(type); else this.muted.delete(type); }
+  isMuted(type) { return this.muted.has(type); }
 
   play(type) {
     if (!this.enabled || !this.ctx || this.volume <= 0) return;
+    if (this.muted.has(type)) return;
     if (this.ctx.state === 'suspended') this.ctx.resume();
     const pack = PACK_ENGINES[this.pack] || PACK_ENGINES.clean;
     const fn = pack[type];
-    if (fn) fn(this.ctx, this.volume);
+    const sub = this.subVolumes[type] ?? 1;
+    if (sub <= 0) return;
+    if (fn) fn(this.ctx, this.volume * sub);
   }
 }
 
@@ -42,7 +54,7 @@ function osc(ctx, freq, wave, vol, dur, rampTo) {
 
 function noise(ctx, vol, dur, filterFreq, filterType) {
   const sr = ctx.sampleRate;
-  const len = sr * dur;
+  const len = Math.max(1, Math.floor(sr * dur));
   const buf = ctx.createBuffer(1, len, sr);
   const d = buf.getChannelData(0);
   for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -61,7 +73,6 @@ function noise(ctx, vol, dur, filterFreq, filterType) {
 }
 
 function detunedOsc(ctx, freq, vol, dur, spread) {
-  // 3 detuned oscillators for metallic timbre
   [-spread, 0, spread].forEach(det => {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -76,195 +87,299 @@ function detunedOsc(ctx, freq, vol, dur, spread) {
 }
 
 /* ──────────────────────────────────────────────────────────
-   PACK: Clean — Pure sine tones, crisp and clear
+   PACK: Clean — Sine tones adoucis (fréquence mid, pas d'aigu shrill)
+   Refonte : freq de base 660Hz au lieu de 880Hz, durée courte, pas de pitch sweep
    ────────────────────────────────────────────────────────── */
 const pack_clean = {
   hit(ctx, v) {
-    osc(ctx, 880, 'sine', 0.15 * v, 0.1, 1200);
+    osc(ctx, 680, 'sine', 0.12 * v, 0.07);
   },
   headshot(ctx, v) {
-    osc(ctx, 880, 'sine', 0.15 * v, 0.1, 1200);
-    setTimeout(() => osc(ctx, 1400, 'sine', 0.12 * v, 0.08), 50);
+    osc(ctx, 680, 'sine', 0.12 * v, 0.07);
+    setTimeout(() => osc(ctx, 1000, 'sine', 0.1 * v, 0.06), 45);
   },
   miss(ctx, v) {
-    osc(ctx, 200, 'sawtooth', 0.08 * v, 0.15, 100);
+    osc(ctx, 180, 'sine', 0.05 * v, 0.1);
   },
   combo(ctx, v) {
-    [1000, 1200, 1400].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'sine', 0.08 * v, 0.06), i * 40));
+    [880, 1100].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'sine', 0.06 * v, 0.05), i * 40));
   },
-  countdown(ctx, v) { osc(ctx, 600, 'sine', 0.12 * v, 0.2); },
-  start(ctx, v) { osc(ctx, 600, 'sine', 0.15 * v, 0.3, 1200); },
+  countdown(ctx, v) { osc(ctx, 600, 'sine', 0.1 * v, 0.18); },
+  start(ctx, v) { osc(ctx, 600, 'sine', 0.12 * v, 0.25, 900); },
   end(ctx, v) {
-    [800, 600, 400].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'sine', 0.1 * v, 0.2), i * 100));
+    [700, 550, 420].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'sine', 0.08 * v, 0.18), i * 100));
   },
 };
 
 /* ──────────────────────────────────────────────────────────
-   PACK: Retro — Chiptune/8-bit: square waves, fast arpeggios,
-   pitch drops, staccato bleeps
+   PACK: Retro — Chiptune adouci (volume réduit, pitch less shrill)
    ────────────────────────────────────────────────────────── */
 const pack_retro = {
   hit(ctx, v) {
-    // Sharp square blip with fast pitch drop
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.type = 'square';
     const t = ctx.currentTime;
-    o.frequency.setValueAtTime(1500, t);
-    o.frequency.exponentialRampToValueAtTime(600, t + 0.06);
-    g.gain.setValueAtTime(0.11 * v, t);
-    g.gain.setValueAtTime(0.11 * v, t + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-    o.start(t); o.stop(t + 0.07);
+    o.frequency.setValueAtTime(1100, t);
+    o.frequency.exponentialRampToValueAtTime(500, t + 0.05);
+    g.gain.setValueAtTime(0.08 * v, t);
+    g.gain.setValueAtTime(0.08 * v, t + 0.025);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    o.start(t); o.stop(t + 0.06);
   },
   headshot(ctx, v) {
-    // Fast 3-note arpeggio (classic power-up)
-    [1200, 1500, 2000].forEach((f, i) => {
+    [900, 1200, 1500].forEach((f, i) => {
       setTimeout(() => {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.connect(g); g.connect(ctx.destination);
         o.type = 'square';
         o.frequency.setValueAtTime(f, ctx.currentTime);
-        g.gain.setValueAtTime(0.09 * v, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.05);
-      }, i * 30);
+        g.gain.setValueAtTime(0.06 * v, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.04);
+      }, i * 28);
     });
   },
   miss(ctx, v) {
-    // Descending buzz (game-over feel)
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.type = 'square';
     const t = ctx.currentTime;
-    o.frequency.setValueAtTime(300, t);
-    o.frequency.exponentialRampToValueAtTime(80, t + 0.15);
-    g.gain.setValueAtTime(0.07 * v, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    o.start(t); o.stop(t + 0.18);
+    o.frequency.setValueAtTime(260, t);
+    o.frequency.exponentialRampToValueAtTime(90, t + 0.12);
+    g.gain.setValueAtTime(0.05 * v, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    o.start(t); o.stop(t + 0.14);
   },
   combo(ctx, v) {
-    // Rapid chiptune scale
-    [660, 880, 1100, 1320, 1760].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'square', 0.06 * v, 0.035), i * 25));
+    [600, 800, 1000, 1200].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'square', 0.05 * v, 0.03), i * 25));
   },
   countdown(ctx, v) {
-    osc(ctx, 440, 'square', 0.09 * v, 0.08);
-    setTimeout(() => osc(ctx, 440, 'square', 0.06 * v, 0.05), 90);
+    osc(ctx, 440, 'square', 0.07 * v, 0.07);
   },
   start(ctx, v) {
-    // Rising chiptune fanfare
-    [330, 440, 550, 660, 880].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'square', 0.08 * v, 0.06), i * 50));
+    [330, 440, 550, 660].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'square', 0.06 * v, 0.05), i * 45));
   },
   end(ctx, v) {
-    // Descending sad tune
-    [880, 660, 440, 330, 220].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'square', 0.07 * v, 0.1), i * 70));
+    [660, 500, 330, 220].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'square', 0.055 * v, 0.09), i * 65));
   },
 };
 
 /* ──────────────────────────────────────────────────────────
-   PACK: Soft — Gentle filtered noise, triangle waves,
-   slow envelopes, almost ASMR-like
+   PACK: Soft — ASMR-like, déjà doux, légèrement retravaillé pour plus de chaleur
    ────────────────────────────────────────────────────────── */
 const pack_soft = {
   hit(ctx, v) {
-    // Soft noise click + gentle high triangle ping
-    noise(ctx, 0.06 * v, 0.08, 4000, 'highpass');
-    osc(ctx, 1200, 'triangle', 0.05 * v, 0.18);
+    noise(ctx, 0.05 * v, 0.06, 4500, 'highpass');
+    osc(ctx, 1000, 'triangle', 0.04 * v, 0.15);
   },
   headshot(ctx, v) {
-    // Airy chime: two triangle tones with slow fade
-    noise(ctx, 0.04 * v, 0.06, 5000, 'highpass');
-    osc(ctx, 1100, 'triangle', 0.05 * v, 0.22);
-    setTimeout(() => osc(ctx, 1650, 'triangle', 0.04 * v, 0.2), 70);
+    noise(ctx, 0.035 * v, 0.05, 5000, 'highpass');
+    osc(ctx, 950, 'triangle', 0.045 * v, 0.2);
+    setTimeout(() => osc(ctx, 1450, 'triangle', 0.035 * v, 0.18), 60);
   },
   miss(ctx, v) {
-    // Low soft woosh
-    noise(ctx, 0.04 * v, 0.2, 400, 'lowpass');
+    noise(ctx, 0.035 * v, 0.15, 350, 'lowpass');
   },
   combo(ctx, v) {
-    // Gentle rising hum
-    [800, 900, 1000].forEach((f, i) =>
-      setTimeout(() => osc(ctx, f, 'triangle', 0.04 * v, 0.12), i * 60));
+    [750, 850, 950].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'triangle', 0.035 * v, 0.1), i * 55));
   },
   countdown(ctx, v) {
-    noise(ctx, 0.03 * v, 0.06, 3000, 'bandpass');
-    osc(ctx, 500, 'triangle', 0.06 * v, 0.25);
+    noise(ctx, 0.025 * v, 0.05, 3000, 'bandpass');
+    osc(ctx, 480, 'triangle', 0.05 * v, 0.22);
   },
   start(ctx, v) {
-    // Warm rising pad
-    osc(ctx, 400, 'triangle', 0.06 * v, 0.4, 800);
-    noise(ctx, 0.03 * v, 0.15, 3000, 'highpass');
+    osc(ctx, 380, 'triangle', 0.05 * v, 0.35, 750);
+    noise(ctx, 0.025 * v, 0.12, 3000, 'highpass');
   },
   end(ctx, v) {
-    // Fading chimes
-    [700, 580, 460].forEach((f, i) =>
+    [650, 520, 400].forEach((f, i) =>
       setTimeout(() => {
-        osc(ctx, f, 'triangle', 0.05 * v, 0.3);
-        noise(ctx, 0.02 * v, 0.1, 2000, 'highpass');
-      }, i * 130));
+        osc(ctx, f, 'triangle', 0.045 * v, 0.28);
+        noise(ctx, 0.018 * v, 0.08, 2000, 'highpass');
+      }, i * 120));
   },
 };
 
 /* ──────────────────────────────────────────────────────────
-   PACK: Mechanical — Industrial/metallic: detuned saws,
-   noise bursts, harsh transients, clicky
+   PACK: Mechanical — Industrial adouci (transient moins harsh)
    ────────────────────────────────────────────────────────── */
 const pack_mechanical = {
   hit(ctx, v) {
-    // Sharp metallic click: detuned + noise burst
-    detunedOsc(ctx, 1800, 0.12 * v, 0.04, 25);
-    noise(ctx, 0.10 * v, 0.03, 6000, 'highpass');
+    detunedOsc(ctx, 1400, 0.09 * v, 0.035, 20);
+    noise(ctx, 0.07 * v, 0.025, 5500, 'highpass');
   },
   headshot(ctx, v) {
-    // Double metallic clang
-    detunedOsc(ctx, 2200, 0.10 * v, 0.035, 30);
-    noise(ctx, 0.10 * v, 0.025, 7000, 'highpass');
+    detunedOsc(ctx, 1800, 0.085 * v, 0.03, 25);
+    noise(ctx, 0.08 * v, 0.022, 6500, 'highpass');
     setTimeout(() => {
-      detunedOsc(ctx, 3000, 0.08 * v, 0.03, 40);
-      noise(ctx, 0.06 * v, 0.02, 8000, 'highpass');
+      detunedOsc(ctx, 2400, 0.065 * v, 0.028, 35);
+      noise(ctx, 0.05 * v, 0.018, 7500, 'highpass');
     }, 35);
   },
   miss(ctx, v) {
-    // Low clunk + rattle
-    detunedOsc(ctx, 120, 0.10 * v, 0.08, 15);
-    noise(ctx, 0.08 * v, 0.06, 800, 'lowpass');
+    detunedOsc(ctx, 140, 0.07 * v, 0.07, 12);
+    noise(ctx, 0.055 * v, 0.05, 700, 'lowpass');
   },
   combo(ctx, v) {
-    // Rapid clicking sequence, ascending
-    [1400, 1800, 2200, 2800].forEach((f, i) =>
+    [1200, 1500, 1800, 2200].forEach((f, i) =>
       setTimeout(() => {
-        detunedOsc(ctx, f, 0.07 * v, 0.025, 20);
-        noise(ctx, 0.04 * v, 0.015, 5000 + i * 1000, 'highpass');
+        detunedOsc(ctx, f, 0.055 * v, 0.022, 18);
+        noise(ctx, 0.03 * v, 0.012, 4500 + i * 800, 'highpass');
       }, i * 25));
   },
   countdown(ctx, v) {
-    detunedOsc(ctx, 800, 0.09 * v, 0.06, 20);
-    noise(ctx, 0.07 * v, 0.04, 3000, 'bandpass');
+    detunedOsc(ctx, 700, 0.07 * v, 0.05, 18);
+    noise(ctx, 0.05 * v, 0.035, 2800, 'bandpass');
   },
   start(ctx, v) {
-    // Industrial rev-up
-    noise(ctx, 0.08 * v, 0.12, 2000, 'bandpass');
-    detunedOsc(ctx, 600, 0.10 * v, 0.15, 25);
-    setTimeout(() => detunedOsc(ctx, 1200, 0.08 * v, 0.1, 30), 80);
+    noise(ctx, 0.06 * v, 0.1, 1800, 'bandpass');
+    detunedOsc(ctx, 550, 0.08 * v, 0.14, 22);
+    setTimeout(() => detunedOsc(ctx, 1100, 0.065 * v, 0.09, 28), 75);
   },
   end(ctx, v) {
-    // Heavy descending clatter
-    [1200, 800, 500, 300].forEach((f, i) =>
+    [1100, 750, 480, 300].forEach((f, i) =>
       setTimeout(() => {
-        detunedOsc(ctx, f, 0.08 * v, 0.06, 20);
-        noise(ctx, 0.05 * v, 0.04, 1500 - i * 300, 'bandpass');
+        detunedOsc(ctx, f, 0.065 * v, 0.055, 18);
+        noise(ctx, 0.04 * v, 0.035, 1400 - i * 250, 'bandpass');
       }, i * 60));
   },
 };
 
-const PACK_ENGINES = { clean: pack_clean, retro: pack_retro, soft: pack_soft, mechanical: pack_mechanical };
+/* ──────────────────────────────────────────────────────────
+   PACK: Wood — "Tock" boisé, sec, organique (pas de pop, pas d'aigu)
+   Idéal pour sessions longues / contextes calmes
+   ────────────────────────────────────────────────────────── */
+const pack_wood = {
+  hit(ctx, v) {
+    // Tock boisé = noise court lowpassé + sinus grave très court
+    noise(ctx, 0.14 * v, 0.025, 900, 'lowpass');
+    osc(ctx, 260, 'sine', 0.06 * v, 0.04);
+  },
+  headshot(ctx, v) {
+    noise(ctx, 0.14 * v, 0.025, 900, 'lowpass');
+    osc(ctx, 260, 'sine', 0.06 * v, 0.04);
+    setTimeout(() => {
+      noise(ctx, 0.1 * v, 0.02, 1200, 'lowpass');
+      osc(ctx, 380, 'sine', 0.05 * v, 0.035);
+    }, 40);
+  },
+  miss(ctx, v) {
+    // Tock plus mat, grave
+    noise(ctx, 0.08 * v, 0.04, 400, 'lowpass');
+    osc(ctx, 130, 'sine', 0.04 * v, 0.06);
+  },
+  combo(ctx, v) {
+    [280, 340, 420].forEach((f, i) =>
+      setTimeout(() => {
+        noise(ctx, 0.08 * v, 0.02, 900 + i * 200, 'lowpass');
+        osc(ctx, f, 'sine', 0.04 * v, 0.035);
+      }, i * 45));
+  },
+  countdown(ctx, v) {
+    noise(ctx, 0.09 * v, 0.03, 800, 'lowpass');
+    osc(ctx, 340, 'sine', 0.05 * v, 0.08);
+  },
+  start(ctx, v) {
+    [220, 330, 440].forEach((f, i) =>
+      setTimeout(() => {
+        noise(ctx, 0.08 * v, 0.025, 1000, 'lowpass');
+        osc(ctx, f, 'sine', 0.055 * v, 0.09);
+      }, i * 80));
+  },
+  end(ctx, v) {
+    [500, 380, 280, 200].forEach((f, i) =>
+      setTimeout(() => {
+        noise(ctx, 0.07 * v, 0.03, 900, 'lowpass');
+        osc(ctx, f, 'sine', 0.05 * v, 0.14);
+      }, i * 90));
+  },
+};
+
+/* ──────────────────────────────────────────────────────────
+   PACK: Tonal — Notes pures courtes, musicales (gamme pentatonique)
+   Très discret, pas de noise, pas de transient agressif
+   ────────────────────────────────────────────────────────── */
+const pack_tonal = {
+  hit(ctx, v) {
+    // Note pure (La4), très courte
+    osc(ctx, 440, 'sine', 0.09 * v, 0.08);
+  },
+  headshot(ctx, v) {
+    // Quinte La-Mi
+    osc(ctx, 440, 'sine', 0.08 * v, 0.08);
+    setTimeout(() => osc(ctx, 660, 'sine', 0.07 * v, 0.07), 50);
+  },
+  miss(ctx, v) {
+    // Note grave descendante
+    osc(ctx, 220, 'sine', 0.05 * v, 0.1, 165);
+  },
+  combo(ctx, v) {
+    // Pentatonique ascendante
+    [523, 587, 659, 784].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'sine', 0.05 * v, 0.08), i * 40));
+  },
+  countdown(ctx, v) { osc(ctx, 523, 'sine', 0.08 * v, 0.18); },
+  start(ctx, v) {
+    [523, 659, 784].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'sine', 0.07 * v, 0.1), i * 50));
+  },
+  end(ctx, v) {
+    [784, 659, 523, 392].forEach((f, i) =>
+      setTimeout(() => osc(ctx, f, 'sine', 0.06 * v, 0.18), i * 110));
+  },
+};
+
+/* ──────────────────────────────────────────────────────────
+   PACK: Minimal — Clic quasi inaudible, uniquement retour tactile
+   Parfait pour streamers / bureaux partagés / personnes sensibles
+   ────────────────────────────────────────────────────────── */
+const pack_minimal = {
+  hit(ctx, v) {
+    // Click très court, noise bandpass étroit
+    noise(ctx, 0.06 * v, 0.012, 3000, 'bandpass');
+  },
+  headshot(ctx, v) {
+    noise(ctx, 0.06 * v, 0.012, 3000, 'bandpass');
+    setTimeout(() => noise(ctx, 0.05 * v, 0.012, 4500, 'bandpass'), 30);
+  },
+  miss(ctx, v) {
+    noise(ctx, 0.035 * v, 0.02, 600, 'lowpass');
+  },
+  combo(ctx, v) {
+    // 2 clics rapprochés
+    noise(ctx, 0.05 * v, 0.01, 3500, 'bandpass');
+    setTimeout(() => noise(ctx, 0.05 * v, 0.01, 4000, 'bandpass'), 30);
+  },
+  countdown(ctx, v) {
+    noise(ctx, 0.05 * v, 0.02, 2000, 'bandpass');
+  },
+  start(ctx, v) {
+    noise(ctx, 0.06 * v, 0.04, 2500, 'bandpass');
+  },
+  end(ctx, v) {
+    noise(ctx, 0.05 * v, 0.05, 1500, 'bandpass');
+    setTimeout(() => noise(ctx, 0.04 * v, 0.04, 1000, 'bandpass'), 80);
+  },
+};
+
+const PACK_ENGINES = {
+  clean: pack_clean,
+  retro: pack_retro,
+  soft: pack_soft,
+  mechanical: pack_mechanical,
+  wood: pack_wood,
+  tonal: pack_tonal,
+  minimal: pack_minimal,
+};
 
 window.audioEngine = new AudioEngine();

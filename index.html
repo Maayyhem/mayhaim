@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.3.1">
+  <meta name="app-version" content="2.4.0">
   <title>MayhAim — Aim Trainer & Coaching Hub</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
@@ -251,6 +251,12 @@
         </div>
       </div>
     </div>
+
+    <!-- BENCHMARK RUN : écran de transition entre deux scénarios -->
+    <div id="benchmark-run-transition" class="screen scrollable"></div>
+
+    <!-- BENCHMARK RUN : résumé final du run complet -->
+    <div id="benchmark-run-summary" class="screen scrollable"></div>
 
     <!-- COACHING HUB -->
     <div id="coaching-screen" class="screen">
@@ -612,6 +618,10 @@
             <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro précision</h3><p>Des cibles très petites aux angles clés. Pour progresser sur les duels serrés.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Rafales</h3><p>Des groupes de cibles proches apparaissent ensemble — nettoie-les rapidement.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">◎</div><h3>Zone morte</h3><p>Tracking avec une zone d'inertie — entraîne-toi à lisser tes mouvements de souris.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="counterstrafe"><div class="mode-icon">⇄</div><h3>Counter-Strafe</h3><p>Cible qui alterne mouvement latéral et stops courts (ADAD peek). Casse le rythme du tracking.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="widepeek"><div class="mode-icon">⟶</div><h3>Wide Peek</h3><p>Cible à l'extrême bord de l'écran avec TTL court. Entraîne le swing et le pre-aim large.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="spraycontrol"><div class="mode-icon">↟</div><h3>Spray Control</h3><p>Enchaîne 15 tirs sur une cible en compensant un pattern de recul scripté type Vandal.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="flickdelay"><div class="mode-icon">⏱</div><h3>Flick + Délai</h3><p>Délai aléatoire avant spawn, puis cible avec TTL très court. Anticipation + réaction + flick.</p><span class="mode-tag">Training</span></button>
           </div>
         </div>
 
@@ -676,31 +686,65 @@
           </label>
         </div>
         <div class="sett-range-row">
-          <span class="sett-row-label">Volume</span>
+          <span class="sett-row-label">Volume général</span>
           <input type="range" id="opt-volume" min="0" max="1" value="0.5" step="0.05" class="sett-range">
           <span class="sett-range-val" id="opt-volume-val">50%</span>
+        </div>
+        <div class="sett-range-row">
+          <span class="sett-row-label">Volume hits</span>
+          <input type="range" id="opt-volume-hit" min="0" max="1" value="1" step="0.05" class="sett-range">
+          <span class="sett-range-val" id="opt-volume-hit-val">100%</span>
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">Son de miss</span>
+          <label class="sett-toggle">
+            <input type="checkbox" id="opt-sound-miss" checked>
+            <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+          </label>
+        </div>
+        <div class="sett-row">
+          <span class="sett-row-label">Son combo (toutes les 5 touches)</span>
+          <label class="sett-toggle">
+            <input type="checkbox" id="opt-sound-combo" checked>
+            <span class="sett-toggle-track"><span class="sett-toggle-thumb"></span></span>
+          </label>
         </div>
         <div class="sett-field-label" style="margin-top:12px">Pack de sons</div>
         <div class="sett-sound-pack-grid" id="sound-pack-chips">
           <button class="sett-sound-chip active" data-pack="clean">
             <span class="sett-sound-chip-icon"><span data-icon="bell"></span></span>
             <span class="sett-sound-chip-name">Clean</span>
-            <span class="sett-sound-chip-desc">Son par défaut, clair et net</span>
+            <span class="sett-sound-chip-desc">Sinus mid, court et neutre</span>
           </button>
-          <button class="sett-sound-chip" data-pack="retro">
-            <span class="sett-sound-chip-icon"><span data-icon="gamepad"></span></span>
-            <span class="sett-sound-chip-name">Retro</span>
-            <span class="sett-sound-chip-desc">Sons 8-bit arcade</span>
+          <button class="sett-sound-chip" data-pack="wood">
+            <span class="sett-sound-chip-icon"><span data-icon="package"></span></span>
+            <span class="sett-sound-chip-name">Wood</span>
+            <span class="sett-sound-chip-desc">Tock boisé, sec, organique</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="tonal">
+            <span class="sett-sound-chip-icon"><span data-icon="music"></span></span>
+            <span class="sett-sound-chip-name">Tonal</span>
+            <span class="sett-sound-chip-desc">Notes pures, musicales</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="minimal">
+            <span class="sett-sound-chip-icon"><span data-icon="minus"></span></span>
+            <span class="sett-sound-chip-name">Minimal</span>
+            <span class="sett-sound-chip-desc">Clic tactile quasi inaudible</span>
           </button>
           <button class="sett-sound-chip" data-pack="soft">
             <span class="sett-sound-chip-icon"><span data-icon="waves"></span></span>
             <span class="sett-sound-chip-name">Soft</span>
-            <span class="sett-sound-chip-desc">Sons doux et discrets</span>
+            <span class="sett-sound-chip-desc">Ambiance ASMR, chaud</span>
+          </button>
+          <button class="sett-sound-chip" data-pack="retro">
+            <span class="sett-sound-chip-icon"><span data-icon="gamepad"></span></span>
+            <span class="sett-sound-chip-name">Retro</span>
+            <span class="sett-sound-chip-desc">Chiptune 8-bit arcade</span>
           </button>
           <button class="sett-sound-chip" data-pack="mechanical">
             <span class="sett-sound-chip-icon"><span data-icon="settings"></span></span>
             <span class="sett-sound-chip-name">Mechanical</span>
-            <span class="sett-sound-chip-desc">Sons tranchants, métalliques</span>
+            <span class="sett-sound-chip-desc">Clics métalliques industriels</span>
           </button>
         </div>
         <button class="sett-sound-test-btn" id="sound-test-btn"><span data-icon="volume-2"></span> Tester le son</button>
@@ -918,9 +962,19 @@
               <span class="bench-gtier-chip" data-tier="hard" onclick="setCurrentTier('hard')">Hard</span>
             </div>
           </div>
-          <div class="bench-overall" style="margin-bottom:20px">
+          <div class="bench-overall" style="margin-bottom:14px">
             <div class="bench-rank-big" id="bench-overall-rank">Unranked</div>
             <div class="bench-energy-big" id="bench-overall-threads">0 / 256 Threads</div>
+          </div>
+          <div class="bench-run-wrap" style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="bench-run-btn" id="bench-run-btn" onclick="startBenchmarkRun()">
+              <span data-icon="play"></span>
+              <span class="bench-run-btn-label">Benchmark Run</span>
+              <span class="bench-run-btn-sub">Enchaîne tous les scénarios débloqués · ~60s chacun</span>
+            </button>
+            <button class="bench-run-history-btn" onclick="showBenchmarkRunHistory()">
+              <span data-icon="chart"></span> Historique des runs
+            </button>
           </div>
           <div class="bench-categories" id="bench-categories"></div>
         </div>
@@ -1652,6 +1706,14 @@
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-threads">—</span><span class="pf-bench-lbl">Threads</span></div>
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-energy">—</span><span class="pf-bench-lbl">Energy</span></div>
               <div class="pf-bench-stat pf-bench-rank-wrap"><span class="pf-bench-rank" id="pf-bench-rank">Unranked</span></div>
+            </div>
+          </div>
+
+          <!-- Aim ↔ In-Game correlation -->
+          <div class="pf-section pf-aimig-section">
+            <div class="pf-section-title">🎯 Aim ↔ Valorant <span style="color:var(--dim);font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0">— corrélation de tes stats</span></div>
+            <div id="pf-aimig-content" class="pf-aimig-content">
+              <div class="pf-aimig-loading" style="color:var(--dim);font-size:0.84rem;text-align:center;padding:16px">Analyse en cours…</div>
             </div>
           </div>
 

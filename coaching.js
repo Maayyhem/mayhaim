@@ -5541,6 +5541,7 @@ async function renderProfile() {
 
   // Benchmark from localStorage (medium tier)
   _pfRenderBench();
+  _pfRenderAimIG();
   _pfRenderRadar();
   _pfRenderTrophies();
 
@@ -5719,6 +5720,239 @@ function _pfRenderBench() {
     if (rankEl) { rankEl.textContent = rankName; rankEl.style.color = rankColor; rankEl.style.borderColor = rankColor + '55'; rankEl.style.background = rankColor + '18'; }
   } catch(e) {}
 }
+
+// ═══ Aim ↔ Valorant correlation ═══════════════════════════════════════════
+// Reads the local Viscose benchmark (medium tier) to derive 3 aim subscores
+// (Tracking / Clicking / Flicking) in 0–100, then fetches Henrik tracker
+// data (if Riot linked) to display an HS%/KDA/ACS/WR comparison + a
+// best-effort diagnostic message that points at what the player should work
+// on (e.g. "clicking élevé mais HS% faible → travaille la target acquisition").
+function _pfAimSubscores() {
+  const SCE = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
+  let bench = {};
+  try { bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}'); } catch {}
+  // For each category, compute avg thread% (threads/8) × 100
+  const buckets = {
+    control_tracking: { sum:0, n:0 },
+    reactive_tracking: { sum:0, n:0 },
+    flick_tech: { sum:0, n:0 },
+    click_timing: { sum:0, n:0 },
+  };
+  Object.entries(SCE).forEach(([k, v]) => {
+    if (!buckets[v.cat] || !v.th) return;
+    const best = bench[k] || 0;
+    const threads = (v.th || []).filter(t => best >= t).length;
+    buckets[v.cat].sum += Math.min(threads, 8);
+    buckets[v.cat].n += 8;
+  });
+  const pct = (b) => b.n > 0 ? Math.round(b.sum / b.n * 100) : 0;
+  return {
+    tracking: Math.round((pct(buckets.control_tracking) + pct(buckets.reactive_tracking)) / 2),
+    clicking: pct(buckets.click_timing),
+    flicking: pct(buckets.flick_tech),
+  };
+}
+
+// Rough rank-to-index mapping (Iron 1 = 1 … Radiant = 25). Used for visual
+// gap between aim level and IG level — not a competitive estimate.
+function _pfRankToIdx(rank) {
+  if (!rank) return 0;
+  const r = String(rank).toLowerCase();
+  const tiers = ['iron','bronze','silver','gold','platinum','diamond','ascendant','immortal'];
+  for (let i = 0; i < tiers.length; i++) {
+    if (r.startsWith(tiers[i])) {
+      const d = parseInt(r.replace(tiers[i],'').trim()) || 1;
+      return i * 3 + Math.min(Math.max(d, 1), 3);
+    }
+  }
+  if (r.startsWith('radiant')) return 25;
+  return 0;
+}
+
+function _pfAimRankFromSubscores(sub) {
+  // Approximate: overall aim % (harmonic-ish: min-weighted) → VAL rank index
+  const avg = (sub.tracking + sub.clicking + sub.flicking) / 3;
+  const weakest = Math.min(sub.tracking, sub.clicking, sub.flicking);
+  const score = avg * 0.7 + weakest * 0.3; // penalty for weak points
+  // 0→Iron1, 10→Bronze, 25→Silver, 40→Gold, 55→Plat, 70→Diamond, 82→Asc, 90→Immo, 96→Radiant
+  const steps = [
+    [0,'Iron 1',1], [6,'Iron 3',3], [12,'Bronze 2',5], [20,'Silver 1',7], [28,'Silver 3',9],
+    [36,'Gold 2',11], [44,'Platinum 1',13], [52,'Platinum 3',15], [60,'Diamond 1',16],
+    [68,'Diamond 3',18], [76,'Ascendant 2',20], [84,'Immortal 1',22], [92,'Immortal 3',24], [97,'Radiant',25]
+  ];
+  let best = steps[0];
+  for (const s of steps) if (score >= s[0]) best = s;
+  return { label: best[1], idx: best[2], score: Math.round(score) };
+}
+
+function _pfAimIGBarColor(pct) {
+  if (pct >= 75) return '#4ade80';
+  if (pct >= 50) return '#60a5fa';
+  if (pct >= 25) return '#f59e0b';
+  return '#f87171';
+}
+
+function _pfAimIGInsight(sub, ig, rankDelta) {
+  const tips = [];
+  const has = v => v != null && isFinite(v);
+
+  // Compare aim rank estimate vs IG rank
+  if (rankDelta != null) {
+    if (rankDelta >= 4) tips.push({ type:'up', txt:`Ton aim pur dépasse largement ton rang IG (~${rankDelta} tiers d'écart). Le game-sense / decision-making est probablement le frein — travaille positionnement, crosshair placement, timing.` });
+    else if (rankDelta <= -4) tips.push({ type:'down', txt:`Ton rang IG est au-dessus de ton aim pur (~${Math.abs(rankDelta)} tiers d'écart). Ton gamesense compense — mais pousse l'aim via benchmark quotidien.` });
+    else if (Math.abs(rankDelta) <= 2) tips.push({ type:'ok', txt:'Ton aim pur et ton rang IG sont alignés : progresser demande un travail équilibré aim + gamesense.' });
+  }
+
+  // Flicking vs HS%
+  if (has(ig.hs) && sub.flicking > 0) {
+    const expectedHS = 18 + sub.flicking * 0.15; // 18% → 33% sur [0,100]
+    if (ig.hs < expectedHS - 4) tips.push({ type:'down', txt:`HS% IG (${ig.hs}%) inférieur à ce que ton flick pur laisse espérer. Crosshair trop bas ? Travaille tête-level avec Pasu Angelic / Flicker Plaza.` });
+    else if (ig.hs > expectedHS + 4) tips.push({ type:'up', txt:`HS% IG (${ig.hs}%) très bon relativement à ton aim pur — tu as un bon crosshair placement.` });
+  }
+
+  // Clicking vs KDA
+  const kdaNum = parseFloat(ig.kda);
+  if (has(kdaNum) && sub.clicking > 0) {
+    if (sub.clicking >= 60 && kdaNum < 1.0) tips.push({ type:'down', txt:`Clicking solide mais K/D < 1.0 : problème sous pression — joue plus de Spray Control / Reaction Drill pour stabiliser sous stress.` });
+  }
+
+  // Tracking faible
+  if (sub.tracking > 0 && sub.tracking < 30) {
+    tips.push({ type:'down', txt:`Tracking faible (${sub.tracking}/100) : ça handicape Reyna/Neon/Jett. Ajoute 10min/jour de Smoothbot ou Controlsphere.` });
+  }
+
+  // Clicking faible
+  if (sub.clicking > 0 && sub.clicking < 30) {
+    tips.push({ type:'down', txt:`Click timing faible (${sub.clicking}/100) : hésitation sur les duels. Travaille Pasu Reload, VT Bounceshot.` });
+  }
+
+  if (!tips.length) tips.push({ type:'ok', txt:'Lance quelques benchmarks de plus pour qu\'on affine le diagnostic.' });
+  return tips.slice(0, 3);
+}
+
+async function _pfRenderAimIG() {
+  const box = document.getElementById('pf-aimig-content');
+  if (!box) return;
+
+  const sub = _pfAimSubscores();
+  const aimRank = _pfAimRankFromSubscores(sub);
+  const hasAimData = sub.tracking + sub.clicking + sub.flicking > 0;
+
+  // Start with aim-only view immediately (before fetch)
+  let igData = null;
+  let notLinked = !coachingUser?.riot_gamename;
+
+  const renderCard = () => {
+    const ig = igData || {};
+    const hs = ig.hs, kda = ig.kda, acs = ig.acs, wr = ig.wr, igRank = ig.rank;
+    const rankDeltaIdx = igRank ? (aimRank.idx - _pfRankToIdx(igRank)) : null;
+    const tips = hasAimData ? _pfAimIGInsight(sub, { hs, kda, acs, wr }, rankDeltaIdx) : [];
+
+    // No aim data → CTA
+    if (!hasAimData) {
+      box.innerHTML = `
+        <div class="pf-aimig-empty">
+          <div class="pf-aimig-empty-icon">${icon('chart',22)}</div>
+          <div class="pf-aimig-empty-title">Pas encore de données de benchmark</div>
+          <div class="pf-aimig-empty-msg">Joue quelques scénarios Viscose pour voir la corrélation avec tes stats Valorant.</div>
+          <button class="btn-outline" style="margin-top:10px;font-size:0.78rem;padding:6px 14px" onclick="coachingSwitchTab('hub-viscose')">Aller au Benchmark</button>
+        </div>`;
+      return;
+    }
+
+    const bar = (val, lbl) => {
+      const color = _pfAimIGBarColor(val);
+      return `<div class="pf-aimig-bar-row">
+        <div class="pf-aimig-bar-lbl">${lbl}</div>
+        <div class="pf-aimig-bar-track"><div class="pf-aimig-bar-fill" style="width:${val}%;background:${color}"></div></div>
+        <div class="pf-aimig-bar-val" style="color:${color}">${val}</div>
+      </div>`;
+    };
+
+    const igRankColor = igRank ? (_riotTierColor ? _riotTierColor(igRank) : '#ff4655') : 'var(--dim)';
+    const igRankBlock = notLinked
+      ? `<div class="pf-aimig-side-rank pf-aimig-side-rank-empty">
+           <div class="pf-aimig-rank-val" style="color:var(--dim)">—</div>
+           <div class="pf-aimig-rank-lbl">Rang Valorant</div>
+           <button class="btn-outline" style="margin-top:6px;font-size:0.72rem;padding:4px 10px" onclick="coachingSwitchTab('ch-tracker')">Lier mon compte</button>
+         </div>`
+      : igRank
+        ? `<div class="pf-aimig-side-rank">
+             <div class="pf-aimig-rank-val" style="color:${igRankColor}">${san(igRank)}</div>
+             <div class="pf-aimig-rank-lbl">Rang Valorant · live</div>
+           </div>`
+        : `<div class="pf-aimig-side-rank pf-aimig-side-rank-empty">
+             <div class="pf-aimig-rank-val" style="color:var(--dim)">—</div>
+             <div class="pf-aimig-rank-lbl">Rang non synchronisé</div>
+             <button class="btn-outline" style="margin-top:6px;font-size:0.72rem;padding:4px 10px" onclick="coachingSwitchTab('ch-tracker')">Voir tracker</button>
+           </div>`;
+
+    const deltaBlock = rankDeltaIdx != null ? `
+      <div class="pf-aimig-delta pf-aimig-delta-${rankDeltaIdx>0?'up':rankDeltaIdx<0?'down':'eq'}">
+        ${rankDeltaIdx>0 ? `↑ aim +${rankDeltaIdx} tiers` : rankDeltaIdx<0 ? `↓ aim ${rankDeltaIdx} tiers` : '≈ aligné'}
+      </div>` : '';
+
+    const igStatsBlock = !notLinked ? `
+      <div class="pf-aimig-ig-stats">
+        <div class="pf-aimig-ig-stat"><div class="pf-aimig-ig-val">${has1(hs)?hs+'%':'—'}</div><div class="pf-aimig-ig-lbl">HS%</div></div>
+        <div class="pf-aimig-ig-stat"><div class="pf-aimig-ig-val">${has1(kda)?kda:'—'}</div><div class="pf-aimig-ig-lbl">K/D</div></div>
+        <div class="pf-aimig-ig-stat"><div class="pf-aimig-ig-val">${has1(acs)?acs:'—'}</div><div class="pf-aimig-ig-lbl">ACS</div></div>
+        <div class="pf-aimig-ig-stat"><div class="pf-aimig-ig-val">${has1(wr)?wr+'%':'—'}</div><div class="pf-aimig-ig-lbl">WR</div></div>
+      </div>` : '';
+
+    const tipsHtml = tips.length ? `
+      <div class="pf-aimig-tips">
+        ${tips.map(t => `<div class="pf-aimig-tip pf-aimig-tip-${t.type}">${san(t.txt)}</div>`).join('')}
+      </div>` : '';
+
+    box.innerHTML = `
+      <div class="pf-aimig-grid">
+        <div class="pf-aimig-side pf-aimig-side-aim">
+          <div class="pf-aimig-side-title">Aim pur</div>
+          <div class="pf-aimig-side-rank"><div class="pf-aimig-rank-val" style="color:var(--accent)">${san(aimRank.label)}</div><div class="pf-aimig-rank-lbl">Estimation aim</div></div>
+          ${bar(sub.tracking, 'Tracking')}
+          ${bar(sub.clicking, 'Clicking')}
+          ${bar(sub.flicking, 'Flicking')}
+        </div>
+        <div class="pf-aimig-center">${deltaBlock}</div>
+        <div class="pf-aimig-side pf-aimig-side-ig">
+          <div class="pf-aimig-side-title">In-game</div>
+          ${igRankBlock}
+          ${igStatsBlock}
+        </div>
+      </div>
+      ${tipsHtml}
+    `;
+  };
+
+  // Helper
+  const has1 = v => v != null && v !== '';
+  window._pfHas1 = has1; // fallback ref (not used externally but avoids lint)
+
+  // Render immediately with aim-only data
+  renderCard();
+
+  // Try to fetch Henrik tracker stats to enrich with IG side
+  if (!notLinked && coachingToken) {
+    try {
+      const res = await fetch(`${API_BASE}/profile?action=tracker`, { headers: { 'Authorization': 'Bearer ' + coachingToken }});
+      if (res.ok) {
+        const d = await res.json();
+        const s = d.stats || {};
+        igData = {
+          hs: s.avg_hs_pct ?? null,
+          kda: s.kda ?? null,
+          acs: s.avg_acs ?? null,
+          wr: s.win_rate ?? null,
+          rank: d.account?.rank || coachingUser?.riot_rank || null,
+        };
+        // Small delay to avoid flash: re-render with IG data
+        renderCard();
+      }
+    } catch {}
+  }
+}
+
 
 let _pfActivityChart = null;
 function _pfRenderActivityChart(activity30) {

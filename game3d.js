@@ -157,6 +157,11 @@ const SCENARIOS = {
   strafe_drill:    { cat:'cours', sub:'strafe', type:'track', label:'Strafe Drill' },
   reaction_drill:  { cat:'cours', sub:'reaction', type:'click', label:'Reaction Drill' },
   micro_drill:     { cat:'cours', sub:'micro_precision', type:'click', label:'Micro Precision Drill' },
+  // ═══ TRAINING DRILLS (nouveau, complémentaire aux 6 cours) ═══
+  counterstrafe:   { cat:'training', sub:'counterstrafe', type:'track', label:'Counter-Strafe' },
+  widepeek:        { cat:'training', sub:'peek', type:'click', label:'Wide Peek' },
+  spraycontrol:    { cat:'training', sub:'recoil', type:'click', label:'Spray Control' },
+  flickdelay:      { cat:'training', sub:'anticipation', type:'click', label:'Flick + Delay' },
 };
 
 // Current tier: 'easier', 'medium', or 'hard'
@@ -274,6 +279,246 @@ function isScenarioUnlocked(key, tier) {
 }
 function setCurrentTier(t) { currentTier = t; renderBenchmark(); updateMenuStats(); }
 
+// ============ BENCHMARK RUN : enchaîne tous les scénarios du benchmark ============
+// Un "run" = tous les scénarios .th du tier courant, lancés en séquence, 60s chacun.
+// Le résultat agrégé (threads totaux, rang global, découpage par catégorie) est
+// affiché à la fin sur #benchmark-run-summary.
+function startBenchmarkRun(tier) {
+  if (G.running || G.benchmarkRun) return;
+  tier = tier || currentTier || 'medium';
+  // Filtre : scénarios benchmark (avec .th) déverrouillés pour ce tier
+  const queue = Object.keys(SCENARIOS).filter(k => SCENARIOS[k].th && isScenarioUnlocked(k, tier));
+  if (queue.length === 0) {
+    if (window.showToast) window.showToast('Aucun scénario débloqué pour ce tier.');
+    return;
+  }
+  // Tri par catégorie pour un parcours logique
+  const catOrder = { control_tracking:0, reactive_tracking:1, flick_tech:2, click_timing:3 };
+  queue.sort((a, b) => (catOrder[SCENARIOS[a].cat] - catOrder[SCENARIOS[b].cat]));
+  G.benchmarkRun = {
+    tier, queue: queue.slice(1), // on lance le premier tout de suite
+    results: [],
+    startedAt: Date.now(),
+    total: queue.length,
+  };
+  // Force le tier courant, active le mode benchmark
+  currentTier = tier;
+  G.benchmarkMode = true;
+  window._coachLaunchSource = { tab: 'benchmark-run' };
+  startGame(queue[0]);
+}
+
+function continueBenchmarkRun() {
+  if (!G.benchmarkRun) return;
+  if (G.benchmarkRun.queue.length === 0) {
+    finalizeBenchmarkRun();
+    return;
+  }
+  const next = G.benchmarkRun.queue.shift();
+  G.benchmarkMode = true;
+  startGame(next);
+}
+
+function abortBenchmarkRun() {
+  if (!G.benchmarkRun) return;
+  G.benchmarkRun = null;
+  G.benchmarkMode = false;
+  window._coachLaunchSource = null;
+}
+
+function finalizeBenchmarkRun() {
+  const run = G.benchmarkRun;
+  if (!run) return;
+  // Calcule le total de threads gagnés pendant la run (PAS les bests all-time,
+  // mais bien ce qui a été atteint pendant ce run).
+  const totalThreads = run.results.reduce((s, r) => s + (r.threads||0), 0);
+  const maxThreadsPerScn = maxThreadsFor(run.tier);
+  const maxTotal = run.results.length * maxThreadsPerScn;
+  const rank = calcRankFromThreads(totalThreads, run.tier);
+  const durationMin = Math.round((Date.now() - run.startedAt) / 60000);
+
+  // Regroupe par catégorie pour le dashboard
+  const byCat = {};
+  run.results.forEach(r => {
+    const cat = SCENARIOS[r.mode]?.cat || 'other';
+    (byCat[cat] = byCat[cat] || []).push(r);
+  });
+
+  // Persist (historique des runs)
+  try {
+    const history = JSON.parse(localStorage.getItem('visc_bench_runs') || '[]');
+    history.unshift({
+      ts: Date.now(), tier: run.tier,
+      totalThreads, maxTotal, rank: rank.label, rankColor: rank.color,
+      durationMin, count: run.results.length,
+      results: run.results.map(r => ({ mode: r.mode, threads: r.threads, score: r.score, acc: r.acc })),
+    });
+    localStorage.setItem('visc_bench_runs', JSON.stringify(history.slice(0, 20)));
+  } catch {}
+
+  // Cleanup state avant affichage
+  G.benchmarkRun = null;
+  G.benchmarkMode = false;
+  window._coachLaunchSource = null;
+
+  // Affiche l'écran de résumé
+  showBenchmarkRunSummary({ totalThreads, maxTotal, rank, durationMin, byCat, results: run.results, tier: run.tier });
+}
+
+function showBenchmarkRunSummary(s) {
+  const screen = $('#benchmark-run-summary');
+  if (!screen) return;
+  const CAT_ORDER = ['control_tracking','reactive_tracking','flick_tech','click_timing'];
+  const _ranks = _viscRanksFor(s.tier);
+  const mtPerScn = maxThreadsFor(s.tier);
+
+  const catsHtml = CAT_ORDER.map(cat => {
+    const arr = s.byCat[cat] || [];
+    if (!arr.length) return '';
+    const catThreads = arr.reduce((a, r) => a + (r.threads||0), 0);
+    const catMax = arr.length * mtPerScn;
+    const catPct = catMax > 0 ? Math.round(catThreads / catMax * 100) : 0;
+    const rowsHtml = arr.map(r => {
+      const scRankName = scenarioRankName(r.threads, s.tier);
+      const color = _ranks.colors[Math.min(Math.max(0, r.threads|0), _ranks.colors.length - 1)] || '#888';
+      const pct = Math.min(100, r.threads / mtPerScn * 100);
+      return `<div class="brs-row">
+        <span class="brs-name">${escapeHtml(getLabel(r.mode))}</span>
+        <span class="brs-score">${(r.score||0).toLocaleString()}</span>
+        <div class="brs-bar"><div class="brs-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="brs-rank" style="color:${color}">${scRankName}</span>
+        <span class="brs-threads">${r.threads||0}/${mtPerScn}</span>
+      </div>`;
+    }).join('');
+    return `<div class="brs-cat">
+      <div class="brs-cat-head">
+        <span class="brs-cat-title">${CAT_LABELS[cat] || cat}</span>
+        <span class="brs-cat-sum">${catThreads}/${catMax} · ${catPct}%</span>
+      </div>
+      ${rowsHtml}
+    </div>`;
+  }).join('');
+
+  screen.innerHTML = `
+    <div class="brs-wrap">
+      <div class="brs-header">
+        <h1>${icon('trophy',28)} Benchmark Run</h1>
+        <div class="brs-subtitle">${s.tier.toUpperCase()} · ${s.results.length} scénarios · ${s.durationMin} min</div>
+      </div>
+      <div class="brs-overall">
+        <div class="brs-rank-big" style="color:${s.rank.color};border-color:${s.rank.color}">${s.rank.label}</div>
+        <div class="brs-threads-big">${s.totalThreads} / ${s.maxTotal} Threads</div>
+      </div>
+      <div class="brs-cats">${catsHtml}</div>
+      <div class="brs-actions">
+        <button class="brs-btn brs-btn-primary" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-viscose');">${icon('chart',16)} Dashboard Viscose</button>
+        <button class="brs-btn" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-home');">${icon('home',16)} Accueil</button>
+      </div>
+    </div>
+  `;
+  showScreen('benchmark-run-summary');
+}
+
+// Écran intermédiaire : progression X/N + résultat scn courant + continue/quitter
+function showBenchmarkRunTransition(lastResult) {
+  const run = G.benchmarkRun;
+  if (!run) return;
+  const screen = $('#benchmark-run-transition');
+  if (!screen) return;
+  const done = run.results.length;
+  const total = run.total;
+  const remaining = run.queue.length;
+  const pct = Math.round(done / total * 100);
+  const _ranks = _viscRanksFor(run.tier);
+  const color = _ranks.colors[Math.min(Math.max(0, lastResult.threads|0), _ranks.colors.length - 1)] || '#888';
+
+  screen.innerHTML = `
+    <div class="brt-wrap">
+      <div class="brt-progress-info">
+        <span class="brt-step">Scénario ${done} / ${total}</span>
+        <span class="brt-pct">${pct}%</span>
+      </div>
+      <div class="brt-progress-bar"><div class="brt-progress-fill" style="width:${pct}%"></div></div>
+      <div class="brt-last-result">
+        <div class="brt-last-label">Dernier scénario</div>
+        <div class="brt-last-name">${escapeHtml(getLabel(lastResult.mode))}</div>
+        <div class="brt-last-rank" style="color:${color}">${scenarioRankName(lastResult.threads, run.tier)} — ${lastResult.threads}/${maxThreadsFor(run.tier)}</div>
+        <div class="brt-last-score">Score ${(lastResult.score||0).toLocaleString()} · Acc ${lastResult.acc||0}%</div>
+      </div>
+      ${remaining > 0 ? `
+        <div class="brt-next-info">Prochain : <strong>${escapeHtml(getLabel(run.queue[0]))}</strong></div>
+        <div class="brt-actions">
+          <button class="brt-btn brt-btn-primary" onclick="continueBenchmarkRun()">${icon('play',16)} Continuer (${remaining} restants)</button>
+          <button class="brt-btn" onclick="_brtAbortAndFinalize()">Terminer maintenant</button>
+        </div>
+      ` : `
+        <div class="brt-actions">
+          <button class="brt-btn brt-btn-primary" onclick="continueBenchmarkRun()">${icon('trophy',16)} Voir le résumé</button>
+        </div>
+      `}
+    </div>
+  `;
+  showScreen('benchmark-run-transition');
+}
+
+// Helper : abort + finalize (quand l'utilisateur veut terminer avant la fin)
+function _brtAbortAndFinalize() {
+  if (!G.benchmarkRun) return;
+  G.benchmarkRun.queue = []; // force la fin
+  finalizeBenchmarkRun();
+}
+
+// Historique des runs : réutilise l'écran summary pour afficher le dernier
+function showBenchmarkRunHistory() {
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('visc_bench_runs') || '[]'); } catch {}
+  const screen = $('#benchmark-run-summary');
+  if (!screen) return;
+  if (history.length === 0) {
+    screen.innerHTML = `
+      <div class="brs-wrap">
+        <div class="brs-header"><h1>${icon('chart',28)} Historique des runs</h1></div>
+        <div class="brs-empty">Aucun run enregistré. Lance ton premier Benchmark Run depuis le dashboard.</div>
+        <div class="brs-actions">
+          <button class="brs-btn" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-viscose');">Retour Benchmark</button>
+        </div>
+      </div>`;
+    showScreen('benchmark-run-summary');
+    return;
+  }
+  const rowsHtml = history.map((h, i) => {
+    const dt = new Date(h.ts);
+    const dateStr = dt.toLocaleDateString('fr-FR') + ' ' + dt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    const pct = h.maxTotal > 0 ? Math.round(h.totalThreads / h.maxTotal * 100) : 0;
+    return `<div class="brs-hist-row">
+      <span class="brs-hist-date">${dateStr}</span>
+      <span class="brs-hist-tier">${(h.tier||'medium').toUpperCase()}</span>
+      <span class="brs-hist-rank" style="color:${h.rankColor||'#888'}">${h.rank||'—'}</span>
+      <span class="brs-hist-threads">${h.totalThreads||0}/${h.maxTotal||0} · ${pct}%</span>
+      <span class="brs-hist-count">${h.count||0} scénarios · ${h.durationMin||0} min</span>
+    </div>`;
+  }).join('');
+  screen.innerHTML = `
+    <div class="brs-wrap">
+      <div class="brs-header">
+        <h1>${icon('chart',28)} Historique des runs</h1>
+        <div class="brs-subtitle">${history.length} run${history.length>1?'s':''} enregistré${history.length>1?'s':''}</div>
+      </div>
+      <div class="brs-hist-list">${rowsHtml}</div>
+      <div class="brs-actions">
+        <button class="brs-btn" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-viscose');">Retour Benchmark</button>
+      </div>
+    </div>`;
+  showScreen('benchmark-run-summary');
+}
+
+// Exposition globale pour les onclick inline et le dashboard
+window.startBenchmarkRun = startBenchmarkRun;
+window.continueBenchmarkRun = continueBenchmarkRun;
+window.abortBenchmarkRun = abortBenchmarkRun;
+window._brtAbortAndFinalize = _brtAbortAndFinalize;
+window.showBenchmarkRunHistory = showBenchmarkRunHistory;
+
 // Toast visuel pour feedback "scénario verrouillé"
 // Delegates to the global toast system (ui.js). Kept as alias for existing callers.
 function _showLockToast(msg) {
@@ -282,6 +527,7 @@ function _showLockToast(msg) {
 }
 
 const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800, difficulty:'medium', duration:60, soundOn:true, soundVolume:0.5, soundPack:'clean',
+  soundVolumeHit:1, soundMissEnabled:true, soundComboEnabled:true,
   xhColor:'#00ff88', xhOpacity:1, xhOutline:1, xhOutlineOpacity:0.5, xhDot:false, xhDotSize:2,
   xhInnerLen:6, xhInnerThick:2, xhInnerGap:3, xhInnerShow:true,
   xhOuterLen:2, xhOuterThick:2, xhOuterGap:10, xhOuterShow:false,
@@ -378,8 +624,18 @@ function applySettings() {
   $('#opt-sound').checked = s.soundOn;
   $('#opt-volume').value = s.soundVolume;
   $('#opt-volume-val').textContent = Math.round(s.soundVolume * 100) + '%';
+  if ($('#opt-volume-hit')) {
+    $('#opt-volume-hit').value = s.soundVolumeHit ?? 1;
+    $('#opt-volume-hit-val').textContent = Math.round((s.soundVolumeHit ?? 1) * 100) + '%';
+  }
+  if ($('#opt-sound-miss')) $('#opt-sound-miss').checked = s.soundMissEnabled !== false;
+  if ($('#opt-sound-combo')) $('#opt-sound-combo').checked = s.soundComboEnabled !== false;
   audioEngine.setVolume(s.soundVolume);
   audioEngine.setPack(s.soundPack);
+  audioEngine.setSubVolume('hit', s.soundVolumeHit ?? 1);
+  audioEngine.setSubVolume('headshot', s.soundVolumeHit ?? 1);
+  audioEngine.muteType('miss', s.soundMissEnabled === false);
+  audioEngine.muteType('combo', s.soundComboEnabled === false);
   document.querySelectorAll('.sett-sound-chip').forEach(c => {
     c.classList.toggle('active', c.dataset.pack === s.soundPack);
   });
@@ -496,7 +752,7 @@ function applyRoomTheme() {
 }
 
 // ---- STATE ----
-const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false, recoilY:0, autoFireTimer:null, swayPhase:0 };
+const G = { mode:'', diff:'medium', duration:60, cm360:34, soundOn:true, running:false, score:0, hits:0, misses:0, combo:0, bestCombo:0, timeLeft:60, reactionTimes:[], targets:[], spawnTimer:null, timerInterval:null, animFrame:null, yaw:0, pitch:0, locked:false, trackFrames:0, trackOnTarget:0, switchActiveIdx:0, switchTimer:0, switchInterval:2, benchmarkMode:false, benchmarkRun:null, recoilY:0, autoFireTimer:null, swayPhase:0 };
 window._G = G; // expose for coaching.js hooks (const is not on window)
 
 // ---- THREE.JS ----
@@ -935,6 +1191,82 @@ function spawn_micro_drill() {
   const pos = angles[Math.floor(Math.random()*angles.length)];
   const mesh = mkSphere(pos.x, 1.7+rand(-0.05,0.05), pos.z, r, M.t1);
   G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now()});
+}
+
+// ============ NEW TRAINING DRILLS (counterstrafe/widepeek/spraycontrol/flickdelay) ============
+
+// Counter-Strafe: tracking horizontal avec stops/reverses imprévisibles (ADAD peek)
+// Simule un adversaire qui stop pour tirer, repart, re-stop — casse le rythme du tracking.
+function spawn_counterstrafe() {
+  if(!G.running) return;
+  if(trackTarget && trackTarget.alive) return;
+  const r = G.diff==='easy' ? 0.38 : G.diff==='hard' ? 0.2 : 0.28;
+  const spd = G.diff==='easy' ? 2.0 : G.diff==='hard' ? 4.5 : 3.2;
+  const dir = Math.random()>0.5?1:-1;
+  mkTrackTarget(0, 1.7, -11, r, M.t4, {
+    mv:'counterstrafe',
+    vx: dir*spd, vy: 0, ct: 0,
+    _baseSpd: spd,
+    _state: 'move',     // 'move' | 'stop'
+    _nc: 0.6 + rand(0, 0.6),
+  });
+}
+
+// Wide Peek: une cible apparaît à l'extrême gauche ou droite (angle large)
+// avec TTL court. Force le swing rapide + pre-aim en bout de course.
+function spawn_widepeek() {
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const r = G.diff==='easy' ? 0.26 : G.diff==='hard' ? 0.14 : 0.2;
+  const ttl = G.diff==='easy' ? 1.3 : G.diff==='hard' ? 0.6 : 0.9;
+  // Angle large: ±7 à ±10 sur X, head height ± petit jitter
+  const side = Math.random()>0.5 ? 1 : -1;
+  const x = side * rand(7, 10);
+  const z = rand(-11, -13);
+  const y = 1.7 + rand(-0.25, 0.25);
+  const mesh = mkSphere(x, y, z, r, M.t2);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), dynamic:true, reaction:true, ttl});
+}
+
+// Spray Control: cible statique HP-based avec pattern de recul scripté.
+// Chaque tir pousse le crosshair selon un pattern "Vandal-like" (up → up+right → up+left).
+// Le joueur doit compenser manuellement pour enchaîner les 15 hits.
+function spawn_spraycontrol() {
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  const hp = G.diff==='easy' ? 8 : G.diff==='hard' ? 20 : 14;
+  const r = G.diff==='easy' ? 0.28 : G.diff==='hard' ? 0.18 : 0.23;
+  const x = rand(-2, 2), y = 1.7 + rand(-0.2, 0.2);
+  const mesh = mkSphere(x, y, -13, r, M.t2);
+  G.targets.push({
+    mesh, alive:true, radius:r, spawnTime:Date.now(),
+    hp, maxHp:hp,
+    sprayIdx: 0,  // pour indexer le pattern
+  });
+}
+
+// Flick + Delay: après le kill (ou start), délai aléatoire, puis cible apparaît
+// avec TTL très court. Combine anticipation + réaction + flick.
+function spawn_flickdelay() {
+  if(!G.running) return;
+  G.targets = G.targets.filter(t=>t.alive);
+  if(G.targets.filter(t=>t.alive).length >= 1) return;
+  // Délai variable avant re-spawn après kill (ou avant premier spawn)
+  const now = Date.now();
+  if (G._flickNextAt && now < G._flickNextAt) return;
+  // Programme le délai pour le *prochain* cycle au moment où ce target mourra.
+  const delayMin = G.diff==='easy' ? 0.5 : G.diff==='hard' ? 0.25 : 0.35;
+  const delayMax = G.diff==='easy' ? 1.8 : G.diff==='hard' ? 1.1 : 1.5;
+  G._flickDelayNext = rand(delayMin, delayMax); // lu par hitTarget/reaction expire
+  G._flickNextAt = 0;
+  const r = G.diff==='easy' ? 0.24 : G.diff==='hard' ? 0.13 : 0.18;
+  const ttl = G.diff==='easy' ? 0.7 : G.diff==='hard' ? 0.35 : 0.5;
+  const x = rand(-7, 7), y = 1.7 + rand(-0.7, 0.7);
+  const z = rand(-10, -14);
+  const mesh = mkSphere(x, y, z, r, M.t3);
+  G.targets.push({mesh, alive:true, radius:r, spawnTime:Date.now(), dynamic:true, reaction:true, ttl, _triggerDelay:true});
 }
 
 // Free play only — grille 3×3 fixe, 3 boules actives sur 9 cases
@@ -1590,6 +1922,30 @@ function updateTrackTarget(dt) {
         t.vx = (Math.random()>0.5?1:-1)*sSpd;
       }
       break;
+    case 'counterstrafe':
+      // Pattern ADAD : move → stop → move (reverse ou continue) → ...
+      // Les stops sont courts (0.15-0.35s), les moves plus longs (0.6-1.2s).
+      t.ct = (t.ct||0) + dt;
+      t.y = 1.7;
+      if (t._state === 'move') {
+        t.x += (t.vx||0) * dt;
+        if (t.x > 5.5 || t.x < -5.5) { t.vx = -(t.vx||0); t.x = Math.max(-5.5, Math.min(5.5, t.x)); }
+        if (t.ct >= (t._nc || 0.8)) {
+          t.ct = 0; t._state = 'stop';
+          t._nc = G.diff==='hard' ? rand(0.12, 0.22) : G.diff==='easy' ? rand(0.3, 0.5) : rand(0.18, 0.32);
+        }
+      } else {
+        // stop: cible immobile
+        if (t.ct >= (t._nc || 0.2)) {
+          t.ct = 0; t._state = 'move';
+          t._nc = G.diff==='hard' ? rand(0.5, 1.0) : G.diff==='easy' ? rand(0.8, 1.5) : rand(0.6, 1.2);
+          // Reverse ou continue (80% reverse pour vraiment casser le tracking)
+          const reverse = Math.random() < 0.8;
+          const sign = reverse ? -Math.sign(t.vx||1) : Math.sign(t.vx||1);
+          t.vx = sign * t._baseSpd * (G.diff==='hard' ? rand(0.9, 1.2) : rand(0.8, 1.1));
+        }
+      }
+      break;
   }
 
   t.mesh.position.set(t.x, Math.max(0.3,t.y), t.z);
@@ -1675,7 +2031,12 @@ function updateDynamic(dt) {
     } else if(t.reaction) {
       // Reaction Drill: target auto-expires if not clicked in time
       const age = (Date.now()-t.spawnTime)/1000;
-      if(age > t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+      if(age > t.ttl) {
+        t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD();
+        if (t._triggerDelay && G.mode === 'flickdelay') {
+          G._flickNextAt = Date.now() + (G._flickDelayNext || 0.8) * 1000;
+        }
+      }
       else { const frac=age/t.ttl; t.mesh.material.emissiveIntensity=0.3+frac*0.7; } // pulse red as timer runs out
     } else if(t.ctrlsphere3d) {
       // Mouvement 3D borné dans une sphère (Kovaaks Controlsphere Click).
@@ -1770,6 +2131,22 @@ function shoot() {
     G.pitch = Math.max(-Math.PI/2.2, G.pitch);
     camera.rotation.x = G.pitch;
   }
+  // Spray control: scripted recoil pattern (Vandal-like)
+  // 7 premiers tirs pushent verticalement, ensuite le pattern dévie left/right alterné.
+  if(G.mode==='spraycontrol') {
+    const active = G.targets.find(t => t.alive);
+    const idx = active ? (active.sprayIdx || 0) : 0;
+    const vMult = G.diff==='hard'?1.4:G.diff==='easy'?0.55:1.0;
+    // Pattern vertical: fort au début, s'atténue. Horizontal: sinusoïdal après balle 7.
+    const vKick = (idx < 7 ? 0.012 : 0.006) * vMult;
+    const hKick = idx < 7 ? 0 : Math.sin(idx * 0.9) * 0.004 * vMult;
+    G.pitch -= vKick;
+    G.yaw   += hKick;
+    G.pitch = Math.max(-Math.PI/2.2, G.pitch);
+    camera.rotation.x = G.pitch;
+    camera.rotation.y = G.yaw;
+    if (active) active.sprayIdx = idx + 1;
+  }
   raycaster.setFromCamera(center,camera);
   const meshes=G.targets.filter(t=>t.alive).map(t=>t.mesh);
   const intersects=raycaster.intersectObjects(meshes);
@@ -1836,6 +2213,10 @@ function hitTarget(t) {
   showHitmarker(); addPopup(pts);
   audioEngine.play(G.combo%5===0&&G.combo>0?'combo':'hit');
   t.alive=false;
+  // Flick+Delay : déclenche le délai variable avant le prochain spawn
+  if (t._triggerDelay && G.mode === 'flickdelay') {
+    G._flickNextAt = Date.now() + (G._flickDelayNext || 0.8) * 1000;
+  }
   const mesh=t.mesh; let a=0;
   const anim=()=>{a+=0.08;mesh.scale.setScalar(Math.max(0,1-a*3));if(a<0.35)requestAnimationFrame(anim);else targetsGroup.remove(mesh);};
   anim(); updateHUD();
@@ -1919,6 +2300,8 @@ const SPAWN_MAP = {
   gridshot:spawn_gridshot, speedflick:spawn_speedflick,
   crosshair_drill:spawn_crosshair_drill, deadzone_drill:spawn_deadzone_drill, burst_drill:spawn_burst_drill,
   strafe_drill:spawn_strafe_drill, reaction_drill:spawn_reaction_drill, micro_drill:spawn_micro_drill,
+  counterstrafe:spawn_counterstrafe, widepeek:spawn_widepeek,
+  spraycontrol:spawn_spraycontrol, flickdelay:spawn_flickdelay,
 };
 
 // Modes that need interval respawn
@@ -1927,6 +2310,7 @@ const INTERVAL_MODES = {
   w1w3ts_reload:200, pasu_reload:150, vt_bounceshot:300, ctrlsphere_clk:100,
   popcorn_mv:400, pasu_angelic:300, pasu_perfected:300, pasu_micro:200,
   floatheads_t:600, vox_click:250, pokeball_frenzy:180,
+  widepeek:250, spraycontrol:400, flickdelay:300,
 };
 
 function startGame(mode) {
@@ -1951,6 +2335,7 @@ function startGame(mode) {
 
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];G.clickLog=[];
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
+  G._flickNextAt=0;G._flickDelayNext=0;
   G.trailLog=[];G.startTime=Date.now();G._lastTrailSample=0;
   G._trophies = {};
   G.targets=[]; trackTarget=null; switchTargets=[];
@@ -2188,6 +2573,23 @@ function endGame() {
     renderRunsSparkline(G.mode);
     renderReactionHistogram();
   } catch(e) { console.warn('[BATCH A] analytics failed', e); }
+
+  // ── BENCHMARK RUN : capture le résultat et redirige vers l'écran de transition
+  if (G.benchmarkRun && SCENARIOS[G.mode]?.th) {
+    const bScore = getBenchmarkScore();
+    const threads = calcThreads(G.mode, bScore);
+    G.benchmarkRun.results.push({
+      mode: G.mode,
+      score: bScore,
+      threads,
+      acc,
+      avgR,
+      hits: G.hits,
+      misses: G.misses,
+    });
+    showBenchmarkRunTransition({ mode: G.mode, score: bScore, threads, acc });
+    return;
+  }
 
   showScreen('results-screen');
 
@@ -2857,6 +3259,21 @@ $('#opt-volume').addEventListener('input', e => {
   $('#opt-volume-val').textContent = Math.round(v * 100) + '%';
   audioEngine.setVolume(v);
   saveSettings({ soundVolume: v });
+});
+$('#opt-volume-hit')?.addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  $('#opt-volume-hit-val').textContent = Math.round(v * 100) + '%';
+  audioEngine.setSubVolume('hit', v);
+  audioEngine.setSubVolume('headshot', v);
+  saveSettings({ soundVolumeHit: v });
+});
+$('#opt-sound-miss')?.addEventListener('change', e => {
+  audioEngine.muteType('miss', !e.target.checked);
+  saveSettings({ soundMissEnabled: e.target.checked });
+});
+$('#opt-sound-combo')?.addEventListener('change', e => {
+  audioEngine.muteType('combo', !e.target.checked);
+  saveSettings({ soundComboEnabled: e.target.checked });
 });
 document.querySelectorAll('.sett-sound-chip').forEach(chip => {
   chip.addEventListener('click', () => {
