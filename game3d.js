@@ -506,7 +506,11 @@ const M = {
 function _disposeMesh(obj) {
   if (!obj) return;
   if (obj.geometry && typeof obj.geometry.dispose === 'function') obj.geometry.dispose();
-  // Note: materials intentionally not disposed — they are shared globals (M.t1, M.t4, …)
+  // Shared materials (M.t1, M.t4, …) are intentionally kept.
+  // Materials flagged userData.cloned (ex: flicker_plaza clone) sont bien disposés pour éviter le leak.
+  if (obj.material && obj.material.userData && obj.material.userData.cloned && typeof obj.material.dispose === 'function') {
+    obj.material.dispose();
+  }
   if (obj.children && obj.children.length) {
     for (const c of [...obj.children]) _disposeMesh(c);
   }
@@ -593,14 +597,14 @@ function spawn_whisphere() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t4,{mv:'whisphere
 function spawn_smoothbot() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t3,{mv:'smoothbot',strafeVx:0,strafeTarget:0,strafeAccel:0,strafeCd:0,crouchVy:0,crouchTarget:1.7}); }
 
 // Wrist: tighter, faster direction changes
-function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t6,{mv:'leaptrack',phase:0,jumpTimer:0}); }
-function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'ctrlsphere_aim',spiralAngle:0,spiralR:2,spiralPulse:0}); }
+function spawn_leaptrack() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t6,{mv:'leaptrack',phase:0,strafeVx:0,strafeTarget:0,strafeCd:0,vy:0,onGround:true,jumpTimer:0}); }
+function spawn_ctrlsphere_aim() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'ctrlsphere_aim',vx:0,vy:0,vz:0,ct:999,nc:0.01}); }
 function spawn_vt_ctrlsphere() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t5,{mv:'vt_ctrlsphere',bx:0,by:1.7,bvx:0,bvy:0,attractX:0,attractY:1.7,attractTimer:0}); }
 
 // Fingertip: tiny movements, small targets
 function spawn_air_angelic() { mkTrackTarget(0,2,-10,tR(0.35),M.t5,{mv:'air_angelic'}); }
 function spawn_cloverraw() { mkTrackTarget(0,1.7,-10,tR(0.35),M.t3,{mv:'cloverraw'}); }
-function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,tR(0.4),M.t4,{mv:'ctrlsphere_far',arcAngle:0,arcDir:1,passY:1.7,passPhase:0}); }
+function spawn_ctrlsphere_far() { mkTrackTarget(0,1.7,-14,tR(0.4),M.t4,{mv:'ctrlsphere_far',vx:0,vy:0,vz:0,ct:999,nc:0.01}); }
 
 // Blending: mixed movement patterns
 function spawn_pgti() { mkTrackTarget(0,1.7,-10,tR(0.4),M.t4,{mv:'pgti'}); }
@@ -610,7 +614,17 @@ function spawn_whisphere_slow() { mkTrackTarget(0,1.7,-10,tR(0.5),M.t6,{mv:'whis
 // ═══ REACTIVE TRACKING SPAWNS ═══
 function spawn_ground_plaza() { const d=DIFF[G.diff]; mkTrackTarget(0,0.8,-10,tR(0.5),M.t3,{mv:'ground_plaza',vx:2*d.spd/2.5,vy:0,ct:0,nc:G.diff==='hard'?0.55:0.8}); }
 function spawn_ctrlsphere_ow() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.45),M.t4,{mv:'ctrlsphere_ow',vx:1.5*d.spd/2.5,vy:0,ct:0,nc:G.diff==='hard'?0.65:1,crouchState:'stand',crouchTimer:0,crouchY:1.7}); }
-function spawn_flicker_plaza() { mkTrackTarget(0,1.7,-10,tR(0.45),M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:G.diff==='hard'?0.40:0.5}); }
+function spawn_flicker_plaza() {
+  mkTrackTarget(0,1.7,-10,tR(0.45),M.t2,{mv:'flicker_plaza',vx:3,vy:1,ct:0,nc:G.diff==='hard'?0.40:0.5,flickerT:0});
+  // Cloner le material pour pouvoir toggle l'opacité sans affecter les autres cibles.
+  // On garde le raycasting actif (visible=true) pour que le tracking continue pendant l'invisibilité —
+  // c'est le cœur du challenge Flicker Plaza : prédire la trajectoire quand on ne voit pas la cible.
+  if(trackTarget && trackTarget.mesh) {
+    trackTarget.mesh.material = trackTarget.mesh.material.clone();
+    trackTarget.mesh.material.transparent = true;
+    trackTarget.mesh.material.userData.cloned = true; // flag pour _disposeMesh
+  }
+}
 function spawn_polarized_hell() { const d=DIFF[G.diff]; mkTrackTarget(0,1.7,-10,tR(0.5),M.t1,{mv:'polarized_hell',vx:2*d.spd/2.5,vy:1.5*d.spd/2.5,ct:0,nc:G.diff==='hard'?0.50:0.7,zigAngle:0}); }
 function spawn_air_pure() { mkTrackTarget(0,2,-10,tR(0.4),M.t5,{mv:'air_pure',bx:0,by:2,bvx:1.5,bvy:0,gravity:4.5,bounceE:0.8,ct:0,nc:3}); }
 function spawn_air_voltaic() { const d=DIFF[G.diff]; mkTrackTarget(0,2,-10,tR(0.45),M.t4,{mv:'air_voltaic',dashVx:0,dashVy:0,dashState:'hover',dashTimer:0,hoverX:0,hoverY:2}); }
@@ -1040,37 +1054,84 @@ function updateTrackTarget(dt) {
     // ═══ CONTROL TRACKING — WRIST ═══
 
     case 'leaptrack':
-      // Leaptrack: jumps to a new position, then drifts slowly (kept — already unique)
-      t.jumpTimer = (t.jumpTimer||0) + dt;
-      { const leapInt = G.diff==='hard'?0.65:G.diff==='easy'?1.35:0.95;
-        const xRange = G.diff==='hard'?3.5:G.diff==='easy'?5.5:4.5;
-        const yLo   = G.diff==='hard'?1.1:G.diff==='easy'?0.6:0.8;
-        const yHi   = G.diff==='hard'?2.8:G.diff==='easy'?3.3:3.0;
-        if(t.jumpTimer > leapInt) {
-          t.jumpTimer=0;
-          t.x = rand(-xRange, xRange);
-          t.y = rand(yLo, yHi);
-          t.vx = rand(-0.5,0.5)*spd*0.4;
-          t.vy = rand(-0.3,0.3)*spd*0.3;
+      // Leaptrack (Kovaaks): bot strafes horizontally + saute en arc parabolique.
+      // Mouvement TOUJOURS continu → trackable. Wrist-scale (range serrée).
+      { // --- Strafe horizontal (ADAD mais range wrist) ---
+        const maxSpd = spd * (G.diff==='hard'?1.1:G.diff==='easy'?0.65:0.85);
+        const accel = maxSpd * 6.5;
+        const strafeCdTime = G.diff==='hard'?0.55:G.diff==='easy'?1.25:0.85;
+        t.strafeCd = (t.strafeCd||0) + dt;
+        if(t.strafeCd > strafeCdTime) {
+          t.strafeCd = 0;
+          const r = Math.random();
+          if(r < 0.55) t.strafeTarget = -Math.sign(t.strafeVx||1) * rand(maxSpd*0.6, maxSpd);
+          else if(r < 0.8) t.strafeTarget = 0; // counter-strafe stop
+          else t.strafeTarget = rand(-maxSpd, maxSpd);
         }
-        t.x = Math.max(-5.5,Math.min(5.5, t.x + (t.vx||0)*dt));
-        t.y = Math.max(0.5, Math.min(3.5, t.y + (t.vy||0)*dt));
+        const dv = (t.strafeTarget||0) - (t.strafeVx||0);
+        if(Math.abs(dv) > 0.05) t.strafeVx = (t.strafeVx||0) + Math.sign(dv) * Math.min(accel * dt, Math.abs(dv));
+        else t.strafeVx = t.strafeTarget||0;
+        t.x += (t.strafeVx||0) * dt;
+        // Wrist bounds (plus serrées que smoothbot)
+        const xMax = G.diff==='hard'?3.5:G.diff==='easy'?5.0:4.2;
+        if(t.x > xMax)   { t.x = xMax;   t.strafeVx = -Math.abs(t.strafeVx)*0.5; t.strafeTarget = -Math.abs(t.strafeTarget); }
+        if(t.x < -xMax)  { t.x = -xMax;  t.strafeVx =  Math.abs(t.strafeVx)*0.5; t.strafeTarget =  Math.abs(t.strafeTarget); }
+
+        // --- Sauts paraboliques (le "leap") ---
+        const groundY = 1.7;
+        const jumpInterval = G.diff==='hard'?1.1:G.diff==='easy'?2.2:1.6;
+        const jumpPower = G.diff==='hard'?4.5:G.diff==='easy'?3.2:3.9;
+        const gravity = 10;
+        t.jumpTimer = (t.jumpTimer||0) + dt;
+        if(t.onGround !== false && t.jumpTimer > jumpInterval) {
+          t.jumpTimer = 0;
+          t.onGround = false;
+          t.vy = jumpPower;
+        }
+        if(t.onGround === false) {
+          t.vy = (t.vy||0) - gravity * dt;
+          t.y = (t.y||groundY) + t.vy * dt;
+          if(t.y <= groundY) { t.y = groundY; t.vy = 0; t.onGround = true; }
+        } else {
+          t.y = groundY;
+        }
+        t.z = -10;
       }
       break;
 
     case 'ctrlsphere_aim':
-      // Expanding/Contracting Spiral — radius pulses while angle advances, creates hypnotic spiral
-      { const spdMult = G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0;
-        const pulseMult = G.diff==='hard'?0.22:G.diff==='easy'?0.10:0.15;
-        t.spiralAngle += dt * spd * 0.6 * spdMult;
-        t.spiralPulse += dt * spd * pulseMult;
-        // Radius range scales with difficulty: hard = wider swings, easy = tighter
-        const rMin = (G.diff==='hard'?0.3:G.diff==='easy'?0.8:0.5)*tA;
-        const rMax = (G.diff==='hard'?3.8:G.diff==='easy'?2.5:3.2)*tA;
-        t.spiralR = rMin + (rMax-rMin) * (0.5 + 0.5*Math.sin(t.spiralPulse));
-        t.x = Math.cos(t.spiralAngle) * t.spiralR;
-        t.y = 1.7 + Math.sin(t.spiralAngle) * t.spiralR * 0.45;
-        t.z = -10 + Math.sin(t.spiralAngle * 0.5) * 1.5 * tA;
+      // Controlsphere rAim (Kovaaks): cible se déplace à l'intérieur d'une sphère invisible,
+      // direction changes aléatoires, mouvement 3D fluide, range wrist.
+      { const sphR = (G.diff==='hard'?2.2:G.diff==='easy'?1.6:1.9) * tA;
+        const maxV = spd * (G.diff==='hard'?1.4:G.diff==='easy'?0.8:1.1);
+        const ncMin = G.diff==='hard'?0.35:G.diff==='easy'?0.9:0.55;
+        const ncMax = G.diff==='hard'?0.75:G.diff==='easy'?1.6:1.1;
+        t.ct = (t.ct||0) + dt;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct = 0; t.nc = rand(ncMin, ncMax);
+          // Nouvelle direction 3D aléatoire dans la sphère
+          const theta = Math.random()*Math.PI*2;
+          const phi = (Math.random()-0.5)*Math.PI*0.7;
+          t.vx = Math.cos(theta)*Math.cos(phi)*maxV;
+          t.vy = Math.sin(phi)*maxV*0.6;
+          t.vz = Math.sin(theta)*Math.cos(phi)*maxV*0.5;
+        }
+        // Intégrer + contenir dans sphère (soft repel quand on approche du bord)
+        const cx = 0, cy = 1.7, cz = -10;
+        t.x = (t.x||0) + (t.vx||0) * dt;
+        t.y = (t.y||cy) + (t.vy||0) * dt;
+        t.z = (t.z||cz) + (t.vz||0) * dt;
+        const dx = t.x - cx, dy = t.y - cy, dz = t.z - cz;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if(dist > sphR) {
+          // Rebond doux vers le centre
+          const nx = dx/dist, ny = dy/dist, nz = dz/dist;
+          t.x = cx + nx * sphR;
+          t.y = cy + ny * sphR;
+          t.z = cz + nz * sphR;
+          const vd = (t.vx||0)*nx + (t.vy||0)*ny + (t.vz||0)*nz;
+          t.vx -= 2*vd*nx; t.vy -= 2*vd*ny; t.vz -= 2*vd*nz;
+        }
       }
       break;
 
@@ -1134,21 +1195,34 @@ function updateTrackTarget(dt) {
       break;
 
     case 'ctrlsphere_far':
-      // Flyby Arc — target makes wide passes like an aircraft, far away, smooth curves
-      { const arcSpd = spd * (G.diff==='hard'?0.45:G.diff==='easy'?0.25:0.35);
-        t.arcAngle += dt * arcSpd * (t.arcDir||1);
-        // Figure-of-8 flyby at far distance
-        const progress = t.arcAngle;
-        t.x = Math.sin(progress) * 5 * tA;
-        t.passPhase = (t.passPhase||0) + dt * arcSpd * 0.7;
-        t.y = 1.7 + Math.sin(t.passPhase) * 1.2 * tA;
-        // Depth varies — comes closer on passes, farther on turns
-        t.z = -14 + Math.cos(progress * 2) * 3 * tA;
-        // Occasionally reverse direction for unpredictability
-        t.arcRev = (t.arcRev||0) + dt;
-        if(t.arcRev > (G.diff==='hard'?3:G.diff==='easy'?6:4.5)) {
-          t.arcRev = 0;
-          if(Math.random() < 0.4) t.arcDir *= -1;
+      // Controlsphere Far (Kovaaks): même logique que Controlsphere mais sphère centrée loin,
+      // angles visuels plus petits → demande une précision fingertip plus élevée.
+      { const sphR = (G.diff==='hard'?2.6:G.diff==='easy'?2.0:2.3) * tA;
+        const maxV = spd * (G.diff==='hard'?1.3:G.diff==='easy'?0.7:1.0);
+        const ncMin = G.diff==='hard'?0.5:G.diff==='easy'?1.1:0.75;
+        const ncMax = G.diff==='hard'?1.0:G.diff==='easy'?2.0:1.4;
+        t.ct = (t.ct||0) + dt;
+        if(t.ct >= (t.nc||ncMax)) {
+          t.ct = 0; t.nc = rand(ncMin, ncMax);
+          const theta = Math.random()*Math.PI*2;
+          const phi = (Math.random()-0.5)*Math.PI*0.6;
+          t.vx = Math.cos(theta)*Math.cos(phi)*maxV;
+          t.vy = Math.sin(phi)*maxV*0.55;
+          t.vz = Math.sin(theta)*Math.cos(phi)*maxV*0.4;
+        }
+        const cx = 0, cy = 1.7, cz = -14; // plus loin que ctrlsphere_aim
+        t.x = (t.x||0) + (t.vx||0) * dt;
+        t.y = (t.y||cy) + (t.vy||0) * dt;
+        t.z = (t.z||cz) + (t.vz||0) * dt;
+        const dx = t.x - cx, dy = t.y - cy, dz = t.z - cz;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if(dist > sphR) {
+          const nx = dx/dist, ny = dy/dist, nz = dz/dist;
+          t.x = cx + nx * sphR;
+          t.y = cy + ny * sphR;
+          t.z = cz + nz * sphR;
+          const vd = (t.vx||0)*nx + (t.vy||0)*ny + (t.vz||0)*nz;
+          t.vx -= 2*vd*nx; t.vy -= 2*vd*ny; t.vz -= 2*vd*nz;
         }
       }
       break;
@@ -1295,22 +1369,33 @@ function updateTrackTarget(dt) {
       break;
 
     case 'flicker_plaza':
-      // Flicker Plaza: teleports to new position at rapid intervals (kept — already unique)
-      t.ct = (t.ct||0)+dt;
-      { const ncMin = G.diff==='hard'?0.22:G.diff==='easy'?0.55:0.3;
-        const ncMax = G.diff==='hard'?0.5:G.diff==='easy'?1.0:0.7;
-        const xRange = G.diff==='hard'?4.5:G.diff==='easy'?6.0:5.5;
-        const yMin  = G.diff==='hard'?1.2:G.diff==='easy'?0.8:1.0;
-        const yMax  = G.diff==='hard'?3.0:G.diff==='easy'?3.4:3.2;
+      // Flicker Plaza (Kovaaks): cible en mouvement continu qui clignote (visible/invisible).
+      // Le challenge : continuer à tracker quand elle est invisible (prédire la trajectoire).
+      { const maxSpd = spd * (G.diff==='hard'?1.3:G.diff==='easy'?0.8:1.0);
+        const ncMin = G.diff==='hard'?0.45:G.diff==='easy'?1.1:0.75;
+        const ncMax = G.diff==='hard'?0.9:G.diff==='easy'?2.0:1.35;
+        t.ct = (t.ct||0) + dt;
         if(t.ct >= (t.nc||ncMax)) {
-          t.ct=0; t.nc=rand(ncMin,ncMax);
-          t.x = rand(-xRange, xRange);
-          t.y = rand(yMin, yMax);
-          t.vx=0; t.vy=0;
+          t.ct = 0; t.nc = rand(ncMin, ncMax);
+          t.vx = rand(-1,1) * maxSpd;
+          t.vy = rand(-0.5,0.5) * maxSpd * 0.5;
         }
-        t.x += (t.vx||0)*dt; t.y += (t.vy||0)*dt;
-        t.x = Math.max(-6, Math.min(6, t.x));
-        t.y = Math.max(0.4, Math.min(3.6, t.y));
+        t.x = (t.x||0) + (t.vx||0) * dt;
+        t.y = (t.y||1.7) + (t.vy||0) * dt;
+        t.x = Math.max(-5.5, Math.min(5.5, t.x));
+        t.y = Math.max(0.8, Math.min(3.2, t.y));
+        if(t.x >= 5.5 || t.x <= -5.5) t.vx *= -1;
+        if(t.y >= 3.2 || t.y <= 0.8) t.vy *= -1;
+        t.z = -10;
+
+        // --- Le vrai flicker: toggle l'opacité à cadence rapide ---
+        // On clone le material dans spawn_flicker_plaza pour que changer opacity
+        // n'affecte pas les autres cibles. visible reste true → raycast continue,
+        // donc le tracking score monte même en invisibilité si la prédiction est bonne.
+        const flickerCycle = G.diff==='hard'?0.20:G.diff==='easy'?0.55:0.34;
+        const onRatio = G.diff==='hard'?0.45:G.diff==='easy'?0.65:0.52;
+        t.flickerT = ((t.flickerT||0) + dt) % flickerCycle;
+        if(t.mesh.material) t.mesh.material.opacity = (t.flickerT < flickerCycle * onRatio) ? 1 : 0;
       }
       break;
 

@@ -1,5 +1,18 @@
 # Changelog — MayhAim
 
+## 2.2.3 — 2026-04-23
+
+### 🎯 Fix · scénarios tracking qui ne collaient pas au nom Kovaaks
+Audit complet des 18 scénarios tracking. 4 corrections majeures :
+
+- **Leaptrack** (CRITIQUE — était impossible) : téléportait la cible toutes les 0.65-1.35s à une nouvelle position, ce qui cassait complètement le tracking (le joueur se retrouvait à flicker au hasard). Le vrai Leaptrack Kovaaks fait *sauter* (arc parabolique avec gravité) un bot qui strafe horizontalement. Refait proprement : strafe ADAD wrist-scale + jumps paraboliques à cadence 1.1-2.2s selon la difficulté
+- **Flicker Plaza** : téléportait la cible au lieu de la faire *clignoter* (visibilité ON/OFF). Désormais la cible bouge en continu et son opacité toggle à cadence rapide (0.20-0.55s). Le raycast reste actif pendant l'invisibilité → le joueur est récompensé s'il continue à tracker la trajectoire prédite. Matériau cloné par cible pour ne pas affecter les autres
+- **Controlsphere rAim** : était une spirale expansive/contractante — rien à voir avec une sphère. Refait en mouvement 3D fluide borné dans une sphère de 1.6-2.2m, direction changes aléatoires tous les 0.35-1.6s, rebond élastique sur la paroi. Range wrist
+- **Controlsphere Far** : était un flyby type avion — rien à voir avec une sphère. Même logique que rAim mais sphère plus grande (2.0-2.6m) centrée à z=-14, angles visuels plus petits → test la précision fingertip
+
+### 🧹 Nettoyage
+- `_disposeMesh` dispose maintenant les matériaux flaggés `userData.cloned = true` pour éviter les leaks (le flicker_plaza clone son material à chaque spawn)
+
 ## 2.2.2 — 2026-04-21
 
 ### 🔧 Fix · version affichée dans le "À propos"
