@@ -1,5 +1,26 @@
 # Changelog — MayhAim
 
+## 2.3.0 — 2026-04-23
+
+### 🎨 Refonte complète du système de rang → Viscose Benchmark
+Bascule des noms de rang Voltaic (Iron/Bronze/Silver/Gold/Platinum/Diamond/Legendary/Mythic) vers les noms officiels **Viscose Benchmark** (benchmark communautaire Kovaaks par Viscose + pinguefy), avec des palettes distinctes **par tier** :
+
+- **Easier (8 rangs)** : Lemming → Hare → Ermine → Penguin → Fox → Mammoth → Orca → Seal
+- **Medium (8 rangs)** : Cinnabar → Vermillion → Saffron → Celadon → Cerulean → Lavender → Indigo → Fuchsia
+- **Hard (6 rangs)** : Wool → Linen → Velvet → Chiffon → Satin → Silk
+
+### 🔧 Interne
+- **Nouvelle constante `VISCOSE_RANKS`** (game3d.js) — `{names, colors, pct}` par tier. `pct` = seuils 0-1 sur la proportion de threads accumulés vs max du tier, calibrés sur la distribution Viscose (le premier rang se débloque dès le premier thread, rangs suivants à 8% / 18% / 30% / 45% / 60% / 75% / 90% pour easier+medium, 10% / 25% / 42% / 60% / 80% pour hard)
+- **`calcRankFromThreads(threads, tier?)`** — accepte un tier optionnel (défaut = `currentTier`). Plus de tableau de noms hardcodé
+- **`scenarioRankName(threads, tier?)`** — nouveau helper per-scenario (remplace l'ancien tableau `_TNAMES`)
+- **`_pfRenderBench`** (coaching.js) — la carte "Viscose Benchmark" du profil utilise désormais `VISCOSE_RANKS.medium` au lieu des noms Voltaic hardcodés
+- **Écran de fin de run** — affiche désormais le nom de rang Viscose atteint (Cinnabar, Vermillion...) au lieu de juste "X/Y Threads" ; la carte threads reste visible en dessous
+- **Rang Viscose sur la home** — `updateMenuStats()` calcule et affiche le rang global courant dans la hero card (champ `home-rank-value` qui restait à "Unranked")
+- **Labels de scénarios** — le sheet Viscose référence les scénarios Kovaaks avec des noms verbeux ("VT Controlsphere Novice S5 Hard"), le jeu garde les labels courts existants qui restent lisibles en UI
+
+### 📝 Note sur les seuils
+Les seuils de tracking du jeu (`th` = 400-900) **ne matchent pas** les seuils du sheet Viscose (5000-22000) : le jeu stocke le score tracking en précision × 10 (0-1000) alors que Kovaaks utilise un score brut cumulé en milliers. L'architecture Viscose (noms, rangs, tiers, pct) est strictement respectée ; seule l'échelle de score diffère, ce qui est transparent pour le joueur
+
 ## 2.2.4 — 2026-04-23
 
 ### 🎯 Fix · scénarios clicking / switching qui ne collaient pas au nom Kovaaks

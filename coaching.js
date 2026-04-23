@@ -5686,9 +5686,11 @@ function _pfRenderTrophies() {
 }
 
 function _pfRenderBench() {
-  // Read from localStorage — medium tier
-  const TNAMES = ['Unranked','Iron','Bronze','Silver','Gold','Platinum','Diamond','Legendary','Mythic'];
-  const TCOLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5','#2dbe73','#ff4655','#ff4655'];
+  // Read from localStorage — medium tier (Viscose)
+  const VR = (typeof VISCOSE_RANKS !== 'undefined' ? VISCOSE_RANKS : {}).medium
+    || { names:['Unranked','Cinnabar','Vermillion','Saffron','Celadon','Cerulean','Lavender','Indigo','Fuchsia'],
+         colors:['#555555','#e34234','#ff4a28','#f4c430','#a7c19c','#007ba7','#b497d6','#4b0082','#ff00ff'],
+         pct:[0,0.001,0.08,0.18,0.30,0.45,0.60,0.75,0.90] };
   try {
     const bench = JSON.parse(localStorage.getItem('visc_bench_medium') || '{}');
     const SCENARIOS_LOCAL = typeof SCENARIOS !== 'undefined' ? SCENARIOS : {};
@@ -5702,9 +5704,14 @@ function _pfRenderBench() {
       maxTotal += 8;
     });
     const energy = maxTotal > 0 ? Math.round(total / maxTotal * 100) : 0;
-    const rankIdx = Math.min(Math.floor(total / maxTotal * 8), 8);
-    const rankName = TNAMES[rankIdx] || 'Unranked';
-    const rankColor = TCOLORS[rankIdx] || '#7c8389';
+    // Map energy fraction to the Viscose tier's pct breakpoints to get the rank index
+    const frac = maxTotal > 0 ? (total / maxTotal) : 0;
+    let rankIdx = 0;
+    for (let i = VR.pct.length - 1; i >= 0; i--) {
+      if (frac >= VR.pct[i]) { rankIdx = i; break; }
+    }
+    const rankName = VR.names[rankIdx] || 'Unranked';
+    const rankColor = VR.colors[rankIdx] || '#555555';
 
     _pfSet('pf-bench-threads', total + ' / ' + maxTotal);
     _pfSet('pf-bench-energy',  energy + '%');

@@ -31,10 +31,38 @@ const DIFF = {
 };
 
 // ============================================================
-// VISCOSE BENCHMARK - Medium + Hard tiers
-// Medium: 8 thresholds, Hard: 6 thresholds per scenario
+// VISCOSE BENCHMARK - Easier + Medium + Hard tiers
+// Easier: 8 thresholds (Lemming → Seal)
+// Medium: 8 thresholds (Cinnabar → Fuchsia)
+// Hard  : 6 thresholds (Wool → Silk)
+// Noms et palette extraits du sheet Viscose Benchmark (Viscose + pinguefy).
 // ============================================================
+
+// Gradient générique pour barres de progression / colonnes de seuils (8 steps).
+// Indépendant du rang affiché — c'est juste une échelle visuelle bronze→or→cyan→magenta.
 const RANK_COLORS = ['#7c8389','#b97450','#c0c0c0','#e8c56d','#59c5c7','#d882f5','#2dbe73','#ff4655'];
+
+// Noms + couleurs de rang par tier, exactement comme le sheet Viscose.
+// `pct` = seuils (0-1) sur la proportion de threads accumulés vs max du tier.
+// `names[0]` = "Unranked" (score nul), puis 1..N pour chaque rang officiel.
+const VISCOSE_RANKS = {
+  easier: {
+    names:  ['Unranked','Lemming','Hare','Ermine','Penguin','Fox','Mammoth','Orca','Seal'],
+    colors: ['#555555', '#8a9aa8','#b89878','#e0d5c0','#4a6a8c','#c07858','#4a3a2c','#3a3a3a','#2c5a7c'],
+    pct:    [0,         0.001,    0.08,   0.18,    0.30,     0.45,   0.60,     0.75,   0.90     ],
+  },
+  medium: {
+    names:  ['Unranked','Cinnabar','Vermillion','Saffron','Celadon','Cerulean','Lavender','Indigo','Fuchsia'],
+    colors: ['#555555', '#e34234',  '#ff4a28',   '#f4c430', '#a7c19c','#007ba7',  '#b497d6', '#4b0082','#ff00ff'],
+    pct:    [0,         0.001,      0.08,        0.18,      0.30,     0.45,       0.60,      0.75,    0.90      ],
+  },
+  hard: {
+    names:  ['Unranked','Wool','Linen','Velvet','Chiffon','Satin','Silk'],
+    colors: ['#555555', '#a89f8a','#d4c5a0','#7a1c3a','#f4c2c2','#c29e82','#f0ead6'],
+    pct:    [0,         0.001,    0.10,     0.25,     0.42,     0.60,     0.80     ],
+  },
+};
+function _viscRanksFor(tier) { return VISCOSE_RANKS[tier] || VISCOSE_RANKS.medium; }
 
 // th = Medium (8), thH = Hard (6), thE = Easier (8)
 const SCENARIOS = {
@@ -177,18 +205,29 @@ function calcTotalThreads() {
   return Object.keys(SCENARIOS).filter(k=>SCENARIOS[k].th).reduce((sum, k) => sum + calcThreads(k, getBest(k)), 0);
 }
 function calcMaxTotal() { return Object.keys(SCENARIOS).filter(k=>SCENARIOS[k].th).length * getMaxThreads(); }
-function calcRankFromThreads(threads) {
-  const total = calcMaxTotal();
-  const pct = threads / total;
-  if (pct >= 0.9) return { label:'Mythic', color:'#ff4655' };
-  if (pct >= 0.75) return { label:'Legendary', color:'#d882f5' };
-  if (pct >= 0.6) return { label:'Diamond', color:'#59c5c7' };
-  if (pct >= 0.45) return { label:'Platinum', color:'#2dbe73' };
-  if (pct >= 0.3) return { label:'Gold', color:'#e8c56d' };
-  if (pct >= 0.18) return { label:'Silver', color:'#c0c0c0' };
-  if (pct >= 0.08) return { label:'Bronze', color:'#b97450' };
-  if (threads > 0) return { label:'Iron', color:'#7c8389' };
-  return { label:'Unranked', color:'#555' };
+// Rang overall : on compare le ratio de threads gagnés vs max du tier aux seuils Viscose.
+// `tier` optionnel — par défaut currentTier (fallback medium). Retourne {label,color}.
+function calcRankFromThreads(threads, tier) {
+  tier = tier || currentTier || 'medium';
+  const ranks = _viscRanksFor(tier);
+  // Max total calculé depuis SCENARIOS pour le tier demandé.
+  const maxThreadsPerScn = tier === 'hard' ? 6 : 8;
+  const maxTotal = Object.keys(SCENARIOS).filter(k => SCENARIOS[k].th).length * maxThreadsPerScn;
+  const pct = maxTotal > 0 ? threads / maxTotal : 0;
+  // Descend de l'index le plus haut (Seal / Fuchsia / Silk) vers Unranked.
+  for (let i = ranks.names.length - 1; i >= 1; i--) {
+    if (pct >= ranks.pct[i] && threads > 0) {
+      return { label: ranks.names[i], color: ranks.colors[i] };
+    }
+  }
+  return { label: ranks.names[0], color: ranks.colors[0] };
+}
+// Rang per-scenario : 1 nom par nombre de threads gagnés sur cette cible.
+// Remplace l'ancien _TNAMES = ['Unranked','Iron','Bronze',...] hardcodé.
+function scenarioRankName(threads, tier) {
+  tier = tier || currentTier || 'medium';
+  const ranks = _viscRanksFor(tier);
+  return ranks.names[Math.min(Math.max(0, threads|0), ranks.names.length - 1)] || 'Unranked';
 }
 
 // ---- PERSISTENCE (per tier) ----
@@ -233,7 +272,7 @@ function isScenarioUnlocked(key, tier) {
   const threads = calcThreadsFor(key, best, prevTier);
   return threads >= maxThreadsFor(prevTier); // 8/8 on easier, 6/6 on medium required
 }
-function setCurrentTier(t) { currentTier = t; renderBenchmark(); }
+function setCurrentTier(t) { currentTier = t; renderBenchmark(); updateMenuStats(); }
 
 // Toast visuel pour feedback "scénario verrouillé"
 // Delegates to the global toast system (ui.js). Kept as alias for existing callers.
@@ -2014,8 +2053,12 @@ function endGame() {
     const benchScore = getBenchmarkScore();
     const threads = calcThreads(G.mode, benchScore);
     const mt = getMaxThreads();
-    rk.textContent = threads+'/'+mt+' Threads';
-    rk.style.color = RANK_COLORS[Math.min(threads,7)]; rk.style.borderColor = RANK_COLORS[Math.min(threads,7)];
+    // Affiche le rang Viscose atteint (Lemming/Cinnabar/Wool...) plutôt que juste les threads.
+    const rankName = scenarioRankName(threads, currentTier);
+    const _ranks = _viscRanksFor(currentTier);
+    const rankColor = _ranks.colors[Math.min(Math.max(0, threads|0), _ranks.colors.length - 1)] || RANK_COLORS[Math.min(threads,7)];
+    rk.textContent = rankName;
+    rk.style.color = rankColor; rk.style.borderColor = rankColor;
     tw.classList.remove('hidden');
     $('#r-threads').textContent = threads+'/'+mt;
     // Return destination depends on launch source
@@ -2068,8 +2111,8 @@ function endGame() {
     const threads  = isBench ? calcThreads(G.mode, bScore) : 0;
     const maxTh    = getMaxThreads();
     const energy   = isBench ? Math.round(threads / maxTh * 100) : 0;
-    const _TNAMES  = ['Unranked','Iron','Bronze','Silver','Gold','Platinum','Diamond','Legendary','Mythic'];
-    const rankName = isBench ? (_TNAMES[Math.min(threads, 8)] || 'Unranked') : null;
+    // Nom de rang envoyé au serveur : nom Viscose du tier en cours (Lemming/Cinnabar/Wool...).
+    const rankName = isBench ? scenarioRankName(threads, currentTier) : null;
     _post('/api/benchmark', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+coachingToken},
       body: JSON.stringify({ scenario:G.mode, score:bScore, accuracy:acc, hits:G.hits, misses:G.misses,
         energy, rank_name:rankName, difficulty:currentTier||G.diff, duration:G.duration, is_benchmark:isBench })
@@ -2206,7 +2249,19 @@ function saveCareer(score,accuracy) { const s=loadCareer(); s.best=Math.max(s.be
 // ---- PER-MODE PERSONAL BEST ----
 function getModeLocalPB(mode) { return parseInt(localStorage.getItem('visc_pb_'+mode)||'0'); }
 function setModeLocalPB(mode, score) { if(score>getModeLocalPB(mode)) localStorage.setItem('visc_pb_'+mode, score); }
-function updateMenuStats() { const s=loadCareer(); $('#menu-best').textContent=s.best.toLocaleString(); $('#menu-acc').textContent=Math.round(s.acc)+'%'; $('#menu-games').textContent=s.games; }
+function updateMenuStats() {
+  const s=loadCareer();
+  $('#menu-best').textContent=s.best.toLocaleString();
+  $('#menu-acc').textContent=Math.round(s.acc)+'%';
+  $('#menu-games').textContent=s.games;
+  // Rang Viscose global (basé sur le tier actuellement sélectionné)
+  try {
+    const total=calcTotalThreads();
+    const r=calcRankFromThreads(total);
+    const rv = document.getElementById('home-rank-value');
+    if (rv) { rv.textContent = r.label; rv.style.color = r.color; }
+  } catch(e) {}
+}
 
 // ============================================================
 // BATCH A — POST-RUN ANALYTICS
