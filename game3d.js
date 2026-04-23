@@ -2089,7 +2089,8 @@ function isSwitchMode(m) {
   return ['vox_ts2','beants','floatts','waldots','devts','domiswitch','tamts'].includes(m);
 }
 function isDynamicMode(m) {
-  return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click','pokeball_frenzy'].includes(m);
+  return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click','pokeball_frenzy',
+          'widepeek','flickdelay'].includes(m);
 }
 
 // ---- SHOOTING ----
@@ -2227,6 +2228,7 @@ function hitTarget(t) {
   else if(G.mode==='ctrlsphere_clk') setTimeout(()=>spawn_ctrlsphere_clk(),50);
   else if(G.mode==='pokeball_frenzy') setTimeout(()=>spawn_pokeball_frenzy(),60);
   else if(G.mode==='pasu_reload') setTimeout(()=>spawn_pasu_reload(),120);
+  else if(G.mode==='spraycontrol') setTimeout(()=>spawn_spraycontrol(),150);
 }
 
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
@@ -2310,7 +2312,7 @@ const INTERVAL_MODES = {
   w1w3ts_reload:200, pasu_reload:150, vt_bounceshot:300, ctrlsphere_clk:100,
   popcorn_mv:400, pasu_angelic:300, pasu_perfected:300, pasu_micro:200,
   floatheads_t:600, vox_click:250, pokeball_frenzy:180,
-  widepeek:250, spraycontrol:400, flickdelay:300,
+  widepeek:250, flickdelay:300,
 };
 
 function startGame(mode) {
@@ -2362,10 +2364,8 @@ function startGame(mode) {
   setTimeout(()=>{renderer.setSize(innerWidth,innerHeight);updateFOV();},50);
 
   $('#click-to-start').classList.remove('hidden');
-  const handler=()=>{ $('#click-to-start').removeEventListener('click',handler); lockPointer(); $('#click-to-start').classList.add('hidden'); doCountdown(()=>{G.running=true;startTimer();doSpawn();}); };
-  const resume=()=>{ if(!G.running)return; lockPointer(); $('#click-to-start').classList.add('hidden'); };
-  $('#click-to-start').addEventListener('click',handler);
-  $('#click-to-start').addEventListener('click',resume);
+  const handler=()=>{ lockPointer(); $('#click-to-start').classList.add('hidden'); doCountdown(()=>{G.running=true;startTimer();doSpawn();}); };
+  $('#click-to-start').addEventListener('click',handler,{once:true});
 }
 
 function doCountdown(cb) {
@@ -3356,11 +3356,11 @@ function resumeGame() {
   btn.classList.remove('hidden');
 
   function doResume() {
-    btn.removeEventListener('click', doResume);
     btn.classList.add('hidden');
     lockPointer();
     G.running = true;
     clearInterval(G.timerInterval);
+    clearInterval(G.spawnTimer); G.spawnTimer = null;
     G.timerInterval = setInterval(() => {
       G.timeLeft--;
       $('#hud-timer').textContent = G.timeLeft;
@@ -3370,7 +3370,7 @@ function resumeGame() {
     const iv = INTERVAL_MODES[G.mode];
     if (iv) G.spawnTimer = setInterval(() => { const f = SPAWN_MAP[G.mode]; if(f) f(); }, iv);
   }
-  btn.addEventListener('click', doResume);
+  btn.addEventListener('click', doResume, { once: true });
 }
 
 function quitToMenu() {

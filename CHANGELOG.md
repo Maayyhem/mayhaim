@@ -1,5 +1,13 @@
 # Changelog — MayhAim
 
+## 2.4.1 — 2026-04-23
+
+### 🔧 Hotfix v2.4.0 — lag + cibles bloquées + fuite d'event listeners
+- **Wide Peek / Flick + Delay figés** : les cibles avaient `reaction:true` + `ttl` mais `isDynamicMode` n'incluait pas ces deux modes → `updateDynamic` ne tournait jamais pour eux → le TTL n'expirait jamais, les cibles restaient coincées à l'écran jusqu'à ce qu'on clique. Ajout de `widepeek` et `flickdelay` dans `isDynamicMode`.
+- **Spray Control (respawn 400ms inutile)** : la cible est HP-based (14 HP), pas TTL. L'intervalle 400ms allouait un nouveau tableau `G.targets.filter(...)` toutes les 400ms inutilement pendant que la cible était vivante. Retiré de `INTERVAL_MODES` et déplacé sur un `setTimeout` de 150ms dans `hitTarget` (même pattern que gridshot/speedflick).
+- **Fuite d'event listeners sur `#click-to-start`** : chaque `startGame` ajoutait 2 listeners (`handler` + `resume`), seul `handler` s'auto-nettoyait. `resume` était dead code (toujours bloqué par `G.running=false`) mais s'accumulait. Avec Benchmark Run enchaînant 19 scénarios, 19 listeners s'empilaient → sur le click suivant, 19 `doCountdown()` + `startTimer()` simultanés → timer qui tick 19× plus vite, son countdown superposé, sensi qui semblait dérailler. Corrigé via `{once: true}` et suppression du `resume` dead code.
+- **Race sur `resumeGame`** : `doResume` n'était pas garanti self-removing, et ne clear pas `G.spawnTimer` → deux `setInterval` de spawn possibles en parallèle. Ajout du `clearInterval(G.spawnTimer)` + `{once: true}`.
+
 ## 2.4.0 — 2026-04-23
 
 ### 🔊 Refonte audio — moins fatigant, plus modulable
