@@ -1,5 +1,21 @@
 # Changelog — MayhAim
 
+## 2.4.2 — 2026-04-23
+
+### 🖱️ Fix sensi/lag — filtre anti-spike adaptatif
+Le hotfix 2.4.1 n'adressait pas la vraie cause racine du couple "sensi trop basse + stutter + lag" signalé sur tous les scénarios dès l'ouverture de l'app. Analyse :
+- Le filtre `if (Math.abs(rawX) > 300 || Math.abs(rawY) > 300) return;` dans `onMouseMove` datait d'un fix anti-teleport hardware (v2.0.2), mais il est **cassé face au batching d'events** : quand le navigateur regroupe plusieurs samples souris pendant un stall rAF (même léger, 20-30ms), le `movementX` cumulé peut dépasser 300 légitimement, surtout sur flicks rapides. Résultat : le delta est jeté → la caméra ne tourne pas assez → perception "sensi trop basse" + visuel stutter.
+- **Fix** : seuil adaptatif calé sur `dtMs` du dernier frame. À 144fps (~7ms) → ~370. À 60fps (~17ms) → ~470. À 30fps (~33ms) → ~630. Les vrais glitches hardware (5000+ counts) restent filtrés.
+
+### 🔍 Diagnostic FPS (F3)
+Overlay toggleable pour signaler précisément un lag :
+- FPS live + temps frame (actuel + pire sur la dernière fenêtre)
+- cm/360 effectif (pour valider la sensi)
+- Compteur de drops du filtre anti-spike (si ça monte pendant un stutter, c'est le filtre qui est trop strict)
+
+### 🔄 Bouton "Réinitialiser les paramètres"
+Dans Paramètres > Jeu. Wipe la clé `visc_settings` localStorage (sensi, DPI, crosshair, sons, thèmes) et réapplique les defaults. Scores et benchmark préservés. Utile si un save corrompu fait partir la sensi à des valeurs bizarres.
+
 ## 2.4.1 — 2026-04-23
 
 ### 🔧 Hotfix v2.4.0 — lag + cibles bloquées + fuite d'event listeners

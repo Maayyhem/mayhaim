@@ -534,6 +534,13 @@ const DEF_SETTINGS = { hFov:103, sensMode:'cm360', sensVal:34, cm360:34, dpi:800
   theme:'default', roomTheme:'clean_grey' };
 function loadSettings() { try { return {...DEF_SETTINGS,...JSON.parse(localStorage.getItem('visc_settings'))}; } catch { return {...DEF_SETTINGS}; } }
 function saveSettings(p) { const s = loadSettings(); Object.assign(s, p); localStorage.setItem('visc_settings', JSON.stringify(s)); }
+function resetSettings() {
+  if (!confirm('Réinitialiser tous les paramètres (sensi, DPI, crosshair, sons, thèmes) ?\n\nCela ne touche pas à tes scores/benchmark.')) return;
+  localStorage.removeItem('visc_settings');
+  applySettings();
+  if (window.showToast) window.showToast('Paramètres réinitialisés');
+}
+window.resetSettings = resetSettings;
 
 const XH_PRESETS = {
   dot:     { xhInnerShow:false, xhOuterShow:false, xhDot:true, xhDotSize:3, xhOutline:0, xhInnerGap:0, xhInnerLen:6, xhInnerThick:2, xhOuterLen:2, xhOuterThick:2, xhOuterGap:10 },
@@ -2243,8 +2250,16 @@ function onMouseMove(e) {
   const rawX = e.movementX, rawY = e.movementY;
   // Skip first 3 frames after pointer lock (browser sends garbage deltas)
   if (skipFrames > 0) { skipFrames--; lastMoveTime = now; return; }
-  // Absolute spike filter — catches hardware/driver glitch teleports only
-  if (Math.abs(rawX) > 300 || Math.abs(rawY) > 300) return;
+  // Adaptive spike filter — browsers batch mouse events during rAF stalls, so a
+  // single movementX can legitimately be 500+ when fps drops. Scale threshold
+  // with last frame time (ms). At 144fps (~7ms) → ~370. At 60fps (~17ms) → ~470.
+  // At 30fps (~33ms) → ~630. Hardware glitches are ~5000+ counts in one event.
+  const dtMs = G._lastFrameMs || 16.7;
+  const spikeTh = 300 + dtMs * 10;
+  if (Math.abs(rawX) > spikeTh || Math.abs(rawY) > spikeTh) {
+    if (G._debugFps) G._droppedSpikes = (G._droppedSpikes||0) + 1;
+    return;
+  }
   // Skip first move after long pause (re-lock, tab switch)
   if (now - lastMoveTime > 300 && lastMoveTime > 0) { lastMoveTime = now; return; }
   lastMoveTime = now;
@@ -2268,9 +2283,14 @@ function lockPointer() { const c=$('#game-canvas');(c.requestPointerLock||c.mozR
 
 
 // ---- GAME LOOP ----
+let _fpsLastT = 0, _fpsFrameCount = 0, _fpsLastDisplay = 0, _fpsWorstMs = 0;
 function gameLoop() {
   G.animFrame=requestAnimationFrame(gameLoop);
   const dt=clock.getDelta();
+  const nowT = performance.now();
+  const dtMs = _fpsLastT ? (nowT - _fpsLastT) : 16.7;
+  G._lastFrameMs = dtMs;
+  _fpsLastT = nowT;
   if(G.running) {
     if(isTrackMode(G.mode)) updateTrackTarget(dt);
     if(isSwitchMode(G.mode)) updateSwitchTargets(dt);
@@ -2278,6 +2298,22 @@ function gameLoop() {
     if(G.mode==='gridshot') updateGridshot(dt);
   }
   renderer.render(scene,camera);
+  // FPS overlay (F3 toggle)
+  if (G._debugFps) {
+    _fpsFrameCount++;
+    if (dtMs > _fpsWorstMs) _fpsWorstMs = dtMs;
+    if (nowT - _fpsLastDisplay > 250) {
+      const fps = Math.round(_fpsFrameCount * 1000 / (nowT - _fpsLastDisplay));
+      const el = document.getElementById('fps-overlay');
+      if (el) {
+        const drops = G._droppedSpikes || 0;
+        el.innerHTML = `<div>FPS <b>${fps}</b></div><div>Frame ${dtMs.toFixed(1)}ms · worst ${_fpsWorstMs.toFixed(1)}ms</div><div>cm/360 <b>${G.cm360.toFixed(2)}</b></div><div>Spikes drop <b>${drops}</b></div>`;
+      }
+      _fpsLastDisplay = nowT;
+      _fpsFrameCount = 0;
+      _fpsWorstMs = 0;
+    }
+  }
 }
 
 function updateHUD() { const t=G.hits+G.misses,a=t>0?Math.round(G.hits/t*100):100; $('#hud-score').textContent=G.score.toLocaleString(); $('#hud-combo').textContent='x'+G.combo; $('#hud-acc').textContent=a+'%'; }
@@ -3405,7 +3441,7 @@ function pauseToSettings() {
   }, 100);
 }
 
-// ESC key handler
+// ESC + F3 key handler
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (paused) {
@@ -3414,6 +3450,13 @@ document.addEventListener('keydown', e => {
       e.preventDefault();
       pauseGame();
     }
+  } else if (e.key === 'F3') {
+    e.preventDefault();
+    G._debugFps = !G._debugFps;
+    G._droppedSpikes = 0;
+    const el = document.getElementById('fps-overlay');
+    if (el) el.classList.toggle('hidden', !G._debugFps);
+    if (window.showToast) window.showToast(G._debugFps ? 'Diagnostic FPS activé (F3 pour fermer)' : 'Diagnostic FPS désactivé');
   }
 });
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.4.0">
+  <meta name="app-version" content="2.4.2">
   <title>MayhAim — Aim Trainer & Coaching Hub</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
@@ -137,6 +137,7 @@
       <canvas id="game-canvas"></canvas>
       <div id="crosshair-overlay"><svg width="28" height="28" viewBox="0 0 28 28"><line x1="14" y1="4" x2="14" y2="11" stroke="#00ff88" stroke-width="2"/><line x1="14" y1="17" x2="14" y2="24" stroke="#00ff88" stroke-width="2"/><line x1="4" y1="14" x2="11" y2="14" stroke="#00ff88" stroke-width="2"/><line x1="17" y1="14" x2="24" y2="14" stroke="#00ff88" stroke-width="2"/><circle cx="14" cy="14" r="1.5" fill="#00ff88"/></svg></div>
       <div id="hud"><div class="hud-l"><span id="hud-mode">Mode</span><span class="hud-badge" id="hud-diff">Medium</span></div><div class="hud-c"><span id="hud-timer">60</span></div><div class="hud-r"><span id="hud-score">0</span><span id="hud-combo" class="combo-text">x0</span><span id="hud-acc" class="acc-text">100%</span></div></div>
+      <div id="fps-overlay" class="hidden"></div>
       <div id="hitmarker" class="hidden"><svg width="30" height="30" viewBox="0 0 30 30"><line x1="7" y1="7" x2="12" y2="12" stroke="#fff" stroke-width="2"/><line x1="23" y1="7" x2="18" y2="12" stroke="#fff" stroke-width="2"/><line x1="7" y1="23" x2="12" y2="18" stroke="#fff" stroke-width="2"/><line x1="23" y1="23" x2="18" y2="18" stroke="#fff" stroke-width="2"/></svg></div>
       <div id="tracking-bar" class="hidden"><div id="tracking-fill"></div><span id="tracking-pct">0%</span></div>
       <div id="kill-feed"></div>
@@ -798,6 +799,19 @@
         <div class="sett-row">
           <span class="sett-row-label">FOV <span id="opt-fov-val" style="color:var(--accent);font-weight:700">103</span>°</span>
           <input type="range" id="opt-fov" min="70" max="120" value="103" step="1" class="sett-range" style="width:140px">
+        </div>
+        <div class="sett-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div>
+            <span class="sett-row-label">Réinitialiser les paramètres</span>
+            <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Remet sensi, DPI, crosshair, sons, thèmes par défaut (scores préservés)</div>
+          </div>
+          <button class="btn-secondary" onclick="resetSettings()" style="font-size:0.78rem">Réinitialiser</button>
+        </div>
+        <div class="sett-row" style="margin-top:10px">
+          <div>
+            <span class="sett-row-label">Diagnostic FPS <span style="color:var(--dim);font-weight:400">(touche F3)</span></span>
+            <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Affiche FPS, temps frame, cm/360 et drops souris. Utile pour signaler un lag.</div>
+          </div>
         </div>
       </div>
 
