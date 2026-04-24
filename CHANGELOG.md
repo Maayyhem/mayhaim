@@ -1,5 +1,23 @@
 # Changelog — MayhAim
 
+## 2.4.3 — 2026-04-24
+
+### 🎯 Déverrouillage FPS Electron — c'était ÇA la vraie cause
+Le filtre adaptatif de 2.4.2 améliorait la situation mais n'adressait pas la racine : **Chromium capait à 60 FPS** par défaut sur l'app packagée, même avec un écran 144Hz+. Résultat : sur un 144Hz, l'utilisateur voyait 1 frame sur 2.4, ce qui donne cette triade "stutter + sensi trop basse + lag" — parce qu'entre deux frames affichées à 16.7ms, la souris bouge ~2× plus qu'attendu mais le rendu ne suit pas.
+
+Switches Chromium ajoutés dans `electron-main.js` **avant `app.whenReady`** :
+- `disable-frame-rate-limit` — supprime le cap 60Hz de rAF
+- `disable-gpu-vsync` — laisse rAF tourner à la vitesse du GPU (tearing possible mais latence mini, comme Valorant `NoVSync`)
+- `enable-gpu-rasterization` + `enable-zero-copy` — pipeline GPU plus efficace
+
+L'overlay F3 détecte maintenant un cap probable (FPS ∈ [58, 63]) et affiche un warning jaune.
+
+### ⚠ Côté web (mayhaim.vercel.app)
+Le navigateur contrôle le framerate, pas MayhAim. Si tu vois 60 FPS dans Chrome alors que ton écran est 144Hz :
+- Chrome : chrome://flags → "Disable frame rate limit" → Enabled
+- Edge : edge://flags → idem
+- Alternative : utiliser l'app Electron (recommandé pour le feel compétitif)
+
 ## 2.4.2 — 2026-04-23
 
 ### 🖱️ Fix sensi/lag — filtre anti-spike adaptatif

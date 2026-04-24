@@ -2307,7 +2307,10 @@ function gameLoop() {
       const el = document.getElementById('fps-overlay');
       if (el) {
         const drops = G._droppedSpikes || 0;
-        el.innerHTML = `<div>FPS <b>${fps}</b></div><div>Frame ${dtMs.toFixed(1)}ms · worst ${_fpsWorstMs.toFixed(1)}ms</div><div>cm/360 <b>${G.cm360.toFixed(2)}</b></div><div>Spikes drop <b>${drops}</b></div>`;
+        // Detect suspicious 60Hz cap: if frame time is consistently near 16.67ms
+        // and fps stays in [58, 63], Chromium might be capping regardless of display.
+        const capHint = (fps >= 58 && fps <= 63) ? '<div style="color:#f59e0b;margin-top:4px;font-size:0.72rem">⚠ 60 FPS possible cap</div>' : '';
+        el.innerHTML = `<div>FPS <b>${fps}</b></div><div>Frame ${dtMs.toFixed(1)}ms · worst ${_fpsWorstMs.toFixed(1)}ms</div><div>cm/360 <b>${G.cm360.toFixed(2)}</b></div><div>Spikes drop <b>${drops}</b></div>${capHint}`;
       }
       _fpsLastDisplay = nowT;
       _fpsFrameCount = 0;

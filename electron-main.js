@@ -9,6 +9,16 @@ const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('e
 const path = require('node:path');
 const { autoUpdater } = require('electron-updater');
 
+// ── Chromium command-line switches (MUST be set before app.whenReady) ──
+// Chromium caps rAF at 60Hz by default on some Windows configs even if the
+// display is 144/240Hz. Disabling frame-rate-limit lets rAF match the actual
+// display refresh. We keep VSync ON (avoid tearing) via the compositor.
+app.commandLine.appendSwitch('disable-frame-rate-limit');
+app.commandLine.appendSwitch('disable-gpu-vsync');
+// Ensure hardware accel + high-performance GPU is used
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+
 const API_BASE = 'https://mayhaim.vercel.app';
 const DISCORD_OAUTH_PREFIX = API_BASE + '/api/login?action=discord';
 
