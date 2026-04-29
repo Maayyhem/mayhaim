@@ -4809,6 +4809,10 @@ function trackerTabLoad() {
           <div id="trk-link-msg" class="trk-link-msg"></div>
         </div>
       </div>`;
+    // Restore cooldown lock if user reloaded mid-cooldown
+    if (_getRiotLinkCooldownLeft() > 0) {
+      _startRiotLinkCountdown(document.querySelector('.trk-link-btn'), document.getElementById('trk-link-msg'));
+    }
   } else {
     _trackerShowAccount();
   }
@@ -4887,24 +4891,71 @@ function _trkActTabs(groups) {
   </div>`;
 }
 
+// Persist the link-riot rate-limit window across reloads — Henrik's 429 lasts
+// 60-300s and the user might reload the page mid-cooldown, retry, get 429 again.
+const _LINK_COOLDOWN_KEY = 'mh_riot_link_cooldown_until';
+function _getRiotLinkCooldownLeft() {
+  const ts = parseInt(localStorage.getItem(_LINK_COOLDOWN_KEY) || '0', 10);
+  if (!ts) return 0;
+  return Math.max(0, Math.ceil((ts - Date.now()) / 1000));
+}
+function _setRiotLinkCooldown(seconds) {
+  if (!seconds || seconds <= 0) return;
+  localStorage.setItem(_LINK_COOLDOWN_KEY, String(Date.now() + seconds * 1000));
+}
+function _startRiotLinkCountdown(btn, msg) {
+  const tick = () => {
+    const left = _getRiotLinkCooldownLeft();
+    if (left <= 0) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Lier mon compte Riot'; }
+      if (msg) { msg.textContent = ''; }
+      localStorage.removeItem(_LINK_COOLDOWN_KEY);
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = `Réessayer dans ${left}s`; }
+    if (msg) { msg.textContent = 'Henrik API rate-limit atteint. Re-cliquer maintenant ne fera qu\'aggraver — patiente.'; msg.style.color = '#f59e0b'; }
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
 async function trackerLinkRiot() {
   const input = document.getElementById('trk-riot-input');
   const msg   = document.getElementById('trk-link-msg');
+  const btn   = document.querySelector('.trk-link-btn');
   if (!input) return;
+  // Bail out if a cooldown is still active (e.g. user reloaded mid-cooldown)
+  const cooldownLeft = _getRiotLinkCooldownLeft();
+  if (cooldownLeft > 0) { _startRiotLinkCountdown(btn, msg); return; }
+
   const riot_id = input.value.trim();
   if (!riot_id) { if(msg){msg.textContent='Entre ton Riot ID';msg.style.color='#ff4655';} return; }
   if (msg) { msg.textContent = 'Recherche en cours…'; msg.style.color = 'var(--dim)'; }
+  if (btn) btn.disabled = true;
   try {
     const res  = await fetch(`${API_BASE}/profile`, {
       method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${coachingToken}`},
       body: JSON.stringify({ action:'link-riot', riot_id })
     });
     const data = await res.json();
-    if (!res.ok) { if(msg){msg.textContent=data.error;msg.style.color='#ff4655';} return; }
+    if (res.status === 429) {
+      const wait = parseInt(data.retryAfter || 60, 10);
+      _setRiotLinkCooldown(wait);
+      _startRiotLinkCountdown(btn, msg);
+      return;
+    }
+    if (!res.ok) {
+      if(msg){msg.textContent=data.error;msg.style.color='#ff4655';}
+      if (btn) btn.disabled = false;
+      return;
+    }
     coachingUser = { ...coachingUser, riot_gamename:data.riot.gamename, riot_tagline:data.riot.tagline,
       riot_rank:data.riot.rank, riot_lp:data.riot.lp, riot_region:data.riot.region, riot_rank_synced_at:new Date().toISOString() };
     _trackerShowAccount();
-  } catch(e) { if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';} }
+  } catch(e) {
+    if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';}
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function trackerSyncRank(btn) {

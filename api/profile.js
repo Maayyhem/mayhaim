@@ -37,10 +37,20 @@ async function fetchHenrik(path, timeoutMs = 8000) {
       const msg = data?.errors?.[0]?.message || data?.message || 'unknown';
       console.error(`[henrik] ${res.status} ${path} — ${msg}`);
     }
-    return { status: res.status, data };
+    // Extract Retry-After header (seconds) for 429 — Henrik returns this consistently.
+    const retryAfter = res.status === 429 ? parseInt(res.headers.get('retry-after') || '60', 10) : 0;
+    return { status: res.status, data, retryAfter };
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Build a structured 429 response body that surfaces the real Retry-After to the client.
+// `results` are the fetchHenrik results that returned 429.
+function rateLimit429Body(...results) {
+  const max = Math.max(0, ...results.map(r => (r && r.retryAfter) || 0));
+  const sec = max || 60;
+  return { error: `Trop de requêtes, réessaie dans ${sec}s`, retryAfter: sec };
 }
 
 // Fetch the full stored-matches history using batched parallel pagination.
@@ -575,7 +585,7 @@ module.exports = async function handler(req, res) {
         ]);
 
         if (matchResult.status === 429 || mmrResult.status === 429) {
-          return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+          return res.status(429).json(rateLimit429Body(matchResult, mmrResult));
         }
         if (matchResult.status === 401 || mmrResult.status === 401) {
           return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
@@ -622,7 +632,7 @@ module.exports = async function handler(req, res) {
       if (!matchId) return res.status(400).json({ error: 'matchId requis' });
       try {
         const r = await fetchHenrik(`/valorant/v2/match/${encodeURIComponent(matchId)}`);
-        if (r.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (r.status === 429) return res.status(429).json(rateLimit429Body(r));
         if (r.status !== 200) return res.status(502).json({ error: `Match introuvable (${r.status})` });
         const d = r.data?.data || r.data || {};
         const meta = d.metadata || {};
@@ -752,7 +762,7 @@ module.exports = async function handler(req, res) {
         try {
           if (!puuid) return res.status(400).json({ error: 'Relie ton compte à nouveau pour activer le tracker' });
           const mlR = await fetchRiot(`/val/match/v1/matchlists/by-puuid/${puuid}`, shard || 'eu');
-          if (mlR.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+          if (mlR.status === 429) return res.status(429).json(rateLimit429Body(mlR));
           if (mlR.status !== 200) return res.status(502).json({ error: `Riot API: ${mlR.data?.status?.message || mlR.status}` });
 
           const compIds = (mlR.data.history || []).filter(m => m.queueId === 'competitive').slice(0, 10).map(m => m.matchId);
@@ -829,7 +839,7 @@ module.exports = async function handler(req, res) {
         for (const r of regionList) {
           const attempt = await fetchHenrik(`/valorant/v3/matches/${r}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`);
           if (attempt.status === 200) { matchResult = attempt; foundRegion = r; break; }
-          if (attempt.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+          if (attempt.status === 429) return res.status(429).json(rateLimit429Body(attempt));
           if (attempt.status === 401 || attempt.status === 403) { sawAuthError = true; break; }
         }
         if (sawAuthError) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
@@ -1028,7 +1038,7 @@ module.exports = async function handler(req, res) {
         const acc = await fetchHenrik(`/valorant/v1/account/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
         if (acc.status === 401 || acc.status === 403) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
         if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
-        if (acc.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (acc.status === 429) return res.status(429).json(rateLimit429Body(acc));
         if (acc.status !== 200 || !acc.data?.data?.puuid) {
           const msg = acc.data?.errors?.[0]?.message || acc.data?.message || `Erreur ${acc.status}`;
           return res.status(502).json({ error: `Henrik API: ${msg}`, detail: JSON.stringify(acc.data).slice(0, 300) });
@@ -1073,7 +1083,7 @@ module.exports = async function handler(req, res) {
       try {
         const mmr = await fetchHenrik(`/valorant/v2/mmr/${riot_region}/${encodeURIComponent(riot_gamename)}/${encodeURIComponent(riot_tagline)}`);
         if (mmr.status === 401 || mmr.status === 403) return res.status(503).json({ error: 'Service Valorant indisponible — clé API manquante ou invalide côté serveur' });
-        if (mmr.status === 429) return res.status(429).json({ error: 'Trop de requêtes, réessaie dans 1 minute' });
+        if (mmr.status === 429) return res.status(429).json(rateLimit429Body(mmr));
         let rank = null, lp = null;
         if (mmr.status === 200 && mmr.data?.data?.current_data) {
           rank = mmr.data.data.current_data.currenttierpatched || null;

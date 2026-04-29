@@ -1,5 +1,14 @@
 # Changelog — MayhAim
 
+## 2.4.4 — 2026-04-24
+
+### 🔌 Lien Riot — fin de la boucle 429
+Cliquer sur "Lier mon compte Riot" pendant un rate-limit Henrik créait un cercle vicieux : chaque clic re-déclenchait 2 appels API → le compteur Henrik se réinitialisait à chaque tentative et l'utilisateur ne sortait jamais de l'état 429.
+
+- **Côté serveur** (`api/profile.js`) : `fetchHenrik` lit maintenant le header `Retry-After` Henrik (en secondes) et le propage dans le body de la réponse 429 via `rateLimit429Body()`. Tous les sites qui retournaient un message générique "réessaie dans 1 minute" passent par ce helper et exposent la durée réelle.
+- **Côté client** (`coaching.js`) : après un 429, le bouton est désactivé avec un compte à rebours réel (`Réessayer dans 47s` qui décrémente). Le verrou est persisté en localStorage (`mh_riot_link_cooldown_until`) pour survivre aux reloads. Le re-rendu du formulaire (changement d'onglet, refresh) restaure le compte à rebours s'il est encore actif. Plus moyen de cliquer pendant le cooldown — donc plus moyen d'aggraver la dette de tokens Henrik.
+- Idem appliqué aux endpoints `tracker`, `tracker-match`, `tracker-search`, `sync-riot` (mêmes flux Henrik).
+
 ## 2.4.3 — 2026-04-24
 
 ### 🎯 Déverrouillage FPS Electron — c'était ÇA la vraie cause
