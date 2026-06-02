@@ -1,5 +1,16 @@
 # Changelog — MayhAim
 
+## 2.4.7 — 2026-04-24
+
+### 🎯 Nouveau scénario : 1w6ts Micro
+6 cibles statiques minuscules sur un mur, placement aléatoire avec spacing minimum pour éviter les overlaps. Hit → respawn instantané à une nouvelle position libre. Précision pure sans mouvement à compenser.
+- **Radius** : 0.20 (Easier) / 0.15 (Medium) / 0.10 (Hard) — réellement micro
+- **Spacing min** : 1.1 unités entre les centres pour garder les 6 distinctes
+- **Spawn zone** : x ∈ [-5.5, 5.5], y ∈ [1.0, 4.0], z = -12 (1 wall classique)
+- Pop-in animation reprise de Gridshot (scale-in en 100ms avec léger overshoot)
+- Mode card dans Free Play > section Précision (à côté de Micro précision)
+- Pas de benchmark threshold (free play uniquement) — orientation entraînement quotidien plutôt que score-chasing
+
 ## 2.4.6 — 2026-04-24
 
 ### 📊 Tracker Valorant — package complet (cache + réduction calls + détails matchs)

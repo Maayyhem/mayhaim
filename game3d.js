@@ -150,6 +150,9 @@ const SCENARIOS = {
   vox_click:      { cat:'click_timing', sub:'ct_stability', type:'click', useHits:true, label:'voxTargetClick', labelH:'VoxTargetSwitch Click Small', labelE:'voxTargetSwitch Click',
     th:[62,72,80,87,95,102,108,116], thH:[90,96,101,106,111,115], thE:[49,59,67,74,81,88,94,100] },
 
+  // ═══ MICRO PRECISION (free play, no benchmark threshold) ═══
+  w1w6t_micro:     { cat:'cours', sub:'micro_precision', type:'click', useHits:true, label:'1w6ts Micro' },
+
   // ═══ COURS DRILLS (not in benchmark, free play only) ═══
   crosshair_drill: { cat:'cours', sub:'placement', type:'click', label:'Crosshair Placement Drill' },
   deadzone_drill:  { cat:'cours', sub:'tracking', type:'track', label:'Deadzone Drill' },
@@ -1347,6 +1350,43 @@ function updateGridshot(dt) {
     // Positions fixes — pas de drift
   });
 }
+
+// ============ 1 WALL 6 TARGETS MICRO (1w6t) ============
+// 6 cibles statiques très petites sur un mur, placées aléatoirement avec spacing
+// minimum pour éviter les overlaps. Hit → respawn instantané à une nouvelle
+// position libre. Précision pure, pas de mouvement.
+const W1W6T_COUNT     = 6;
+const W1W6T_MIN_DIST  = 1.1;     // distance minimale entre centres
+const W1W6T_X_RANGE   = [-5.5, 5.5];
+const W1W6T_Y_RANGE   = [1.0, 4.0];
+const W1W6T_Z         = -12;
+function _w1w6tRadius() {
+  // Petites cibles : easier ~0.20, medium ~0.15, hard ~0.10
+  return G.diff==='hard' ? 0.10 : G.diff==='easy' ? 0.20 : 0.15;
+}
+function _spawnW1w6tOne() {
+  if(!G.running) return;
+  const r = _w1w6tRadius();
+  const live = G.targets.filter(t=>t.alive);
+  let x, y, tries = 0;
+  do {
+    x = rand(W1W6T_X_RANGE[0], W1W6T_X_RANGE[1]);
+    y = rand(W1W6T_Y_RANGE[0], W1W6T_Y_RANGE[1]);
+    tries++;
+  } while (tries < 40 && live.some(t => Math.hypot(t.mesh.position.x - x, t.mesh.position.y - y) < W1W6T_MIN_DIST));
+  const mesh = mkSphere(x, y, W1W6T_Z, r, M.t1);
+  mesh.scale.setScalar(0.01);
+  G.targets.push({ mesh, alive:true, radius:r, spawnTime:Date.now(),
+    baseX:x, baseY:y, scaleIn:true, scaleProgress:0 });
+}
+function spawn_w1w6t_micro() {
+  if(!G.running) return;
+  // Cleanup full reset (like gridshot)
+  G.targets.forEach(t=>{ if(t.alive){ t.alive=false; targetsGroup.remove(t.mesh); } });
+  G.targets = [];
+  for (let i = 0; i < W1W6T_COUNT; i++) _spawnW1w6tOne();
+}
+
 function spawn_speedflick() {
   if(!G.running) return;
   G.targets=G.targets.filter(t=>t.alive);
@@ -2236,6 +2276,7 @@ function hitTarget(t) {
   else if(G.mode==='pokeball_frenzy') setTimeout(()=>spawn_pokeball_frenzy(),60);
   else if(G.mode==='pasu_reload') setTimeout(()=>spawn_pasu_reload(),120);
   else if(G.mode==='spraycontrol') setTimeout(()=>spawn_spraycontrol(),150);
+  else if(G.mode==='w1w6t_micro') setTimeout(()=>_spawnW1w6tOne(),50);
 }
 
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
@@ -2295,7 +2336,7 @@ function gameLoop() {
     if(isTrackMode(G.mode)) updateTrackTarget(dt);
     if(isSwitchMode(G.mode)) updateSwitchTargets(dt);
     if(isDynamicMode(G.mode)) updateDynamic(dt);
-    if(G.mode==='gridshot') updateGridshot(dt);
+    if(G.mode==='gridshot' || G.mode==='w1w6t_micro') updateGridshot(dt);
   }
   renderer.render(scene,camera);
   // FPS overlay (F3 toggle)
@@ -2338,7 +2379,7 @@ const SPAWN_MAP = {
   pasu_reload:spawn_pasu_reload, vt_bounceshot:spawn_vt_bounceshot, ctrlsphere_clk:spawn_ctrlsphere_clk,
   popcorn_mv:spawn_popcorn_mv, pasu_angelic:spawn_pasu_angelic, pasu_perfected:spawn_pasu_perfected,
   pasu_micro:spawn_pasu_micro, floatheads_t:spawn_floatheads_t, vox_click:spawn_vox_click,
-  gridshot:spawn_gridshot, speedflick:spawn_speedflick,
+  gridshot:spawn_gridshot, speedflick:spawn_speedflick, w1w6t_micro:spawn_w1w6t_micro,
   crosshair_drill:spawn_crosshair_drill, deadzone_drill:spawn_deadzone_drill, burst_drill:spawn_burst_drill,
   strafe_drill:spawn_strafe_drill, reaction_drill:spawn_reaction_drill, micro_drill:spawn_micro_drill,
   counterstrafe:spawn_counterstrafe, widepeek:spawn_widepeek,
