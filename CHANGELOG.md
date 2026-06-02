@@ -1,5 +1,17 @@
 # Changelog — MayhAim
 
+## 2.4.5 — 2026-04-24
+
+### 📊 Tracker Valorant — cache localStorage + dégradation gracieuse
+Le tracker re-fetchait Henrik à chaque ouverture d'onglet → lag visible + risque 429 à chaque navigation. Refonte :
+- **Cache localStorage par utilisateur** : la réponse complète (account + stats + matches + agents + maps) est cachée 10 min avec TTL ; au-delà jusqu'à 1h en mode "stale-but-usable" si l'API est down.
+- **Stale-while-revalidate** : à l'ouverture, l'UI affiche immédiatement les données cachées (instant). En arrière-plan, un fetch silencieux refresh la donnée. Si le fetch foire (429, erreur réseau), on garde l'affichage du cache avec un badge orange "⚠ Données du cache (il y a 15 min) — Henrik API indisponible".
+- **Cache invalidé** sur Sync (force-refresh) et Unlink.
+- **Messages 429 explicites** : countdown réel (`Réessaie dans 47s`) au lieu du générique "1 minute".
+- **Bouton Sync** : message orange propre quand Henrik est rate-limited au lieu de rouge "erreur".
+
+Note : le tracker-search (recherche d'un autre joueur) n'est PAS encore caché — patch séparé si besoin.
+
 ## 2.4.4 — 2026-04-24
 
 ### 🔌 Lien Riot — fin de la boucle 429

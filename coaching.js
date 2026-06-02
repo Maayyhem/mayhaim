@@ -4586,6 +4586,40 @@ let _valActsByUuid    = null;          // map uuid → act entry
 let _trkMatchLimit    = 50;            // how many match cards are currently rendered
 const _TRK_PAGE_SIZE  = 50;            // cards added per "Voir plus"
 
+// ── Tracker cache ────────────────────────────────────────────────────────
+// Henrik's free tier is shared across all MayhAim users. Without a cache,
+// every tab-open re-fetches the user's stats from Henrik (up to 13 calls).
+// Cache the response in localStorage for 10 min and serve stale + refresh
+// in background so the user sees something instantly.
+const _TRK_CACHE_TTL_MS = 10 * 60 * 1000;
+const _TRK_CACHE_STALE_MS = 60 * 60 * 1000; // accept up to 1h-old data when API is rate-limited
+function _trkCacheKey(suffix) {
+  const id = coachingUser?.id || coachingUser?.email || 'anon';
+  return `mh_tracker_cache_${suffix}_${id}`;
+}
+function _trkCacheGet(suffix) {
+  try {
+    const raw = localStorage.getItem(_trkCacheKey(suffix));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (!ts || !data) return null;
+    const age = Date.now() - ts;
+    return { data, ts, age, fresh: age < _TRK_CACHE_TTL_MS, usable: age < _TRK_CACHE_STALE_MS };
+  } catch { return null; }
+}
+function _trkCacheSet(suffix, data) {
+  try { localStorage.setItem(_trkCacheKey(suffix), JSON.stringify({ ts: Date.now(), data })); }
+  catch {}
+}
+function _trkCacheInvalidate(suffix) {
+  try { localStorage.removeItem(_trkCacheKey(suffix)); } catch {}
+}
+function _trkStaleBadge(ageMs) {
+  const min = Math.floor(ageMs / 60000);
+  const txt = min < 1 ? 'à l\'instant' : (min < 60 ? `il y a ${min} min` : `il y a ${Math.floor(min/60)}h`);
+  return `<div style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:0.72rem;padding:6px 12px;border-radius:6px;border:1px solid rgba(245,158,11,0.3);margin-bottom:12px;display:inline-block">⚠ Données du cache (${txt}) — Henrik API indisponible, ressaie plus tard</div>`;
+}
+
 window._trkShowMoreMatches = function() {
   _trkMatchLimit += _TRK_PAGE_SIZE;
   if (_trackerCtx === 'search') _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
@@ -4968,9 +5002,13 @@ async function trackerSyncRank(btn) {
       body: JSON.stringify({ action:'sync-riot' })
     });
     const data = await res.json();
-    if (!res.ok) { if(msg){msg.textContent=data.error;msg.style.color='#ff4655';} }
-    else {
+    if (res.status === 429) {
+      if (msg) { msg.textContent = `Henrik rate-limit. Réessaie dans ${data.retryAfter||60}s.`; msg.style.color='#f59e0b'; }
+    } else if (!res.ok) {
+      if (msg) { msg.textContent = data.error || 'Erreur de synchronisation'; msg.style.color='#ff4655'; }
+    } else {
       coachingUser = { ...coachingUser, riot_rank:data.riot.rank, riot_lp:data.riot.lp, riot_rank_synced_at:new Date().toISOString() };
+      _trkCacheInvalidate('self'); // sync = force refresh on next load
       _trackerShowAccount();
     }
   } catch(e) { if(msg){msg.textContent='Erreur réseau';msg.style.color='#ff4655';} }
@@ -4983,15 +5021,38 @@ async function trackerUnlink() {
     method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${coachingToken}`},
     body: JSON.stringify({ action:'unlink-riot' })
   }).catch(()=>{});
+  _trkCacheInvalidate('self');
   coachingUser = { ...coachingUser, riot_gamename:null, riot_tagline:null, riot_rank:null, riot_lp:null, riot_region:null, riot_rank_synced_at:null };
   trackerTabLoad();
 }
 
-async function trackerLoadStats(btn) {
+async function trackerLoadStats(btn, opts) {
   const wrap = document.getElementById('trk-stats-wrap');
   if (!wrap) return;
-  if (btn) btn.disabled = true;
-  wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats…</div>`;
+  const forceRefresh = opts?.forceRefresh === true;
+
+  // Serve cached data immediately if available, then refresh in background
+  const cached = _trkCacheGet('self');
+  if (cached && cached.usable && !forceRefresh) {
+    _trackerRawData = cached.data;
+    const peakEl = document.getElementById('trk-self-peak');
+    if (peakEl && cached.data.account?.peak_rank) {
+      peakEl.innerHTML = `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(cached.data.account.peak_rank)}">${san(cached.data.account.peak_rank)}</span></div>`;
+    }
+    _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
+    // If cache is fresh and not forced, skip the network round-trip entirely.
+    if (cached.fresh) { if(btn) btn.disabled=false; return; }
+    // Stale-but-usable: refresh silently. Show a discrete loading hint at the top.
+    const hint = document.createElement('div');
+    hint.id = 'trk-bg-refresh-hint';
+    hint.style.cssText = 'color:var(--dim);font-size:0.72rem;text-align:center;padding:6px 0;animation:pulse 2s ease-in-out infinite';
+    hint.textContent = '⟳ Rafraîchissement…';
+    wrap.prepend(hint);
+  } else {
+    if (btn) btn.disabled = true;
+    wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats…</div>`;
+  }
+
   try {
     // Kick off acts fetch in parallel with tracker data
     const [res] = await Promise.all([
@@ -5000,12 +5061,25 @@ async function trackerLoadStats(btn) {
     ]);
     const data = await res.json();
     if (!res.ok) {
+      // Network error: if we have cached data, keep showing it with a stale badge
+      if (cached && cached.usable) {
+        document.getElementById('trk-bg-refresh-hint')?.remove();
+        const badge = _trkStaleBadge(Date.now() - cached.ts);
+        wrap.insertAdjacentHTML('afterbegin', badge);
+        return;
+      }
+      // No cache fallback: show error
+      const cooldownMsg = res.status === 429 && data.retryAfter
+        ? `<p style="color:var(--dim);font-size:0.78rem;margin-top:8px">Henrik API rate-limit. Réessaie dans ${data.retryAfter}s.</p>` : '';
       wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
         <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">${san(data.error)}</p>
-        <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this)">Réessayer</button></div>`;
+        ${cooldownMsg}
+        <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this, {forceRefresh:true})">Réessayer</button></div>`;
       return;
     }
     _trackerRawData = data;
+    _trkCacheSet('self', data);
+    document.getElementById('trk-bg-refresh-hint')?.remove();
     // Update peak rank in hero if available
     const peakEl = document.getElementById('trk-self-peak');
     if (peakEl && data.account?.peak_rank) {
@@ -5013,9 +5087,14 @@ async function trackerLoadStats(btn) {
     }
     _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
   } catch(e) {
+    if (cached && cached.usable) {
+      document.getElementById('trk-bg-refresh-hint')?.remove();
+      wrap.insertAdjacentHTML('afterbegin', _trkStaleBadge(Date.now() - cached.ts));
+      return;
+    }
     wrap.innerHTML = `<div style="text-align:center;padding:24px 0">
       <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">Erreur réseau</p>
-      <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this)">Réessayer</button></div>`;
+      <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this, {forceRefresh:true})">Réessayer</button></div>`;
   }
   finally { if(btn) btn.disabled=false; }
 }
