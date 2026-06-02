@@ -5102,6 +5102,58 @@ async function trackerLoadStats(btn, opts) {
 function trackerLoad() { trackerLoadStats(); }
 
 // ── Search any player ──────────────────────────────────────────────
+// Cache helper: key by lowercased name#tag#region so casing doesn't break it
+function _trkSearchCacheKey(name, tag, region) {
+  return `mh_tracker_search_${(name||'').toLowerCase()}#${(tag||'').toLowerCase()}#${(region||'eu').toLowerCase()}`;
+}
+function _trkSearchCacheGet(name, tag, region) {
+  try {
+    const raw = localStorage.getItem(_trkSearchCacheKey(name, tag, region));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (!ts || !data) return null;
+    const age = Date.now() - ts;
+    return { data, ts, age, fresh: age < _TRK_CACHE_TTL_MS, usable: age < _TRK_CACHE_STALE_MS };
+  } catch { return null; }
+}
+function _trkSearchCacheSet(name, tag, region, data) {
+  try { localStorage.setItem(_trkSearchCacheKey(name, tag, region), JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+function _trkRenderSearchResults(data, name, tag, resultsEl, opts) {
+  const stale = opts?.stale;
+  const ageMs = opts?.ageMs || 0;
+  _trackerSrchRaw = data;
+  const acct = data.account || {};
+  const rankColor = _riotTierColor(acct.rank);
+  const emblemUrl = _rankEmblemUrl(acct.rank);
+  resultsEl.innerHTML = `
+    ${stale ? _trkStaleBadge(ageMs) : ''}
+    <div class="trk-hero trk-hero--search">
+      <div class="trk-hero-content">
+        <div class="trk-hero-left">
+          <div class="trk-rank-emblem">
+            ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">'+icon('target',18)+'</span>'}
+          </div>
+          <div class="trk-hero-info">
+            <div class="trk-hero-name">${san(acct.gamename || name)}<span class="trk-tag">#${san(acct.tagline || tag)}</span></div>
+            ${acct.rank
+              ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(acct.rank)}<span class="trk-hero-lp">${acct.lp != null ? acct.lp + ' RR' : ''}</span></div>`
+              : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non disponible</div>'}
+            ${acct.peak_rank
+              ? `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(acct.peak_rank)}">${san(acct.peak_rank)}</span></div>` : ''}
+          </div>
+        </div>
+        <div class="trk-hero-actions">
+          <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Mon profil</button>
+        </div>
+      </div>
+    </div>
+    ${_trkQueueTabs()}
+    <div id="trk-search-stats-wrap"></div>`;
+  _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
+}
+
 async function trackerSearchPlayer() {
   const input = document.getElementById('trk-search-input');
   if (!input) return;
@@ -5123,7 +5175,18 @@ async function trackerSearchPlayer() {
   // Hide own profile, show search results
   if (mainEl) mainEl.style.display = 'none';
   resultsEl.style.display = 'block';
-  resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
+
+  // Serve cached data immediately if available
+  const cached = _trkSearchCacheGet(name, tag, region);
+  let usedCache = false;
+  if (cached && cached.usable) {
+    _trkRenderSearchResults(cached.data, name, tag, resultsEl);
+    usedCache = true;
+    if (cached.fresh) return; // fresh cache → no network call
+    // stale: refresh in background
+  } else {
+    resultsEl.innerHTML = `<div class="trk-loading">${icon('search',20)} Recherche de <strong>${san(name)}#${san(tag)}</strong> sur <strong>${region.toUpperCase()}</strong>…</div>`;
+  }
 
   try {
     const [res] = await Promise.all([
@@ -5132,43 +5195,24 @@ async function trackerSearchPlayer() {
     ]);
     const data = await res.json();
     if (!res.ok) {
+      if (usedCache) {
+        // Keep showing cached + add stale badge
+        resultsEl.querySelector('.trk-hero--search')?.insertAdjacentHTML('beforebegin', _trkStaleBadge(Date.now() - cached.ts));
+        return;
+      }
+      const cooldownMsg = res.status === 429 && data.retryAfter
+        ? `<p style="color:var(--dim);font-size:0.78rem;margin-top:6px">Henrik rate-limit. Réessaie dans ${data.retryAfter}s.</p>` : '';
       resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
         <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">${san(data.error || 'Joueur introuvable')}</p>
+        ${cooldownMsg}
         <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
       return;
     }
-    _trackerSrchRaw = data;
-    // Build search hero
-    const acct = data.account || {};
-    const rankColor = _riotTierColor(acct.rank);
-    const emblemUrl = _rankEmblemUrl(acct.rank);
-    resultsEl.innerHTML = `
-      <div class="trk-hero trk-hero--search">
-        <div class="trk-hero-content">
-          <div class="trk-hero-left">
-            <div class="trk-rank-emblem">
-              ${emblemUrl ? `<img src="${emblemUrl}" alt="">` : '<span class="trk-rank-emoji">'+icon('target',18)+'</span>'}
-            </div>
-            <div class="trk-hero-info">
-              <div class="trk-hero-name">${san(acct.gamename || name)}<span class="trk-tag">#${san(acct.tagline || tag)}</span></div>
-              ${acct.rank
-                ? `<div class="trk-hero-rank-text" style="color:${rankColor}">${san(acct.rank)}<span class="trk-hero-lp">${acct.lp != null ? acct.lp + ' RR' : ''}</span></div>`
-                : '<div style="color:var(--dim);font-size:0.85rem;margin-top:4px">Rang non disponible</div>'}
-              ${acct.peak_rank
-                ? `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(acct.peak_rank)}">${san(acct.peak_rank)}</span></div>`
-                : ''}
-            </div>
-          </div>
-          <div class="trk-hero-actions">
-            <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Mon profil</button>
-          </div>
-        </div>
-      </div>
-      ${_trkQueueTabs()}
-      <div id="trk-search-stats-wrap"></div>`;
-    // Apply current filter and render
-    _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
+    _trkSearchCacheSet(name, tag, region, data);
+    _trkRenderSearchResults(data, name, tag, resultsEl);
+    return; // we've fully rendered, skip the legacy inline render below
   } catch(e) {
+    if (usedCache) return; // keep stale cache visible
     resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
       <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">Erreur réseau</p>
       <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
@@ -5402,9 +5446,56 @@ function trackerRender(data, el) {
       <div class="trk-section-title">${icon('trending',14)} Historique · ${s.matches_analyzed ?? matches.length} parties${remainingCount > 0 ? ` <span class="trk-section-sub">(${visibleMatches.length} affichées)</span>` : ''}</div>
       <div class="trk-cards-list">${matchCardsHtml}</div>
       ${remainingCount > 0 ? `<button class="trk-btn trk-btn-ghost trk-more-btn" onclick="_trkShowMoreMatches()">Voir ${Math.min(remainingCount, _TRK_PAGE_SIZE)} parties de plus · ${remainingCount} restantes</button>` : ''}
+      ${(_trackerCtx === 'search' && remainingCount === 0 && !data._fullFetched) ? `<button class="trk-btn trk-btn-ghost trk-more-btn" style="margin-top:8px" onclick="_trkLoadFullSearchHistory(this)">${icon('database',14)} Charger l'historique complet (jusqu'à 1000 parties · 1 call Henrik supplémentaire)</button>` : ''}
     </div>
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
   `;
+}
+
+// Trigger a full-history refetch for the current search context
+window._trkLoadFullSearchHistory = async function(btn) {
+  if (!_trackerSearch) return;
+  const { name, tag, region } = _trackerSearch;
+  if (btn) { btn.disabled = true; btn.innerHTML = `${icon('chart',14)} Chargement…`; }
+  try {
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}&full=1`);
+    const data = await res.json();
+    if (!res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = res.status === 429 ? `Rate-limit · ${data.retryAfter||60}s` : 'Erreur — réessayer'; }
+      return;
+    }
+    data._fullFetched = true;
+    _trkSearchCacheSet(name, tag, region, data);
+    _trackerSrchRaw = data;
+    _trkMatchLimit = _TRK_PAGE_SIZE; // reset pagination
+    _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Erreur réseau — réessayer'; }
+  }
+};
+
+// ── Match detail cache (matches are immutable → 24h TTL) ─────────────
+const _TRK_MATCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+function _trkMatchCacheGet(matchId) {
+  try {
+    const raw = localStorage.getItem(`mh_match_${matchId}`);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    return (Date.now() - ts < _TRK_MATCH_CACHE_TTL_MS) ? data : null;
+  } catch { return null; }
+}
+function _trkMatchCacheSet(matchId, data) {
+  try { localStorage.setItem(`mh_match_${matchId}`, JSON.stringify({ ts: Date.now(), data })); }
+  catch (e) {
+    // Possibly quota exceeded — purge the 10 oldest match caches and retry
+    try {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('mh_match_'));
+      const sorted = keys.map(k => { try { return { k, ts: JSON.parse(localStorage.getItem(k)).ts }; } catch { return { k, ts: 0 }; } })
+                         .sort((a,b) => a.ts - b.ts);
+      sorted.slice(0, 10).forEach(o => localStorage.removeItem(o.k));
+      localStorage.setItem(`mh_match_${matchId}`, JSON.stringify({ ts: Date.now(), data }));
+    } catch {}
+  }
 }
 
 // ── Match detail modal ────────────────────────────────────────────────
@@ -5432,12 +5523,23 @@ window._trkOpenMatch = async function(matchId) {
   }
   const modal = document.getElementById('trk-match-modal');
   overlay.style.display = 'flex';
+
+  // Serve from cache instantly if available (matches are immutable)
+  const cached = _trkMatchCacheGet(matchId);
+  if (cached) { _trkRenderMatchModal(cached, modal); return; }
+
   modal.innerHTML = `<div class="trk-match-loading">${icon('chart',22)} Chargement du match…</div>`;
 
   try {
     const res = await fetch(`${API_BASE}/profile?action=tracker-match&matchId=${encodeURIComponent(matchId)}`);
     const data = await res.json();
-    if (!res.ok) { modal.innerHTML = `<div class="trk-match-err">${san(data.error)}<br><button class="trk-btn trk-btn-ghost" style="margin-top:12px" onclick="_trkCloseMatch()">Fermer</button></div>`; return; }
+    if (!res.ok) {
+      const cooldownMsg = res.status === 429 && data.retryAfter
+        ? `<p style="color:var(--dim);font-size:0.78rem;margin-top:6px">Henrik rate-limit. Réessaie dans ${data.retryAfter}s.</p>` : '';
+      modal.innerHTML = `<div class="trk-match-err">${san(data.error)}${cooldownMsg}<br><button class="trk-btn trk-btn-ghost" style="margin-top:12px" onclick="_trkCloseMatch()">Fermer</button></div>`;
+      return;
+    }
+    _trkMatchCacheSet(matchId, data);
     _trkRenderMatchModal(data, modal);
   } catch(e) {
     modal.innerHTML = `<div class="trk-match-err">Erreur réseau<br><button class="trk-btn trk-btn-ghost" style="margin-top:12px" onclick="_trkCloseMatch()">Fermer</button></div>`;

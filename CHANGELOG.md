@@ -1,5 +1,33 @@
 # Changelog — MayhAim
 
+## 2.4.6 — 2026-04-24
+
+### 📊 Tracker Valorant — package complet (cache + réduction calls + détails matchs)
+Suite de 2.4.5 — couvre les 3 flows restants :
+
+**1. Cache des recherches de joueurs (`trackerSearchPlayer`)**
+- Cache localStorage par `name#tag#region` (lowercase). Même politique que le tracker perso : TTL 10 min frais, jusqu'à 1h stale-mais-usable.
+- Stale-while-revalidate : la recherche affiche les anciens résultats instantanément, refetch en fond, garde le stale si l'API foire.
+- Refactorisé `trackerSearchPlayer` pour séparer le rendu (`_trkRenderSearchResults`) de la fetch — évite la duplication HTML hero/stats.
+
+**2. Cache des détails de match (`_trkOpenMatch`)**
+- Cache localStorage par `matchId`, TTL 24h (matches Valorant sont immutables une fois joués → aucune raison de re-fetch).
+- Affichage instantané si déjà vu. Auto-purge des 10 plus vieux si quota localStorage atteint.
+
+**3. Réduction massive des calls Henrik côté serveur (`fetchStoredMatchesAll`)**
+- `tracker-search` capait à 40 pages = jusqu'à 16 calls Henrik en cascade pour l'historique stored-matches. Réduit à **4 pages = 1 round de 4 calls** par défaut (100 matches max).
+- Bouton optionnel "Charger l'historique complet" dans la section Historique de la recherche → trigger `?full=1` pour récupérer jusqu'à 1000 parties si vraiment nécessaire (1 seul call supplémentaire par le cache server-side).
+- **Économie nette** : la recherche d'un joueur passe de ~20 calls Henrik à **~7** par défaut (1 v3 matches + 4 stored-matches + 1 mmr v2 + 1 mmr-history).
+
+### 🧮 Récap perf tracker (avant → après)
+| Action | Calls Henrik avant | Calls Henrik après |
+|---|---|---|
+| Open onglet tracker perso (1ère fois) | 3-4 | 3-4 |
+| Open onglet tracker perso (re-visit < 10 min) | 3-4 | **0** (cache) |
+| Search joueur (1ère fois) | ~20 | ~7 |
+| Search joueur (re-visit < 10 min) | ~20 | **0** (cache) |
+| Open détail match (re-visit) | 1 | **0** (cache 24h) |
+
 ## 2.4.5 — 2026-04-24
 
 ### 📊 Tracker Valorant — cache localStorage + dégradation gracieuse

@@ -575,11 +575,16 @@ module.exports = async function handler(req, res) {
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
 
       try {
-        // Parallel: v3 matches (detailed, last 25) + stored-matches (full history, paginated)
-        //        + MMR rank (v2 rank+peak) + MMR history v2 (RR par game, /pc/ platform requis depuis v4.0.0)
+        // Parallel: v3 matches (detailed, last 25) + stored-matches (cap 4 pages
+        // = 100 matches max, soit 1 round Henrik au lieu de 16 — la page initiale
+        // n'a pas besoin de l'historique complet, le cache client + l'agrégation v3
+        // suffisent à un affichage utile. Si l'utilisateur scroll, on pourra
+        // refetch en mode "full" plus tard via &full=1).
+        // + MMR rank (v2 rank+peak) + MMR history v2 (RR par game, /pc/ platform requis depuis v4.0.0)
+        const fullHistory = req.query?.full === '1';
         const [matchResult, storedRows, mmrResult, mmrHistResult] = await Promise.all([
           fetchHenrik(`/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?size=25`),
-          fetchStoredMatchesAll(region, name, tag),
+          fetchStoredMatchesAll(region, name, tag, { maxPages: fullHistory ? 40 : 4 }),
           fetchHenrik(`/valorant/v2/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
           fetchHenrik(`/valorant/v2/mmr-history/${region}/pc/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`),
         ]);
