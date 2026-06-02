@@ -1,5 +1,29 @@
 # Changelog — MayhAim
 
+## 2.4.8 — 2026-04-24
+
+### 🔥 Nouveau : Pre-game Warmup (routine smart auto-chaînée)
+Routine 4 phases adaptée à ton benchmark + la map/agent que tu vas jouer. Auto-chaînée comme Benchmark Run — fini les clics manuels entre scénarios.
+
+**Composition algorithmique :**
+1. **Wake-up** (☀️ doux) — Gridshot/Smoothbot easy, plus long si "première session"
+2. **Faiblesse** (🎯 cible la sous-cat la moins entraînée) — détectée depuis tes threads Viscose medium
+3. **Spécifique map/agent** (🗺) — picks adaptés (Bind→CQB, Icebox→long range, Cypher→micro/holds, Jett→flick…)
+4. **Reflex** (⚡ snappy) — Speedflick/Pasu Reload pour réveiller la neuro
+
+**Profils intégrés :**
+- 11 maps : Bind, Haven, Split, Ascent, Icebox, Breeze, Fracture, Lotus, Pearl, Sunset, Abyss
+- 27 agents (4 rôles : duelists / controllers / sentinels / initiators)
+- Intersection map × agent quand possible (ex: Bind + Jett → flick CQB)
+
+**UI :**
+- Configurateur 4 champs : durée (3/5/8/10 min), map prévue, agent prévu, état (Première session / Déjà chaud)
+- Preview live de la routine (régénère à chaque changement de config)
+- Bouton "▶ Lancer le warmup" → enchaîne les 4 phases avec écran de transition entre chaque
+- Écran de résumé final "Tu es prêt à queue" avec accuracy moyenne, réaction moyenne, comparaison vs ton avg historique
+
+**Accès :** Coaching Hub > Échauffement (la card "🔥 Pre-game Warmup" est au-dessus des 3 routines hardcodées existantes).
+
 ## 2.4.7 — 2026-04-24
 
 ### 🎯 Nouveau scénario : 1w6ts Micro

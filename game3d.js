@@ -167,6 +167,195 @@ const SCENARIOS = {
   flickdelay:      { cat:'training', sub:'anticipation', type:'click', label:'Flick + Delay' },
 };
 
+// ============================================================
+// PRE-GAME WARMUP — Map/agent profiles + composer
+// ============================================================
+// Maps → catégories d'aim prioritaires (basé sur sightlines/CQB/mid).
+// Chaque map a 2 scénarios "priorité" qui font sens à jouer juste avant.
+const WARMUP_MAP_PROFILES = {
+  bind:    { tags:['close','precision','micro'],    picks:['w1w6t_micro','pasu_reload'] },
+  split:   { tags:['close','precision','vertical'], picks:['pasu_reload','vox_click'] },
+  haven:   { tags:['switching','mid'],              picks:['domiswitch','vox_ts2'] },
+  ascent:  { tags:['mid','flick','tracking'],       picks:['flicker_plaza','pasu_angelic'] },
+  icebox:  { tags:['long','flick','static'],        picks:['pasu_angelic','pokeball_frenzy'] },
+  breeze:  { tags:['long','flick'],                 picks:['speedflick','pasu_angelic'] },
+  fracture:{ tags:['mid','switching'],              picks:['vox_ts2','flicker_plaza'] },
+  lotus:   { tags:['mid','switching'],              picks:['tamts','domiswitch'] },
+  pearl:   { tags:['mid','mixed'],                  picks:['pasu_reload','flicker_plaza'] },
+  sunset:  { tags:['mid','close'],                  picks:['vox_click','pasu_reload'] },
+  abyss:   { tags:['mid','flick'],                  picks:['flicker_plaza','speedflick'] },
+};
+
+// Agents → catégories d'aim prioritaires (entry/control/sentinel/initiator).
+const WARMUP_AGENT_PROFILES = {
+  // Duelists (entry)
+  jett:     { role:'duelist',  tags:['flick','speed'],          picks:['speedflick','pasu_angelic'] },
+  reyna:    { role:'duelist',  tags:['flick','precision'],      picks:['pasu_reload','pasu_angelic'] },
+  phoenix:  { role:'duelist',  tags:['flick','tracking'],       picks:['speedflick','flicker_plaza'] },
+  raze:     { role:'duelist',  tags:['flick','close'],          picks:['speedflick','widepeek'] },
+  neon:     { role:'duelist',  tags:['speed','close','flick'],  picks:['speedflick','vox_click'] },
+  yoru:     { role:'duelist',  tags:['flick','precision'],      picks:['pasu_angelic','speedflick'] },
+  iso:      { role:'duelist',  tags:['precision','flick'],      picks:['pasu_perfected','pasu_reload'] },
+  waylay:   { role:'duelist',  tags:['flick','speed'],          picks:['speedflick','pasu_angelic'] },
+  // Controllers
+  omen:     { role:'controller', tags:['tracking','switching'], picks:['whisphere','vox_ts2'] },
+  brimstone:{ role:'controller', tags:['precision','holds'],    picks:['pasu_reload','crosshair_drill'] },
+  viper:    { role:'controller', tags:['holds','tracking'],     picks:['whisphere','w1w6t_micro'] },
+  astra:    { role:'controller', tags:['tracking','switching'], picks:['vox_ts2','whisphere'] },
+  harbor:   { role:'controller', tags:['tracking','mid'],       picks:['flicker_plaza','whisphere'] },
+  clove:    { role:'controller', tags:['flick','tracking'],     picks:['speedflick','whisphere'] },
+  // Sentinels
+  cypher:    { role:'sentinel', tags:['micro','holds','tracking'], picks:['w1w6t_micro','counterstrafe'] },
+  killjoy:   { role:'sentinel', tags:['micro','holds'],            picks:['w1w6t_micro','crosshair_drill'] },
+  sage:      { role:'sentinel', tags:['tracking','smooth'],        picks:['whisphere','smoothbot'] },
+  chamber:   { role:'sentinel', tags:['precision','flick','static'], picks:['pasu_perfected','widepeek'] },
+  deadlock:  { role:'sentinel', tags:['tracking','holds'],         picks:['whisphere','crosshair_drill'] },
+  vyse:      { role:'sentinel', tags:['holds','tracking'],         picks:['counterstrafe','whisphere'] },
+  // Initiators
+  sova:     { role:'initiator', tags:['precision','tracking'],   picks:['pasu_angelic','whisphere'] },
+  skye:     { role:'initiator', tags:['switching','flick'],      picks:['domiswitch','speedflick'] },
+  breach:   { role:'initiator', tags:['switching','flick'],      picks:['vox_ts2','flicker_plaza'] },
+  'kay/o':  { role:'initiator', tags:['flick','tracking'],       picks:['flicker_plaza','whisphere'] },
+  fade:     { role:'initiator', tags:['tracking','precision'],   picks:['whisphere','pasu_reload'] },
+  gekko:    { role:'initiator', tags:['flick','tracking'],       picks:['speedflick','flicker_plaza'] },
+  tejo:     { role:'initiator', tags:['precision','flick'],      picks:['pasu_reload','flicker_plaza'] },
+};
+
+// Catégorise un scénario par "rôle de warmup" pour l'algo de composition.
+const WARMUP_ROLES = {
+  wakeup:  { scenarios:['gridshot','reaction_drill','smoothbot','pasu_reload'], diff:'easy', label:'Wake-up' },
+  reflex:  { scenarios:['speedflick','pasu_reload','vox_ts2','flickdelay'],    diff:'medium', label:'Reflex' },
+};
+
+// Trouve la sous-catégorie benchmark la plus faible (% threads acquis vs max du tier).
+// Retourne {sub, weakness:0-1, sample}.
+function findWarmupWeakness() {
+  const tier = currentTier || 'medium';
+  const bench = loadBench();
+  const maxPerScn = maxThreadsFor(tier);
+  const groups = {};
+  for (const [key, sc] of Object.entries(SCENARIOS)) {
+    if (!sc.th || !sc.sub) continue;
+    const best = bench[key] || 0;
+    const threads = (getThFor(key, tier) || []).filter(t => best >= t).length;
+    const max = (getThFor(key, tier) || []).length || maxPerScn;
+    const g = groups[sc.sub] = groups[sc.sub] || { sum:0, max:0, sample:[], cat:sc.cat };
+    g.sum += threads; g.max += max; g.sample.push({ key, ratio: max > 0 ? threads/max : 0, sub: sc.sub });
+  }
+  // Filter to subs with at least 1 played scenario (otherwise we'd just pick random unknowns)
+  const subsWithData = Object.entries(groups).filter(([, g]) => g.sample.some(s => s.ratio > 0));
+  if (!subsWithData.length) return null;
+  // Lowest ratio = weakest
+  subsWithData.sort((a, b) => (a[1].sum / a[1].max) - (b[1].sum / b[1].max));
+  const [sub, g] = subsWithData[0];
+  return { sub, weakness: 1 - (g.sum / g.max), sample: g.sample, cat: g.cat };
+}
+
+function _pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Pick a scenario from a sub-category, preferring ones with low ratio (where you're weakest)
+function _pickFromSubcategory(sub) {
+  const entries = Object.entries(SCENARIOS).filter(([, v]) => v.sub === sub && v.th);
+  if (!entries.length) return null;
+  const bench = loadBench();
+  // Prefer the worst-played; if user hasn't played any in this sub, just pick the first
+  entries.sort((a, b) => {
+    const aR = a[1].th.filter(t => (bench[a[0]] || 0) >= t).length;
+    const bR = b[1].th.filter(t => (bench[b[0]] || 0) >= t).length;
+    return aR - bR;
+  });
+  return entries[0][0];
+}
+
+// Pick a scenario by tag from map/agent profile picks; first valid SCENARIOS key wins.
+function _pickFromProfilePicks(picks) {
+  if (!picks) return null;
+  for (const m of picks) if (SCENARIOS[m]) return m;
+  return null;
+}
+
+// Budget total seconds across the routine phases (wakeup / weakness / mapAgent / reflex).
+// fresh=true means first session of the day → more wake-up time.
+function _budgetWarmupSlots(totalSec, fresh) {
+  // Default weights: wakeup 18% / weakness 32% / mapAgent 30% / reflex 20%
+  let w = fresh ? [0.22, 0.30, 0.28, 0.20] : [0.12, 0.34, 0.34, 0.20];
+  const raw = w.map(p => Math.round(totalSec * p));
+  // Clamp each phase to at least 30s, multiple of 15s for clean display
+  return raw.map(s => Math.max(30, Math.round(s / 15) * 15));
+}
+
+// Compose a 3-5 phase warmup routine. Returns [{mode, duration, diff, role, why}].
+function composeWarmupRoutine({ duration = 5, map = null, agent = null, fresh = true } = {}) {
+  const totalSec = Math.max(60, Math.min(900, duration * 60));
+  const slots = _budgetWarmupSlots(totalSec, fresh);
+
+  const usedModes = new Set();
+  const pickUnique = (list) => list.find(m => m && !usedModes.has(m));
+
+  // Phase 1 — Wake-up (always present)
+  const wakeup = pickUnique(WARMUP_ROLES.wakeup.scenarios) || 'gridshot';
+  usedModes.add(wakeup);
+
+  // Phase 2 — Weakness (from benchmark)
+  let weak = null, weakInfo = null;
+  const weakness = findWarmupWeakness();
+  if (weakness) {
+    weakInfo = weakness;
+    weak = _pickFromSubcategory(weakness.sub);
+    if (weak && usedModes.has(weak)) weak = null;
+  }
+  // Fallback if no benchmark data yet → flicker_plaza (versatile)
+  if (!weak) weak = pickUnique(['flicker_plaza','pasu_reload','vox_ts2']);
+  if (weak) usedModes.add(weak);
+
+  // Phase 3 — Map/agent specific
+  let mapAgent = null, mapAgentLabel = null;
+  if (map && WARMUP_MAP_PROFILES[map]) {
+    const m = WARMUP_MAP_PROFILES[map];
+    if (agent && WARMUP_AGENT_PROFILES[agent]) {
+      // Try to find a scenario that satisfies both — intersection of picks
+      const a = WARMUP_AGENT_PROFILES[agent];
+      const inter = m.picks.filter(p => a.picks.includes(p));
+      mapAgent = _pickFromProfilePicks(inter) || _pickFromProfilePicks(m.picks) || _pickFromProfilePicks(a.picks);
+      mapAgentLabel = `${map[0].toUpperCase()+map.slice(1)} + ${agent[0].toUpperCase()+agent.slice(1)}`;
+    } else {
+      mapAgent = _pickFromProfilePicks(m.picks);
+      mapAgentLabel = `Map ${map[0].toUpperCase()+map.slice(1)}`;
+    }
+  } else if (agent && WARMUP_AGENT_PROFILES[agent]) {
+    mapAgent = _pickFromProfilePicks(WARMUP_AGENT_PROFILES[agent].picks);
+    mapAgentLabel = `Agent ${agent[0].toUpperCase()+agent.slice(1)}`;
+  }
+  // Make sure we don't repeat the same mode
+  if (mapAgent && usedModes.has(mapAgent)) {
+    const m = WARMUP_MAP_PROFILES[map];
+    const a = WARMUP_AGENT_PROFILES[agent];
+    const alt = [...(m?.picks||[]), ...(a?.picks||[])].find(p => !usedModes.has(p) && SCENARIOS[p]);
+    if (alt) mapAgent = alt;
+  }
+  // Fallback: pick any popular flick scenario
+  if (!mapAgent) {
+    mapAgent = pickUnique(['speedflick','pasu_angelic','flicker_plaza']) || 'flicker_plaza';
+    mapAgentLabel = 'Polyvalent';
+  }
+  usedModes.add(mapAgent);
+
+  // Phase 4 — Reflex (short, snappy)
+  const reflex = pickUnique(WARMUP_ROLES.reflex.scenarios) || 'speedflick';
+
+  return [
+    { mode: wakeup,   duration: slots[0], diff: 'easy',   role: 'Wake-up', why: fresh ? 'Réveil neuro doux' : 'Re-mise en main' },
+    { mode: weak,     duration: slots[1], diff: 'medium', role: 'Faiblesse', why: weakInfo ? `Sous-cat la + faible : ${SUB_LABELS[weakInfo.sub]||weakInfo.sub} (${Math.round((1-weakInfo.weakness)*100)}% threads)` : 'Polyvalent' },
+    { mode: mapAgent, duration: slots[2], diff: 'medium', role: 'Spécifique', why: mapAgentLabel },
+    { mode: reflex,   duration: slots[3], diff: 'medium', role: 'Reflex',    why: 'Réveil reflex avant queue' },
+  ];
+}
+
+// Expose to coaching.js / UI
+window.composeWarmupRoutine = composeWarmupRoutine;
+window.WARMUP_MAP_PROFILES   = WARMUP_MAP_PROFILES;
+window.WARMUP_AGENT_PROFILES = WARMUP_AGENT_PROFILES;
+
 // Current tier: 'easier', 'medium', or 'hard'
 let currentTier = 'medium';
 
@@ -521,6 +710,178 @@ window.continueBenchmarkRun = continueBenchmarkRun;
 window.abortBenchmarkRun = abortBenchmarkRun;
 window._brtAbortAndFinalize = _brtAbortAndFinalize;
 window.showBenchmarkRunHistory = showBenchmarkRunHistory;
+
+// ============================================================
+// PRE-GAME WARMUP RUN — auto-chain avec durées personnalisées par scénario
+// Inspiré de Benchmark Run mais avec poids différents : pas de threading,
+// pas de tier forcé, durées variables (60s/90s) selon la phase.
+// ============================================================
+function startWarmupRun(routine) {
+  if (G.running || G.warmupRun || G.benchmarkRun) return;
+  if (!Array.isArray(routine) || routine.length === 0) {
+    if (window.showToast) window.showToast.warn('Routine vide — re-génère');
+    return;
+  }
+  // Validate each step has a known mode
+  const valid = routine.filter(step => step && step.mode && SCENARIOS[step.mode]);
+  if (valid.length === 0) {
+    if (window.showToast) window.showToast.warn('Aucun scénario valide dans la routine');
+    return;
+  }
+  G.warmupRun = {
+    queue: valid.slice(1).map(s => ({ ...s })),
+    results: [],
+    startedAt: Date.now(),
+    total: valid.length,
+    routine: valid,
+  };
+  window._coachLaunchSource = { tab: 'ch-warmup' };
+  _startWarmupScenario(valid[0]);
+}
+
+// Internal: kick off a single scenario in the warmup chain.
+function _startWarmupScenario(step) {
+  if (!G.warmupRun) return;
+  G.warmupRun.currentStep = step;
+  // We override diff/duration via G.warmupRun in startGame — see hook below.
+  G.benchmarkMode = false; // warmup is not benchmark
+  startGame(step.mode);
+}
+
+function continueWarmupRun() {
+  if (!G.warmupRun) return;
+  if (G.warmupRun.queue.length === 0) {
+    finalizeWarmupRun();
+    return;
+  }
+  const next = G.warmupRun.queue.shift();
+  _startWarmupScenario(next);
+}
+
+function abortWarmupRun() {
+  if (!G.warmupRun) return;
+  G.warmupRun = null;
+  window._coachLaunchSource = null;
+}
+
+function _wrtAbortAndFinalize() {
+  if (!G.warmupRun) return;
+  G.warmupRun.queue = [];
+  finalizeWarmupRun();
+}
+
+function finalizeWarmupRun() {
+  const run = G.warmupRun;
+  if (!run) return;
+  // Aggregate stats across the routine
+  const totalScore = run.results.reduce((s, r) => s + (r.score || 0), 0);
+  const totalHits  = run.results.reduce((s, r) => s + (r.hits || 0), 0);
+  const totalMiss  = run.results.reduce((s, r) => s + (r.misses || 0), 0);
+  const acc = (totalHits + totalMiss) > 0 ? Math.round(totalHits / (totalHits + totalMiss) * 100) : 0;
+  const avgReact = run.results.reduce((s, r) => s + (r.avgReaction || 0), 0) / Math.max(1, run.results.filter(r => r.avgReaction).length);
+  const durationMin = Math.round((Date.now() - run.startedAt) / 60000);
+
+  // Compare to user's all-time avg accuracy (rough heuristic — career stats)
+  let careerAcc = null;
+  try { careerAcc = Math.round((JSON.parse(localStorage.getItem('visc_career'))?.acc || 0)); } catch {}
+  const accDelta = careerAcc != null ? (acc - careerAcc) : null;
+
+  G.warmupRun = null;
+  window._coachLaunchSource = null;
+
+  showWarmupRunSummary({ totalScore, acc, accDelta, avgReact, durationMin, results: run.results });
+}
+
+function showWarmupRunSummary(s) {
+  const screen = $('#warmup-run-summary');
+  if (!screen) return;
+  const accColor = s.accDelta == null ? 'var(--txt)' : s.accDelta >= 0 ? '#4ade80' : '#f87171';
+  const accDeltaTxt = s.accDelta == null ? '' : ` <span style="color:${accColor};font-size:0.78rem">(${s.accDelta>=0?'+':''}${s.accDelta}% vs ton avg)</span>`;
+  const rowsHtml = s.results.map(r => {
+    const accTxt = r.acc != null ? `${r.acc}%` : '—';
+    const scoreTxt = (r.score || 0).toLocaleString();
+    const reactTxt = r.avgReaction ? `${Math.round(r.avgReaction)}ms` : '—';
+    return `<div class="wrs-row">
+      <span class="wrs-role">${escapeHtml(r.role||'')}</span>
+      <span class="wrs-name">${escapeHtml(getLabel(r.mode))}</span>
+      <span class="wrs-score">${scoreTxt}</span>
+      <span class="wrs-acc">${accTxt}</span>
+      <span class="wrs-react">${reactTxt}</span>
+    </div>`;
+  }).join('');
+  screen.innerHTML = `
+    <div class="wrs-wrap">
+      <div class="wrs-header">
+        <h1>${icon('flame',28)} Tu es prêt à queue</h1>
+        <div class="wrs-subtitle">${s.results.length} scénarios · ${s.durationMin} min</div>
+      </div>
+      <div class="wrs-stats-bar">
+        <div class="wrs-stat"><div class="wrs-stat-val">${s.totalScore.toLocaleString()}</div><div class="wrs-stat-lbl">Score total</div></div>
+        <div class="wrs-stat"><div class="wrs-stat-val" style="color:${accColor}">${s.acc}%</div><div class="wrs-stat-lbl">Accuracy${accDeltaTxt}</div></div>
+        <div class="wrs-stat"><div class="wrs-stat-val">${s.avgReact ? Math.round(s.avgReact) + 'ms' : '—'}</div><div class="wrs-stat-lbl">Réaction</div></div>
+      </div>
+      <div class="wrs-rows">
+        <div class="wrs-row wrs-row-head">
+          <span class="wrs-role">Phase</span>
+          <span class="wrs-name">Scénario</span>
+          <span class="wrs-score">Score</span>
+          <span class="wrs-acc">Acc</span>
+          <span class="wrs-react">Réaction</span>
+        </div>
+        ${rowsHtml}
+      </div>
+      <div class="wrs-actions">
+        <button class="wrs-btn wrs-btn-primary" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('ch-warmup');">${icon('flame',16)} Retour Warmup</button>
+        <button class="wrs-btn" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-home');">${icon('home',16)} Accueil</button>
+      </div>
+    </div>
+  `;
+  showScreen('warmup-run-summary');
+}
+
+function showWarmupRunTransition(lastResult) {
+  const run = G.warmupRun;
+  if (!run) return;
+  const screen = $('#warmup-run-transition');
+  if (!screen) return;
+  const done = run.results.length;
+  const total = run.total;
+  const remaining = run.queue.length;
+  const pct = Math.round(done / total * 100);
+  const nextStep = run.queue[0];
+
+  screen.innerHTML = `
+    <div class="wrt-wrap">
+      <div class="wrt-progress-info">
+        <span class="wrt-step">Phase ${done} / ${total}</span>
+        <span class="wrt-pct">${pct}%</span>
+      </div>
+      <div class="wrt-progress-bar"><div class="wrt-progress-fill" style="width:${pct}%"></div></div>
+      <div class="wrt-last-result">
+        <div class="wrt-last-label">Phase terminée · ${escapeHtml(lastResult.role||'')}</div>
+        <div class="wrt-last-name">${escapeHtml(getLabel(lastResult.mode))}</div>
+        <div class="wrt-last-score">Score ${(lastResult.score||0).toLocaleString()} · Acc ${lastResult.acc||0}%${lastResult.avgReaction ? ' · ' + Math.round(lastResult.avgReaction) + 'ms' : ''}</div>
+      </div>
+      ${remaining > 0 ? `
+        <div class="wrt-next-info">Prochain : <span class="wrt-next-role">${escapeHtml(nextStep.role||'')}</span> · <strong>${escapeHtml(getLabel(nextStep.mode))}</strong> (${nextStep.duration}s)</div>
+        <div class="wrt-actions">
+          <button class="wrt-btn wrt-btn-primary" onclick="continueWarmupRun()">${icon('play',16)} Continuer (${remaining} restants)</button>
+          <button class="wrt-btn" onclick="_wrtAbortAndFinalize()">Terminer</button>
+        </div>
+      ` : `
+        <div class="wrt-actions">
+          <button class="wrt-btn wrt-btn-primary" onclick="continueWarmupRun()">${icon('flame',16)} Voir le résumé</button>
+        </div>
+      `}
+    </div>
+  `;
+  showScreen('warmup-run-transition');
+}
+
+window.startWarmupRun     = startWarmupRun;
+window.continueWarmupRun  = continueWarmupRun;
+window.abortWarmupRun     = abortWarmupRun;
+window._wrtAbortAndFinalize = _wrtAbortAndFinalize;
 
 // Toast visuel pour feedback "scénario verrouillé"
 // Delegates to the global toast system (ui.js). Kept as alias for existing callers.
@@ -2407,6 +2768,11 @@ function startGame(mode) {
   }
   G.mode=mode;
   if(G.benchmarkMode) { G.diff=currentTier==='easier'?'easy':currentTier==='hard'?'hard':'medium'; G.duration=60; }
+  else if(G.warmupRun && G.warmupRun.currentStep) {
+    // Override diff/duration from the warmup routine step
+    G.diff = G.warmupRun.currentStep.diff || 'medium';
+    G.duration = G.warmupRun.currentStep.duration || 60;
+  }
   else { G.diff=$('#opt-diff').value; G.duration=parseInt($('#opt-duration').value); }
   const sMode=$('#opt-sens-mode').value, sVal=parseFloat($('#opt-sens-val').value)||34;
   const dpi=parseInt($('#opt-dpi').value)||800;
@@ -2668,6 +3034,30 @@ function endGame() {
       misses: G.misses,
     });
     showBenchmarkRunTransition({ mode: G.mode, score: bScore, threads, acc });
+    return;
+  }
+
+  // ── WARMUP RUN : capture le résultat et redirige vers la transition
+  if (G.warmupRun && G.warmupRun.currentStep) {
+    const step = G.warmupRun.currentStep;
+    G.warmupRun.results.push({
+      mode: G.mode,
+      role: step.role,
+      why: step.why,
+      duration: step.duration,
+      score: G.score,
+      acc,
+      avgReaction: avgR,
+      hits: G.hits,
+      misses: G.misses,
+    });
+    showWarmupRunTransition({
+      mode: G.mode,
+      role: step.role,
+      score: G.score,
+      acc,
+      avgReaction: avgR,
+    });
     return;
   }
 

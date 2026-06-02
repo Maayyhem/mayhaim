@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.4.7">
+  <meta name="app-version" content="2.4.8">
   <title>MayhAim — Aim Trainer & Coaching Hub</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
@@ -258,6 +258,12 @@
 
     <!-- BENCHMARK RUN : résumé final du run complet -->
     <div id="benchmark-run-summary" class="screen scrollable"></div>
+
+    <!-- WARMUP RUN : écran de transition entre deux phases -->
+    <div id="warmup-run-transition" class="screen scrollable"></div>
+
+    <!-- WARMUP RUN : résumé final ("tu es prêt") -->
+    <div id="warmup-run-summary" class="screen scrollable"></div>
 
     <!-- COACHING HUB -->
     <div id="coaching-screen" class="screen">
@@ -1202,6 +1208,81 @@
         <div id="ch-warmup" class="ch-panel">
           <h2 class="ch-section-title"><span data-icon="flame"></span> Routine d'Échauffement</h2>
           <p style="color:var(--dim);font-size:0.85rem;margin-bottom:20px">Une session de warm-up complète avant de jouer. Inspirée de la méthode Oblivity.</p>
+
+          <!-- ═══ PRE-GAME WARMUP (smart, personnalisé) ═══ -->
+          <div class="pgw-card">
+            <div class="pgw-card-head">
+              <h3 class="pgw-title">🔥 Pre-game Warmup</h3>
+              <span class="pgw-badge">Smart routine</span>
+            </div>
+            <p class="pgw-desc">Routine 4 phases adaptée à ton benchmark + map/agent que tu vas jouer. Auto-chaînée, fini les clics manuels entre scénarios.</p>
+
+            <div class="pgw-config">
+              <label class="pgw-field">
+                <span class="pgw-field-label">Durée</span>
+                <select id="pgw-duration" class="pgw-select">
+                  <option value="3">3 min</option>
+                  <option value="5" selected>5 min</option>
+                  <option value="8">8 min</option>
+                  <option value="10">10 min</option>
+                </select>
+              </label>
+              <label class="pgw-field">
+                <span class="pgw-field-label">Map prévue</span>
+                <select id="pgw-map" class="pgw-select">
+                  <option value="">Aléatoire</option>
+                  <option value="bind">Bind</option><option value="haven">Haven</option>
+                  <option value="split">Split</option><option value="ascent">Ascent</option>
+                  <option value="icebox">Icebox</option><option value="breeze">Breeze</option>
+                  <option value="fracture">Fracture</option><option value="lotus">Lotus</option>
+                  <option value="pearl">Pearl</option><option value="sunset">Sunset</option>
+                  <option value="abyss">Abyss</option>
+                </select>
+              </label>
+              <label class="pgw-field">
+                <span class="pgw-field-label">Agent prévu</span>
+                <select id="pgw-agent" class="pgw-select">
+                  <option value="">Aléatoire</option>
+                  <optgroup label="Duelists">
+                    <option value="jett">Jett</option><option value="reyna">Reyna</option>
+                    <option value="phoenix">Phoenix</option><option value="raze">Raze</option>
+                    <option value="neon">Neon</option><option value="yoru">Yoru</option>
+                    <option value="iso">Iso</option><option value="waylay">Waylay</option>
+                  </optgroup>
+                  <optgroup label="Controllers">
+                    <option value="omen">Omen</option><option value="brimstone">Brimstone</option>
+                    <option value="viper">Viper</option><option value="astra">Astra</option>
+                    <option value="harbor">Harbor</option><option value="clove">Clove</option>
+                  </optgroup>
+                  <optgroup label="Sentinels">
+                    <option value="cypher">Cypher</option><option value="killjoy">Killjoy</option>
+                    <option value="sage">Sage</option><option value="chamber">Chamber</option>
+                    <option value="deadlock">Deadlock</option><option value="vyse">Vyse</option>
+                  </optgroup>
+                  <optgroup label="Initiators">
+                    <option value="sova">Sova</option><option value="skye">Skye</option>
+                    <option value="breach">Breach</option><option value="kay/o">KAY/O</option>
+                    <option value="fade">Fade</option><option value="gekko">Gekko</option>
+                    <option value="tejo">Tejo</option>
+                  </optgroup>
+                </select>
+              </label>
+              <label class="pgw-field">
+                <span class="pgw-field-label">État</span>
+                <div class="pgw-toggle-group">
+                  <button type="button" class="pgw-toggle-btn active" data-pgw-fresh="1">☀️ Première session</button>
+                  <button type="button" class="pgw-toggle-btn" data-pgw-fresh="0">🔥 Déjà chaud</button>
+                </div>
+              </label>
+            </div>
+
+            <div id="pgw-preview" class="pgw-preview"></div>
+
+            <div class="pgw-actions">
+              <button id="pgw-launch-btn" class="btn-primary pgw-launch-btn">▶ Lancer le warmup</button>
+              <button id="pgw-regen-btn" class="btn-secondary">↻ Re-générer</button>
+            </div>
+          </div>
 
           <div class="warmup-phases">
             <div class="warmup-phase">

@@ -2229,11 +2229,109 @@ function _renderRoutineCards() {
     </div>`).join('');
 }
 
+// ═══ PRE-GAME WARMUP — Smart routine personnalisée (4 phases) ═══════
+let _pgwState = { duration: 5, map: '', agent: '', fresh: true, routine: null };
+
+function _pgwReadConfig() {
+  _pgwState.duration = parseInt(document.getElementById('pgw-duration')?.value || '5', 10);
+  _pgwState.map      = document.getElementById('pgw-map')?.value || '';
+  _pgwState.agent    = document.getElementById('pgw-agent')?.value || '';
+}
+
+function _pgwRegenerate() {
+  _pgwReadConfig();
+  if (typeof composeWarmupRoutine !== 'function') return;
+  _pgwState.routine = composeWarmupRoutine({
+    duration: _pgwState.duration,
+    map:      _pgwState.map || null,
+    agent:    _pgwState.agent || null,
+    fresh:    !!_pgwState.fresh,
+  });
+  _pgwRenderPreview();
+}
+
+function _pgwRenderPreview() {
+  const el = document.getElementById('pgw-preview');
+  if (!el) return;
+  const r = _pgwState.routine || [];
+  if (!r.length) { el.innerHTML = ''; return; }
+  const ROLE_ICONS = {
+    'Wake-up':   '☀️', 'Faiblesse': '🎯', 'Spécifique': '🗺',  'Reflex': '⚡'
+  };
+  const totalSec = r.reduce((s, x) => s + (x.duration || 0), 0);
+  const sceLabel = (mode) => {
+    if (typeof SCENARIOS !== 'undefined' && SCENARIOS[mode]) return SCENARIOS[mode].label || mode;
+    return mode;
+  };
+  el.innerHTML = `
+    <div class="pgw-preview-head">
+      <span class="pgw-preview-title">Routine personnalisée · ${Math.round(totalSec/60)} min</span>
+      <span class="pgw-preview-meta">${r.length} phases</span>
+    </div>
+    <ol class="pgw-preview-list">
+      ${r.map((step, i) => `
+        <li class="pgw-step">
+          <span class="pgw-step-num">${i+1}</span>
+          <span class="pgw-step-icon">${ROLE_ICONS[step.role]||'·'}</span>
+          <div class="pgw-step-info">
+            <div class="pgw-step-name">${san(sceLabel(step.mode))} <span class="pgw-step-diff">· ${san(step.diff)}</span></div>
+            <div class="pgw-step-why">${san(step.role)} — ${san(step.why||'')}</div>
+          </div>
+          <span class="pgw-step-dur">${step.duration}s</span>
+        </li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+function _pgwLaunch() {
+  if (!_pgwState.routine) _pgwRegenerate();
+  if (!_pgwState.routine || !_pgwState.routine.length) {
+    showToast?.warn?.('Impossible de générer la routine');
+    return;
+  }
+  if (typeof startWarmupRun !== 'function') {
+    showToast?.warn?.('Système de warmup pas encore prêt — recharge la page');
+    return;
+  }
+  startWarmupRun(_pgwState.routine);
+}
+
+function _initPregameWarmup() {
+  const card = document.querySelector('#ch-warmup .pgw-card');
+  if (!card || card.dataset.bound) return;
+  card.dataset.bound = '1';
+
+  // Wire config inputs → re-render preview
+  ['pgw-duration','pgw-map','pgw-agent'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', _pgwRegenerate);
+  });
+
+  // Fresh toggle
+  card.querySelectorAll('.pgw-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      card.querySelectorAll('.pgw-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _pgwState.fresh = btn.dataset.pgwFresh === '1';
+      _pgwRegenerate();
+    });
+  });
+
+  // Buttons
+  document.getElementById('pgw-regen-btn')?.addEventListener('click', _pgwRegenerate);
+  document.getElementById('pgw-launch-btn')?.addEventListener('click', _pgwLaunch);
+
+  // Initial preview
+  _pgwRegenerate();
+}
+
 function initWarmupPanel() {
   const panel = document.getElementById('ch-warmup');
   if (!panel) return;
 
   _renderRoutineCards();
+  _initPregameWarmup();
 
   // ── Exercise buttons individuels ──────────────────────────────────────
   panel.querySelectorAll('.warmup-exercise-btn').forEach(btn => {
