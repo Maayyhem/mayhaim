@@ -1,5 +1,36 @@
 # Changelog — MayhAim
 
+## 2.5.0 — 2026-07-03
+
+### 🚀 Niveau supérieur — 3 axes : Kovaak's · Tracker Network · ValoPlant
+
+**🎯 Axe Kovaak's (aim trainer)**
+- **Playlists** : crée des chaînes de scénarios custom (scénario + durée + difficulté par étape, 20 max), sauvegardées en localStorage, lancées en auto-chaîne avec écrans de transition et résumé final. Section "Playlists" en haut du Free Play.
+- **Timeline de run** : échantillonnage score/hits/misses chaque seconde → graphe "Progression pendant la run" sur l'écran de résultats (courbe score + courbe précision, style Kovaak's).
+- **Stats étendues** : Kills/s et Réaction médiane (plus robuste que la moyenne) ajoutés aux résultats.
+
+**📊 Axe Tracker Network (tracker Valorant)**
+- **Graphe de progression RR** : cumul des gains/pertes RR par match tracé en courbe (les données mmr-history étaient déjà fetchées mais jamais visualisées). Total sur la période affiché en header.
+- **Form bar** : les 20 dernières parties en barres vertes/rouges (W/L) avec tooltip map + score, comme sur Tracker Network.
+- **Tendances** : HS%, ACS et K/D des 5 dernières parties vs les 5 précédentes avec flèches ▲▼ colorées.
+
+**🗺 Axe ValoPlant (éditeur de strats)**
+- **Dessin libre (Pen)** : trace à main levée sur la map avec couleur et épaisseur au choix — LA feature centrale de ValoPlant.
+- **Agents réels** : place des portraits d'agents (27 agents, icônes officielles valorant-api) au lieu de simples ronds ATK/DEF.
+- **Undo/Redo** : Ctrl+Z / Ctrl+Shift+Z + boutons, historique 50 actions.
+- **Export PNG** : composite map + annotations téléchargé en un clic (fallback overlay seul si restriction CORS).
+- **Duplication de step** : itère une variante de strat sans tout redessiner.
+- **Couleur/épaisseur** appliquées aussi aux flèches et lignes de vue.
+- Les strats sauvegardées avec dessins/agents s'affichent correctement dans la vue scénario (maps.js).
+
+**✨ Refonte graphique (pro & intuitif)**
+- Scrollbars sombres thémées (fini le scrollbar blanc Windows qui cassait l'immersion)
+- Focus clavier visible partout (accessibilité) sans outline parasite au clic
+- Transitions unifiées : boutons (press feedback), cartes de mode (hover lift), inputs (focus ring accent), lignes de tableau
+- Fade-in des panneaux au changement d'onglet, skeleton shimmer sur les chargements tracker
+- Sélection de texte aux couleurs du thème, hiérarchie typographique resserrée
+- `prefers-reduced-motion` respecté
+
 ## 2.4.9 — 2026-07-03
 
 ### 🛡 Audit complet — 25+ bugs corrigés (5 reviews parallèles sur tout le projet)

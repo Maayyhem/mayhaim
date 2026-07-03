@@ -3826,7 +3826,124 @@ const ME = {
   dragging: null, dragIdx: -1,
   editingScenario: null, // { id, title, map } when editing a scénario's map
   rotation: 0,
+  // ── ValoPlant-style additions ──
+  color: '#3fb950',      // couleur courante (pen, arrows, sightlines)
+  width: 5,              // épaisseur du trait
+  agentPick: 'jett',     // agent sélectionné pour l'outil agent
+  drawing: null,         // path freehand en cours {points:[...]}
+  history: [],           // snapshots pour undo (max 50)
+  future: [],            // snapshots pour redo
 };
+
+// Snapshot de l'état des steps pour undo/redo. Appelé AVANT chaque mutation.
+function mePushHistory() {
+  ME.history.push(JSON.stringify(ME.steps));
+  if (ME.history.length > 50) ME.history.shift();
+  ME.future = []; // toute nouvelle action invalide le redo
+}
+
+function meUndo() {
+  if (!ME.history.length) return;
+  ME.future.push(JSON.stringify(ME.steps));
+  ME.steps = JSON.parse(ME.history.pop());
+  if (ME.currentStep >= ME.steps.length) ME.currentStep = ME.steps.length - 1;
+  meRenderSteps(); meRender();
+}
+
+function meRedo() {
+  if (!ME.future.length) return;
+  ME.history.push(JSON.stringify(ME.steps));
+  ME.steps = JSON.parse(ME.future.pop());
+  if (ME.currentStep >= ME.steps.length) ME.currentStep = ME.steps.length - 1;
+  meRenderSteps(); meRender();
+}
+
+function meDuplicateStep() {
+  const step = ME.steps[ME.currentStep];
+  if (!step) return;
+  mePushHistory();
+  const copy = JSON.parse(JSON.stringify(step));
+  copy.label = step.label + ' (copie)';
+  ME.steps.splice(ME.currentStep + 1, 0, copy);
+  ME.currentStep++;
+  meRenderSteps(); meRender();
+}
+
+// Export PNG : composite l'image de map (rotation appliquée) + l'overlay SVG
+// sur un canvas 1024×1024 puis télécharge.
+async function meExportPNG() {
+  const img = document.getElementById('me-map-img');
+  const svg = document.getElementById('me-svg-overlay');
+  if (!img || !svg) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, 1024, 1024);
+  // Map (avec rotation)
+  try {
+    ctx.save();
+    ctx.translate(512, 512);
+    ctx.rotate(ME.rotation * Math.PI / 180);
+    ctx.drawImage(img, -512, -512, 1024, 1024);
+    ctx.restore();
+  } catch(e) { /* image cross-origin non chargée : fond seul */ }
+  // Overlay SVG → image
+  const svgClone = svg.cloneNode(true);
+  svgClone.setAttribute('width', '1024');
+  svgClone.setAttribute('height', '1024');
+  svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  // Inline des images externes (portraits d'agents) en data-URL : un SVG
+  // rasterisé via blob-URL ne peut charger AUCUNE ressource externe — sans
+  // ça, les agents exportaient en anneau vide.
+  const extImages = [...svgClone.querySelectorAll('image')].filter(im => {
+    const href = im.getAttribute('href') || im.getAttribute('xlink:href') || '';
+    return /^https?:/.test(href);
+  });
+  await Promise.all(extImages.map(async im => {
+    try {
+      const href = im.getAttribute('href') || im.getAttribute('xlink:href');
+      const resp = await fetch(href);
+      const b = await resp.blob();
+      const dataUrl = await new Promise((ok, ko) => {
+        const fr = new FileReader();
+        fr.onload = () => ok(fr.result);
+        fr.onerror = ko;
+        fr.readAsDataURL(b);
+      });
+      im.setAttribute('href', dataUrl);
+      im.removeAttribute('xlink:href');
+    } catch(e) { im.remove(); /* portrait indisponible : on garde l'anneau */ }
+  }));
+  const blob = new Blob([new XMLSerializer().serializeToString(svgClone)], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const overlay = new Image();
+  overlay.onload = () => {
+    ctx.drawImage(overlay, 0, 0, 1024, 1024);
+    URL.revokeObjectURL(url);
+    const stepLabel = ME.steps[ME.currentStep]?.label || 'step';
+    const a = document.createElement('a');
+    a.download = `mayhaim-strat-${ME.currentMap.toLowerCase()}-${stepLabel.replace(/[^a-z0-9]/gi,'_').toLowerCase()}.png`;
+    try {
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      showToast?.('Strat exportée en PNG');
+    } catch(e) {
+      // Canvas tainted (image map cross-origin sans CORS) : on exporte
+      // l'overlay seul plutôt que d'échouer silencieusement.
+      const c2 = document.createElement('canvas');
+      c2.width = 1024; c2.height = 1024;
+      const x2 = c2.getContext('2d');
+      x2.fillStyle = '#0d1117'; x2.fillRect(0, 0, 1024, 1024);
+      x2.drawImage(overlay, 0, 0, 1024, 1024);
+      a.href = c2.toDataURL('image/png');
+      a.click();
+      showToast?.warn?.('Export sans le fond de map (restriction CORS)');
+    }
+  };
+  overlay.onerror = () => { URL.revokeObjectURL(url); showToast?.error?.('Export impossible'); };
+  overlay.src = url;
+}
 
 function meInit() {
   const mapSel = document.getElementById('me-map-select');
@@ -3870,6 +3987,7 @@ function meInit() {
 
   // Steps
   document.getElementById('me-add-step').addEventListener('click', () => {
+    mePushHistory();
     ME.steps.push({ label:`Step ${ME.steps.length+1}`, elements:[] });
     ME.currentStep = ME.steps.length - 1;
     meRenderSteps();
@@ -3879,11 +3997,34 @@ function meInit() {
   // Save/Clear
   document.getElementById('me-save-strat').addEventListener('click', meSaveStrat);
   document.getElementById('me-clear').addEventListener('click', () => {
+    mePushHistory();
     ME.steps = [{ label:'Step 1', elements:[] }];
     ME.currentStep = 0;
     ME.arrowStart = null;
     meRenderSteps();
     meRender();
+  });
+
+  // ── ValoPlant-style controls ──
+  document.getElementById('me-color')?.addEventListener('input', e => { ME.color = e.target.value; });
+  document.getElementById('me-width')?.addEventListener('change', e => { ME.width = parseInt(e.target.value) || 5; });
+  document.getElementById('me-agent-select')?.addEventListener('change', e => { ME.agentPick = e.target.value; });
+  document.getElementById('me-undo')?.addEventListener('click', meUndo);
+  document.getElementById('me-redo')?.addEventListener('click', meRedo);
+  document.getElementById('me-dup-step')?.addEventListener('click', meDuplicateStep);
+  document.getElementById('me-export-png')?.addEventListener('click', meExportPNG);
+
+  // Ctrl+Z / Ctrl+Shift+Z — actifs seulement quand le panneau map editor est
+  // réellement au premier plan : coaching-screen actif (pas en pleine partie/
+  // résultats qui sont des screens par-dessus) ET pas en train de taper dans
+  // un input (sinon on volerait l'undo natif du texte).
+  document.addEventListener('keydown', e => {
+    const panel = document.getElementById('ch-map-editor');
+    if (!panel || !panel.classList.contains('active')) return;
+    if (!document.getElementById('coaching-screen')?.classList.contains('active')) return;
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); meUndo(); }
+    else if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); meRedo(); }
   });
 
   meLoadMapImg();
@@ -3920,16 +4061,29 @@ function meOnMouseDown(e) {
 
   const tool = ME.currentTool;
 
+  // Pen: démarre un path freehand — commit au mouseup
+  if (tool === 'draw') {
+    ME.drawing = { type:'draw', points:[[x, y]], color:ME.color, width:ME.width };
+    return;
+  }
+
   // Eraser: find and remove nearest element
   if (tool === 'eraser') {
     let bestIdx = -1, bestDist = 40;
     step.elements.forEach((el, i) => {
-      const ex = el.x ?? ((el.x1 + el.x2) / 2);
-      const ey = el.y ?? ((el.y1 + el.y2) / 2);
+      let ex, ey;
+      if (el.type === 'draw' && el.points?.length) {
+        // Point du path le plus proche du clic
+        let dMin = Infinity;
+        el.points.forEach(([px, py]) => { const d = Math.hypot(px - x, py - y); if (d < dMin) { dMin = d; ex = px; ey = py; } });
+      } else {
+        ex = el.x ?? ((el.x1 + el.x2) / 2);
+        ey = el.y ?? ((el.y1 + el.y2) / 2);
+      }
       const d = Math.hypot(ex - x, ey - y);
       if (d < bestDist) { bestDist = d; bestIdx = i; }
     });
-    if (bestIdx >= 0) { step.elements.splice(bestIdx, 1); meRender(); }
+    if (bestIdx >= 0) { mePushHistory(); step.elements.splice(bestIdx, 1); meRender(); }
     return;
   }
 
@@ -3940,8 +4094,9 @@ function meOnMouseDown(e) {
       return;
     }
     const el = tool === 'arrow'
-      ? { type:'arrow', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y, color:'#3fb950' }
-      : { type:'sightline', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y };
+      ? { type:'arrow', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y, color:ME.color, width:ME.width }
+      : { type:'sightline', x1:ME.arrowStart.x, y1:ME.arrowStart.y, x2:x, y2:y, color:ME.color };
+    mePushHistory();
     step.elements.push(el);
     ME.arrowStart = null;
     meRender();
@@ -3951,7 +4106,7 @@ function meOnMouseDown(e) {
   // Text: prompt for label
   if (tool === 'text') {
     const label = prompt('Texte:');
-    if (label) { step.elements.push({ type:'text', x, y, label }); meRender(); }
+    if (label) { mePushHistory(); step.elements.push({ type:'text', x, y, label }); meRender(); }
     return;
   }
 
@@ -3965,6 +4120,10 @@ function meOnMouseDown(e) {
   });
 
   if (dragIdx >= 0 && tool !== 'eraser') {
+    // Snapshot différé : poussé dans l'historique seulement au premier
+    // mouvement réel (sinon chaque simple clic près d'un élément remplissait
+    // les 50 slots d'undo avec des snapshots identiques).
+    ME._preDragSnapshot = JSON.stringify(ME.steps);
     ME.dragging = step.elements[dragIdx];
     ME.dragIdx = dragIdx;
     return;
@@ -3978,12 +4137,32 @@ function meOnMouseDown(e) {
     case 'smoke': newEl = { type:'smoke', x, y, label:'Smoke' }; break;
     case 'flash': newEl = { type:'flash', x, y }; break;
     case 'plant': newEl = { type:'plant', x, y }; break;
+    case 'agent': newEl = { type:'agent', x, y, agent: ME.agentPick }; break;
   }
-  if (newEl) { step.elements.push(newEl); meRender(); }
+  if (newEl) { mePushHistory(); step.elements.push(newEl); meRender(); }
 }
 
 function meOnMouseMove(e) {
+  // Freehand en cours : on échantillonne (min 6 unités entre points pour
+  // garder les paths légers)
+  if (ME.drawing) {
+    const { x, y } = meGetCoords(e);
+    const pts = ME.drawing.points;
+    const [lx, ly] = pts[pts.length - 1];
+    if (Math.hypot(x - lx, y - ly) >= 6) {
+      pts.push([x, y]);
+      meRender(); // preview live
+    }
+    return;
+  }
   if (!ME.dragging) return;
+  // Premier mouvement du drag : on committe le snapshot pré-drag dans l'undo
+  if (ME._preDragSnapshot) {
+    ME.history.push(ME._preDragSnapshot);
+    if (ME.history.length > 50) ME.history.shift();
+    ME.future = [];
+    ME._preDragSnapshot = null;
+  }
   const { x, y } = meGetCoords(e);
   ME.dragging.x = x;
   ME.dragging.y = y;
@@ -3991,8 +4170,20 @@ function meOnMouseMove(e) {
 }
 
 function meOnMouseUp() {
+  // Commit du path freehand
+  if (ME.drawing) {
+    if (ME.drawing.points.length >= 2) {
+      mePushHistory();
+      const step = ME.steps[ME.currentStep];
+      if (step) step.elements.push(ME.drawing);
+    }
+    ME.drawing = null;
+    meRender();
+    return;
+  }
   ME.dragging = null;
   ME.dragIdx = -1;
+  ME._preDragSnapshot = null; // clic sans mouvement : snapshot jeté
 }
 
 function meRender() {
@@ -4019,12 +4210,13 @@ function meRender() {
         break;
       case 'arrow':
         const ac = el.color || '#3fb950';
+        const aw = el.width || 4;
         const aid = `me-ah-${el.x1}-${el.y1}-${el.x2}`;
         out += `<defs><marker id="${aid}" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="${ac}"/></marker></defs>`;
-        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="${ac}" stroke-width="4" marker-end="url(#${aid})" opacity="0.85"/>`;
+        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="${ac}" stroke-width="${aw}" marker-end="url(#${aid})" opacity="0.85"/>`;
         break;
       case 'sightline':
-        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="rgba(255,70,85,0.5)" stroke-width="2.5" stroke-dasharray="10"/>`;
+        out += `<line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" stroke="${el.color || 'rgba(255,70,85,0.5)'}" stroke-width="2.5" stroke-dasharray="10" opacity="0.6"/>`;
         break;
       case 'plant':
         out += `<rect x="${el.x-15}" y="${el.y-15}" width="30" height="30" fill="rgba(255,70,85,0.7)" stroke="#ff4655" stroke-width="3" rx="4"/>`;
@@ -4033,15 +4225,52 @@ function meRender() {
       case 'text':
         out += `<text x="${el.x}" y="${el.y}" fill="#ffcc44" font-size="22" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 8px #000">${el.label}</text>`;
         break;
+      case 'draw':
+        out += _meDrawPathSvg(el);
+        break;
+      case 'agent':
+        out += _meAgentSvg(el);
+        break;
     }
   });
 
+  // Preview live du path freehand en cours
+  if (ME.drawing && ME.drawing.points.length >= 2) {
+    out += _meDrawPathSvg(ME.drawing);
+  }
+
   // Show arrow start indicator
   if (ME.arrowStart) {
-    out += `<circle cx="${ME.arrowStart.x}" cy="${ME.arrowStart.y}" r="8" fill="none" stroke="#3fb950" stroke-width="3" stroke-dasharray="4"><animate attributeName="r" values="8;14;8" dur="1s" repeatCount="indefinite"/></circle>`;
+    out += `<circle cx="${ME.arrowStart.x}" cy="${ME.arrowStart.y}" r="8" fill="none" stroke="${ME.color}" stroke-width="3" stroke-dasharray="4"><animate attributeName="r" values="8;14;8" dur="1s" repeatCount="indefinite"/></circle>`;
   }
 
   svg.innerHTML = out;
+}
+
+// Polyline freehand → SVG (partagé entre le rendu éditeur et l'export)
+function _meDrawPathSvg(el) {
+  if (!el.points || el.points.length < 2) return '';
+  const pts = el.points.map(([px, py]) => `${px},${py}`).join(' ');
+  return `<polyline points="${pts}" fill="none" stroke="${el.color || '#3fb950'}" stroke-width="${el.width || 5}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+}
+
+// Agent placé → portrait rond + nom (icône valorant-api si chargée, sinon rond coloré)
+function _meAgentSvg(el) {
+  const name = el.agent || '?';
+  const iconUrl = (typeof AGENT_ICONS !== 'undefined' && AGENT_ICONS[name.toLowerCase()]) || null;
+  const label = name.charAt(0).toUpperCase() + name.slice(1);
+  let out = '';
+  if (iconUrl) {
+    const clipId = `me-agc-${Math.round(el.x)}-${Math.round(el.y)}`;
+    out += `<defs><clipPath id="${clipId}"><circle cx="${el.x}" cy="${el.y}" r="24"/></clipPath></defs>`;
+    out += `<circle cx="${el.x}" cy="${el.y}" r="26" fill="#0d1117" stroke="#58e0c0" stroke-width="3"/>`;
+    out += `<image href="${iconUrl}" x="${el.x-24}" y="${el.y-24}" width="48" height="48" clip-path="url(#${clipId})"/>`;
+  } else {
+    out += `<circle cx="${el.x}" cy="${el.y}" r="24" fill="#58e0c0" stroke="#fff" stroke-width="3" opacity="0.9"/>`;
+    out += `<text x="${el.x}" y="${el.y+7}" fill="#0d1117" font-size="20" text-anchor="middle" font-weight="bold">${label.charAt(0)}</text>`;
+  }
+  out += `<text x="${el.x}" y="${el.y+45}" fill="#58e0c0" font-size="15" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 6px #000">${label}</text>`;
+  return out;
 }
 
 function meRenderSteps() {
@@ -4057,6 +4286,7 @@ function meRenderSteps() {
     }
     btn.addEventListener('click', (e) => {
       if (e.target.classList.contains('me-step-del')) {
+        mePushHistory();
         ME.steps.splice(parseInt(e.target.dataset.idx), 1);
         if (ME.currentStep >= ME.steps.length) ME.currentStep = ME.steps.length - 1;
         meRenderSteps();
@@ -4096,6 +4326,10 @@ function meLoadStrat(idx) {
   const strats = meGetSaved();
   const s = strats[idx];
   if (!s) return;
+  // Frontière d'édition : sans ce reset, Ctrl+Z après un load restaurait un
+  // snapshot de la strat PRÉCÉDENTE sur la map de la nouvelle (corruption à
+  // la sauvegarde).
+  ME.history = []; ME.future = [];
   ME.currentMap = s.map;
   ME.steps = JSON.parse(JSON.stringify(s.steps));
   ME.currentStep = 0;
@@ -4138,6 +4372,7 @@ function meRenderSaved() {
 // Open Map Editor pre-loaded with a scénario's map data
 function meOpenForScenario(scenario) {
   ME.editingScenario = { id: scenario.id, title: scenario.title, map: scenario.map || 'Bind' };
+  ME.history = []; ME.future = []; // frontière d'édition (voir meLoadStrat)
 
   // Load existing custom annotations, or default annotations, or start fresh
   const custom = typeof getCustomScenarioMap === 'function' && getCustomScenarioMap(scenario.id);
@@ -5401,6 +5636,77 @@ function _perfBar(val, max, color) {
   return `<div class="trk-perf-bar"><div class="trk-perf-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
 }
 
+// ── Tracker Network-style : graphe de progression RR (canvas natif) ─────
+// matches en ordre chronologique ASCENDANT, seulement ceux avec rr_change.
+function _trkDrawRRChart(canvasId, rrMatches) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !rrMatches.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 600, H = canvas.clientHeight || 140;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Cumul RR relatif au point de départ de la fenêtre affichée
+  let cum = 0;
+  const pts = rrMatches.map(m => (cum += (m.rr_change || 0)));
+  const minV = Math.min(0, ...pts), maxV = Math.max(0, ...pts);
+  const range = Math.max(10, maxV - minV);
+  const padX = 6, padY = 12;
+  const xAt = i => padX + (i / Math.max(1, pts.length - 1)) * (W - padX * 2);
+  const yAt = v => padY + (1 - (v - minV) / range) * (H - padY * 2);
+
+  ctx.clearRect(0, 0, W, H);
+  // Ligne zéro
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(padX, yAt(0)); ctx.lineTo(W - padX, yAt(0)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Aire sous la courbe
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  const trendUp = pts[pts.length - 1] >= 0;
+  grad.addColorStop(0, trendUp ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(xAt(0), yAt(0));
+  pts.forEach((v, i) => ctx.lineTo(xAt(i), yAt(v)));
+  ctx.lineTo(xAt(pts.length - 1), yAt(0));
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Courbe
+  ctx.beginPath();
+  pts.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAt(v)) : ctx.lineTo(xAt(i), yAt(v)));
+  ctx.strokeStyle = trendUp ? '#4ade80' : '#f87171';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Points win/loss
+  rrMatches.forEach((m, i) => {
+    ctx.beginPath();
+    ctx.arc(xAt(i), yAt(pts[i]), 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = (m.rr_change || 0) >= 0 ? '#4ade80' : '#f87171';
+    ctx.fill();
+  });
+}
+
+// Tendance : moyenne des 5 dernières vs 5 précédentes → {delta, arrow, color}
+function _trkTrend(matches, getter) {
+  const vals = matches.map(getter).filter(v => v != null && isFinite(v));
+  if (vals.length < 6) return null;
+  const recent = vals.slice(0, 5), prev = vals.slice(5, 10);
+  if (!prev.length) return null;
+  const avgR = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const avgP = prev.reduce((a, b) => a + b, 0) / prev.length;
+  const delta = avgR - avgP;
+  const eps = Math.abs(avgP) * 0.02;
+  if (Math.abs(delta) <= eps) return { avg: avgR, arrow: '→', color: 'var(--dim)' };
+  return { avg: avgR, arrow: delta > 0 ? '▲' : '▼', color: delta > 0 ? '#4ade80' : '#f87171', delta };
+}
+
 function trackerRender(data, el) {
   const s = data.stats || {};
   const matches = data.recent_matches || [];
@@ -5582,9 +5888,50 @@ function trackerRender(data, el) {
     </div>`;
   }).join('') : `<p style="color:var(--dim);font-size:0.85rem;padding:24px 0;text-align:center">Aucune partie trouvée pour ce mode.</p>`;
 
+  // ── Form bar (20 dernières, style Tracker Network) ─────────────────
+  const last20 = matches.slice(0, 20);
+  const formBarHtml = last20.length >= 3 ? `
+    <div class="trk-form-wrap">
+      <span class="trk-form-lbl">Forme récente</span>
+      <div class="trk-form-bar">${[...last20].reverse().map(m =>
+        `<span class="trk-form-sq ${m.result === 'WIN' ? 'trk-form-w' : 'trk-form-l'}" title="${san(m.map || '')} · ${san(m.score || '')}"></span>`
+      ).join('')}</div>
+      <span class="trk-form-count">${last20.filter(m => m.result === 'WIN').length}V / ${last20.filter(m => m.result !== 'WIN').length}D</span>
+    </div>` : '';
+
+  // ── RR progression (données mmr-history déjà fetchées, jamais tracées) ─
+  const rrMatches = [...matches].filter(m => m.rr_change != null).reverse(); // chronologique
+  const rrTotal = rrMatches.reduce((a, m) => a + (m.rr_change || 0), 0);
+  const rrChartId = `${el.id || 'trk'}-rrchart`;
+  const rrChartHtml = rrMatches.length >= 3 ? `
+    <div class="trk-section trk-rr-section">
+      <div class="trk-section-title">${icon('trending',14)} Progression RR
+        <span class="trk-rr-total" style="color:${rrTotal >= 0 ? '#4ade80' : '#f87171'}">${rrTotal >= 0 ? '+' : ''}${rrTotal} RR sur ${rrMatches.length} parties</span>
+      </div>
+      <canvas id="${rrChartId}" class="trk-rr-canvas"></canvas>
+    </div>` : '';
+
+  // ── Trends (5 dernières vs 5 précédentes) ──────────────────────────
+  const trHS  = _trkTrend(matches, m => m.hs_pct);
+  const trACS = _trkTrend(matches, m => m.acs);
+  const trKD  = _trkTrend(matches, m => m.deaths > 0 ? m.kills / m.deaths : m.kills);
+  const trendCell = (lbl, tr, fmt) => tr ? `
+    <div class="trk-trend-cell">
+      <span class="trk-trend-arrow" style="color:${tr.color}">${tr.arrow}</span>
+      <span class="trk-trend-val">${fmt(tr.avg)}</span>
+      <span class="trk-trend-lbl">${lbl}</span>
+    </div>` : '';
+  const trendsInner = trendCell('HS% (5 dern.)', trHS, v => Math.round(v) + '%')
+    + trendCell('ACS (5 dern.)', trACS, v => Math.round(v))
+    + trendCell('K/D (5 dern.)', trKD, v => v.toFixed(2));
+  const trendsHtml = trendsInner ? `<div class="trk-trends-row">${trendsInner}</div>` : '';
+
   el.innerHTML = `
     ${_trkActTabs(seasonGroups)}
+    ${formBarHtml}
     ${statsHtml}
+    ${trendsHtml}
+    ${rrChartHtml}
     <div class="trk-split">
       ${agentTableHtml}
       ${mapTableHtml}
@@ -5597,6 +5944,9 @@ function trackerRender(data, el) {
     </div>
     <div class="trk-footer">Données via Henrik Dev API · Non-officiel</div>
   `;
+
+  // Dessin du canvas après insertion dans le DOM (dimensions résolues)
+  if (rrMatches.length >= 3) requestAnimationFrame(() => _trkDrawRRChart(rrChartId, rrMatches));
 }
 
 // Trigger a full-history refetch for the current search context

@@ -297,6 +297,30 @@ function renderTacticalMap(containerId, scenarioId, stepIndex) {
         case 'text':
           svg += `<text x="${el.x}" y="${el.y}" fill="#ffcc44" font-size="22" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 8px #000,0 0 4px #000">${el.label}</text>`;
           break;
+        case 'draw':
+          // Dessin libre (créé dans le Map Editor v2.5)
+          if (el.points && el.points.length >= 2) {
+            const pts = el.points.map(([px, py]) => `${px},${py}`).join(' ');
+            svg += `<polyline points="${pts}" fill="none" stroke="${el.color || '#3fb950'}" stroke-width="${el.width || 5}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+          }
+          break;
+        case 'agent':
+          // Agent placé — portrait si AGENT_ICONS est chargé (coaching.js), fallback rond
+          {
+            const aName = el.agent || '?';
+            const aUrl = (typeof AGENT_ICONS !== 'undefined' && AGENT_ICONS[aName.toLowerCase()]) || null;
+            const aLbl = aName.charAt(0).toUpperCase() + aName.slice(1);
+            if (aUrl) {
+              const cid = `tm-agc-${Math.round(el.x)}-${Math.round(el.y)}`;
+              svg += `<defs><clipPath id="${cid}"><circle cx="${el.x}" cy="${el.y}" r="24"/></clipPath></defs>`;
+              svg += `<circle cx="${el.x}" cy="${el.y}" r="26" fill="#0d1117" stroke="#58e0c0" stroke-width="3"/>`;
+              svg += `<image href="${aUrl}" x="${el.x-24}" y="${el.y-24}" width="48" height="48" clip-path="url(#${cid})"/>`;
+            } else {
+              svg += `<circle cx="${el.x}" cy="${el.y}" r="24" fill="#58e0c0" stroke="#fff" stroke-width="3" opacity="0.9"/>`;
+            }
+            svg += `<text x="${el.x}" y="${el.y+45}" fill="#58e0c0" font-size="15" text-anchor="middle" font-weight="bold" style="text-shadow:0 0 6px #000">${aLbl}</text>`;
+          }
+          break;
       }
     });
   }

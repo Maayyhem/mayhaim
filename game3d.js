@@ -747,8 +747,9 @@ function startWarmupRun(routine) {
     startedAt: Date.now(),
     total: valid.length,
     routine: valid,
+    title: arguments[1]?.title || null, // playlists réutilisent la machinerie warmup
   };
-  window._coachLaunchSource = { tab: 'ch-warmup' };
+  window._coachLaunchSource = { tab: arguments[1]?.sourceTab || 'ch-warmup' };
   _startWarmupScenario(valid[0]);
 }
 
@@ -807,7 +808,7 @@ function finalizeWarmupRun() {
   G.warmupRun = null;
   window._coachLaunchSource = null;
 
-  showWarmupRunSummary({ totalScore, acc, accDelta, avgReact, durationMin, results: run.results });
+  showWarmupRunSummary({ totalScore, acc, accDelta, avgReact, durationMin, results: run.results, title: run.title });
 }
 
 function showWarmupRunSummary(s) {
@@ -830,7 +831,7 @@ function showWarmupRunSummary(s) {
   screen.innerHTML = `
     <div class="wrs-wrap">
       <div class="wrs-header">
-        <h1>${icon('flame',28)} Tu es prêt à queue</h1>
+        <h1>${s.title ? icon('film',28) + ' ' + escapeHtml(s.title) + ' — terminée' : icon('flame',28) + ' Tu es prêt à queue'}</h1>
         <div class="wrs-subtitle">${s.results.length} scénarios · ${s.durationMin} min</div>
       </div>
       <div class="wrs-stats-bar">
@@ -849,7 +850,7 @@ function showWarmupRunSummary(s) {
         ${rowsHtml}
       </div>
       <div class="wrs-actions">
-        <button class="wrs-btn wrs-btn-primary" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('ch-warmup');">${icon('flame',16)} Retour Warmup</button>
+        <button class="wrs-btn wrs-btn-primary" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('${s.title ? 'hub-freeplay' : 'ch-warmup'}');">${s.title ? icon('film',16) + ' Retour Playlists' : icon('flame',16) + ' Retour Warmup'}</button>
         <button class="wrs-btn" onclick="document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('coaching-screen')?.classList.add('active');coachingSwitchTab&&coachingSwitchTab('hub-home');">${icon('home',16)} Accueil</button>
       </div>
     </div>
@@ -900,6 +901,120 @@ window.startWarmupRun     = startWarmupRun;
 window.continueWarmupRun  = continueWarmupRun;
 window.abortWarmupRun     = abortWarmupRun;
 window._wrtAbortAndFinalize = _wrtAbortAndFinalize;
+
+// ============================================================
+// PLAYLISTS — chaînes de scénarios custom (style Kovaak's)
+// Réutilise la machinerie Warmup Run (transition + summary + overrides
+// diff/duration par step) avec un titre custom.
+// ============================================================
+function loadPlaylists() { try { return JSON.parse(localStorage.getItem('mh_playlists')) || []; } catch { return []; } }
+function savePlaylists(pls) { localStorage.setItem('mh_playlists', JSON.stringify(pls)); }
+
+let _plDraft = null; // { name, steps } pendant la construction
+
+function renderPlaylists() {
+  const list = document.getElementById('fp-pl-list');
+  if (!list) return;
+  const pls = loadPlaylists();
+  if (!pls.length) {
+    list.innerHTML = '<p class="fp-pl-empty">Aucune playlist — crée ta première routine personnalisée avec "+ Nouvelle".</p>';
+    return;
+  }
+  list.innerHTML = pls.map((p, i) => {
+    const totalSec = p.steps.reduce((a, s) => a + (s.duration || 60), 0);
+    const chain = p.steps.map(s => escapeHtml(SCENARIOS[s.mode]?.label || s.mode)).join(' → ');
+    return `<div class="fp-pl-item">
+      <div class="fp-pl-info">
+        <div class="fp-pl-name">${escapeHtml(p.name)}</div>
+        <div class="fp-pl-meta">${p.steps.length} scénarios · ~${Math.round(totalSec / 60)} min — ${chain}</div>
+      </div>
+      <button class="fp-pl-btn fp-pl-play" data-idx="${i}" title="Lancer">▶</button>
+      <button class="fp-pl-btn fp-pl-del" data-idx="${i}" title="Supprimer">✕</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.fp-pl-play').forEach(b => b.addEventListener('click', () => launchPlaylist(parseInt(b.dataset.idx))));
+  list.querySelectorAll('.fp-pl-del').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('Supprimer cette playlist ?')) return;
+    const pls2 = loadPlaylists(); pls2.splice(parseInt(b.dataset.idx), 1); savePlaylists(pls2); renderPlaylists();
+  }));
+}
+
+function launchPlaylist(idx) {
+  const p = loadPlaylists()[idx];
+  if (!p || !p.steps.length) return;
+  const routine = p.steps.map(s => ({
+    mode: s.mode, duration: s.duration || 60, diff: s.diff || 'medium',
+    role: 'Playlist', why: p.name,
+  }));
+  startWarmupRun(routine, { title: p.name, sourceTab: 'hub-freeplay' });
+}
+
+function _plRenderDraftSteps() {
+  const ol = document.getElementById('fp-pl-steps');
+  if (!ol || !_plDraft) return;
+  ol.innerHTML = _plDraft.steps.map((s, i) =>
+    `<li>${escapeHtml(SCENARIOS[s.mode]?.label || s.mode)} · ${s.duration}s · ${s.diff}
+       <button class="fp-pl-step-del" data-idx="${i}" title="Retirer">✕</button></li>`
+  ).join('');
+  ol.querySelectorAll('.fp-pl-step-del').forEach(b => b.addEventListener('click', () => {
+    _plDraft.steps.splice(parseInt(b.dataset.idx), 1);
+    _plRenderDraftSteps();
+  }));
+}
+
+function initPlaylists() {
+  const newBtn = document.getElementById('fp-pl-new');
+  const builder = document.getElementById('fp-pl-builder');
+  if (!newBtn || !builder || newBtn.dataset.bound) return;
+  newBtn.dataset.bound = '1';
+
+  // Peuple le select des scénarios (tous, benchmark + drills + training)
+  const modeSel = document.getElementById('fp-pl-mode');
+  if (modeSel) {
+    modeSel.innerHTML = Object.entries(SCENARIOS)
+      .map(([key, sc]) => `<option value="${key}">${escapeHtml(sc.label || key)}</option>`)
+      .join('');
+  }
+
+  newBtn.addEventListener('click', () => {
+    _plDraft = { name: '', steps: [] };
+    document.getElementById('fp-pl-name').value = '';
+    _plRenderDraftSteps();
+    builder.classList.remove('hidden');
+  });
+  document.getElementById('fp-pl-add')?.addEventListener('click', () => {
+    if (!_plDraft) return;
+    if (_plDraft.steps.length >= 20) { if (window.showToast) window.showToast.warn('20 scénarios max par playlist'); return; }
+    _plDraft.steps.push({
+      mode: document.getElementById('fp-pl-mode').value,
+      duration: parseInt(document.getElementById('fp-pl-dur').value) || 60,
+      diff: document.getElementById('fp-pl-diff').value || 'medium',
+    });
+    _plRenderDraftSteps();
+  });
+  document.getElementById('fp-pl-save')?.addEventListener('click', () => {
+    if (!_plDraft) return;
+    const name = (document.getElementById('fp-pl-name').value || '').trim();
+    if (!name) { if (window.showToast) window.showToast.warn('Donne un nom à ta playlist'); return; }
+    if (!_plDraft.steps.length) { if (window.showToast) window.showToast.warn('Ajoute au moins un scénario'); return; }
+    _plDraft.name = name.slice(0, 60);
+    const pls = loadPlaylists();
+    pls.push(_plDraft);
+    savePlaylists(pls);
+    _plDraft = null;
+    builder.classList.add('hidden');
+    renderPlaylists();
+    if (window.showToast) window.showToast('Playlist sauvegardée');
+  });
+  document.getElementById('fp-pl-cancel')?.addEventListener('click', () => {
+    _plDraft = null;
+    builder.classList.add('hidden');
+  });
+
+  renderPlaylists();
+}
+window.initPlaylists = initPlaylists;
+window.renderPlaylists = renderPlaylists;
 
 // Toast visuel pour feedback "scénario verrouillé"
 // Delegates to the global toast system (ui.js). Kept as alias for existing callers.
@@ -2764,7 +2879,13 @@ function gameLoop() {
 
 function updateHUD() { const t=G.hits+G.misses,a=t>0?Math.round(G.hits/t*100):100; $('#hud-score').textContent=G.score.toLocaleString(); $('#hud-combo').textContent='x'+G.combo; $('#hud-acc').textContent=a+'%'; }
 
-function startTimer() { clearInterval(G.timerInterval); G.timeLeft=G.duration;$('#hud-timer').textContent=G.timeLeft;$('#hud-timer').classList.remove('urgent');G.timerInterval=setInterval(()=>{G.timeLeft--;$('#hud-timer').textContent=G.timeLeft;if(G.timeLeft<=10)$('#hud-timer').classList.add('urgent');if(G.timeLeft<=0)endGame();},1000); }
+// Échantillon par seconde pour le graphe "progression pendant la run"
+// (style Kovaak's) : score cumulé + hits/misses à chaque tick.
+function _sampleTimeline() {
+  if (!G.timelineLog) return;
+  G.timelineLog.push({ t: G.duration - G.timeLeft, score: G.score, hits: G.hits, misses: G.misses });
+}
+function startTimer() { clearInterval(G.timerInterval); G.timeLeft=G.duration;$('#hud-timer').textContent=G.timeLeft;$('#hud-timer').classList.remove('urgent');G.timerInterval=setInterval(()=>{G.timeLeft--;$('#hud-timer').textContent=G.timeLeft;_sampleTimeline();if(G.timeLeft<=10)$('#hud-timer').classList.add('urgent');if(G.timeLeft<=0)endGame();},1000); }
 
 // ---- SPAWN MAP ----
 const SPAWN_MAP = {
@@ -2837,6 +2958,7 @@ function startGame(mode) {
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
   G._flickNextAt=0;G._flickDelayNext=0;
   G.trailLog=[];G.startTime=Date.now();G._lastTrailSample=0;
+  G.timelineLog=[];
   G._trophies = {};
   G.targets=[]; trackTarget=null; switchTargets=[];
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
@@ -2919,6 +3041,17 @@ function endGame() {
   $('#r-acc').textContent=acc+'%'; $('#r-hits').textContent=G.hits;
   $('#r-misses').textContent=G.misses; $('#r-react').textContent=avgR>0?avgR+'ms':'N/A';
   $('#r-combo').textContent=G.bestCombo;
+
+  // Stats étendues style Kovaak's : kills/s + réaction médiane (plus robuste
+  // que la moyenne face aux outliers type cible ratée puis touchée tard)
+  const hps = G.duration > 0 ? (G.hits / G.duration) : 0;
+  const hpsEl = $('#r-hps'); if (hpsEl) hpsEl.textContent = hps.toFixed(2);
+  let medR = 0;
+  if (G.reactionTimes.length) {
+    const sorted = [...G.reactionTimes].sort((a, b) => a - b);
+    medR = Math.round(sorted[Math.floor(sorted.length / 2)]);
+  }
+  const medEl = $('#r-medreact'); if (medEl) medEl.textContent = medR > 0 ? medR + 'ms' : 'N/A';
 
   // PB comparison
   if(!G.benchmarkMode) {
@@ -3131,6 +3264,7 @@ function endGame() {
   }
 
   showScreen('results-screen');
+  renderRunTimeline();
 
   // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
   if (typeof _updateCoachingReturnBtn === 'function') _updateCoachingReturnBtn();
@@ -3138,6 +3272,68 @@ function endGame() {
 
   // Cloud sync — debounced push after game end
   if (typeof debouncedSync === 'function') debouncedSync();
+}
+
+// ── Graphe "progression pendant la run" (style Kovaak's) ───────────────
+// Deux courbes sur le même canvas : score cumulé (accent) + accuracy % (vert).
+function renderRunTimeline() {
+  const wrap = $('#run-timeline-wrap');
+  const canvas = $('#run-timeline-canvas');
+  if (!wrap || !canvas) return;
+  const log = G.timelineLog || [];
+  if (log.length < 3) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 480, H = canvas.clientHeight || 140;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const padX = 6, padY = 10;
+  const maxScore = Math.max(1, ...log.map(p => p.score));
+  const xAt = i => padX + (i / Math.max(1, log.length - 1)) * (W - padX * 2);
+  const yScore = v => padY + (1 - v / maxScore) * (H - padY * 2);
+  const yAcc = v => padY + (1 - v / 100) * (H - padY * 2);
+
+  // Accuracy cumulative par échantillon
+  const accSeries = log.map(p => {
+    const tot = p.hits + p.misses;
+    return tot > 0 ? (p.hits / tot) * 100 : 100;
+  });
+
+  // Grille légère
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let g = 1; g < 4; g++) {
+    const y = padY + (g / 4) * (H - padY * 2);
+    ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
+  }
+
+  // Courbe accuracy (verte, secondaire)
+  ctx.beginPath();
+  accSeries.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAcc(v)) : ctx.lineTo(xAt(i), yAcc(v)));
+  ctx.strokeStyle = 'rgba(74,222,128,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Courbe score (accent, principale) avec aire
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(255,70,85,0.25)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(xAt(0), yScore(0));
+  log.forEach((p, i) => ctx.lineTo(xAt(i), yScore(p.score)));
+  ctx.lineTo(xAt(log.length - 1), yScore(0));
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath();
+  log.forEach((p, i) => i === 0 ? ctx.moveTo(xAt(i), yScore(p.score)) : ctx.lineTo(xAt(i), yScore(p.score)));
+  ctx.strokeStyle = '#ff4655';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
 }
 
 function showScreen(id) {
@@ -3921,6 +4117,7 @@ function resumeGame() {
     G.timerInterval = setInterval(() => {
       G.timeLeft--;
       $('#hud-timer').textContent = G.timeLeft;
+      _sampleTimeline();
       if (G.timeLeft <= 5) $('#hud-timer').classList.add('urgent');
       if (G.timeLeft <= 0) endGame();
     }, 1000);
@@ -4029,7 +4226,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 // ---- INIT ----
-initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions(); renderLevelUI();
+initThree(); gameLoop(); applySettings(); updateMenuStats(); loadMissions(); renderMissions(); renderLevelUI(); initPlaylists();
 
 // ---- SESSION REPLAY ----
 let _rpl = { data: null, playing: false, elapsed: 0, lastRaf: null, raf: null, speed: 1 };

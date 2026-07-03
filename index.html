@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.4.9">
+  <meta name="app-version" content="2.5.0">
   <title>MayhAim — Aim Trainer & Coaching Hub</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
@@ -231,7 +231,17 @@
           <div class="res-stat"><span class="res-stat-val" id="r-hits">0</span><span class="res-stat-lbl">Hits</span></div>
           <div class="res-stat"><span class="res-stat-val" id="r-misses">0</span><span class="res-stat-lbl">Misses</span></div>
           <div class="res-stat"><span class="res-stat-val" id="r-combo">0</span><span class="res-stat-lbl">Combo</span></div>
-          <div class="res-stat"><span class="res-stat-val" id="r-react">0ms</span><span class="res-stat-lbl">Réaction</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-react">0ms</span><span class="res-stat-lbl">Réaction moy.</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-medreact">0ms</span><span class="res-stat-lbl">Réaction méd.</span></div>
+          <div class="res-stat"><span class="res-stat-val" id="r-hps">0</span><span class="res-stat-lbl">Kills/s</span></div>
+        </div>
+
+        <!-- Timeline de la run (style Kovaak's) -->
+        <div id="run-timeline-wrap" class="res-chart-card" style="display:none">
+          <div class="res-chart-title"><span data-icon="trending"></span> Progression pendant la run
+            <span style="font-size:0.68rem;color:var(--dim);font-weight:400;margin-left:8px"><span style="color:#ff4655">━</span> Score &nbsp;<span style="color:#4ade80">━</span> Précision</span>
+          </div>
+          <canvas id="run-timeline-canvas" style="width:100%;height:140px;display:block"></canvas>
         </div>
 
         <div id="res-threads-wrap" class="hidden">
@@ -614,6 +624,37 @@
             <label>Difficulté : <select id="opt-diff"><option value="easy">Facile</option><option value="medium" selected>Normal</option><option value="hard">Difficile</option></select></label>
           </div>
           <div style="font-size:0.72rem;color:var(--dim);margin-bottom:12px;padding:0 2px">Clique sur un mode pour lancer la partie. Ajuste la durée et la difficulté ci-dessus.</div>
+
+          <!-- ═══ PLAYLISTS (chaînes de scénarios custom, style Kovaak's) ═══ -->
+          <div class="fp-playlists">
+            <div class="fp-playlists-head">
+              <span class="fp-playlists-title"><span data-icon="film"></span> Playlists</span>
+              <button id="fp-pl-new" class="btn-secondary" style="font-size:0.75rem;padding:5px 12px">+ Nouvelle</button>
+            </div>
+            <div id="fp-pl-list" class="fp-pl-list"></div>
+            <div id="fp-pl-builder" class="fp-pl-builder hidden">
+              <div class="fp-pl-builder-row">
+                <input id="fp-pl-name" placeholder="Nom de la playlist (ex: Routine du soir)" class="sett-input" style="flex:1" maxlength="60">
+              </div>
+              <div class="fp-pl-builder-row">
+                <select id="fp-pl-mode" class="sett-select" style="flex:1"></select>
+                <select id="fp-pl-dur" class="sett-select">
+                  <option value="30">30s</option><option value="45">45s</option>
+                  <option value="60" selected>60s</option><option value="90">90s</option><option value="120">120s</option>
+                </select>
+                <select id="fp-pl-diff" class="sett-select">
+                  <option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option>
+                </select>
+                <button id="fp-pl-add" class="btn-secondary" style="white-space:nowrap">+ Ajouter</button>
+              </div>
+              <ol id="fp-pl-steps" class="fp-pl-steps"></ol>
+              <div class="fp-pl-builder-row">
+                <button id="fp-pl-save" class="btn-primary">Sauvegarder la playlist</button>
+                <button id="fp-pl-cancel" class="btn-secondary">Annuler</button>
+              </div>
+            </div>
+          </div>
+
           <div class="mode-grid">
             <button class="mode-card" data-mode="gridshot"><div class="mode-icon"><span data-icon="zap"></span></div><h3>Gridshot</h3><p>Clique sur des sphères qui apparaissent en grille. Mode idéal pour débuter.</p><span class="mode-tag">Vitesse</span></button>
             <button class="mode-card" data-mode="speedflick"><div class="mode-icon"><span data-icon="rocket"></span></div><h3>Flick rapide</h3><p>Une cible apparaît n'importe où — déplace ta mire le plus vite possible dessus.</p><span class="mode-tag">Flick</span></button>
@@ -1513,9 +1554,34 @@
               <button class="me-tool" data-tool="text" title="Texte">
                 <span style="color:#ffcc44">T</span> Text
               </button>
+              <button class="me-tool" data-tool="draw" title="Dessin libre (maintenir le clic)">
+                <span style="color:#e8c56d">&#9998;</span> Pen
+              </button>
+              <button class="me-tool" data-tool="agent" title="Placer un agent (choisi ci-dessous)">
+                <span style="color:#58e0c0">&#9787;</span> Agent
+              </button>
               <button class="me-tool" data-tool="eraser" title="Supprimer">
                 <span style="color:#ff4444">&#10005;</span> Eraser
               </button>
+            </div>
+            <div class="me-tools me-tools-opts">
+              <select id="me-agent-select" class="me-opt-select" title="Agent à placer">
+                <optgroup label="Duelists"><option value="jett">Jett</option><option value="reyna">Reyna</option><option value="phoenix">Phoenix</option><option value="raze">Raze</option><option value="neon">Neon</option><option value="yoru">Yoru</option><option value="iso">Iso</option><option value="waylay">Waylay</option></optgroup>
+                <optgroup label="Controllers"><option value="omen">Omen</option><option value="brimstone">Brimstone</option><option value="viper">Viper</option><option value="astra">Astra</option><option value="harbor">Harbor</option><option value="clove">Clove</option></optgroup>
+                <optgroup label="Sentinels"><option value="cypher">Cypher</option><option value="killjoy">Killjoy</option><option value="sage">Sage</option><option value="chamber">Chamber</option><option value="deadlock">Deadlock</option><option value="vyse">Vyse</option></optgroup>
+                <optgroup label="Initiators"><option value="sova">Sova</option><option value="skye">Skye</option><option value="breach">Breach</option><option value="kay/o">KAY/O</option><option value="fade">Fade</option><option value="gekko">Gekko</option><option value="tejo">Tejo</option></optgroup>
+              </select>
+              <input type="color" id="me-color" value="#3fb950" title="Couleur (pen, flèches, lignes)" class="me-opt-color">
+              <select id="me-width" class="me-opt-select" title="Épaisseur du trait">
+                <option value="3">Fin</option>
+                <option value="5" selected>Normal</option>
+                <option value="9">Épais</option>
+              </select>
+              <span class="me-opt-sep"></span>
+              <button class="me-tool" id="me-undo" title="Annuler (Ctrl+Z)">&#8630; Undo</button>
+              <button class="me-tool" id="me-redo" title="Rétablir (Ctrl+Shift+Z)">&#8631; Redo</button>
+              <button class="me-tool" id="me-dup-step" title="Dupliquer le step courant">&#10697; Dup</button>
+              <button class="me-tool" id="me-export-png" title="Exporter la strat en PNG">&#8681; PNG</button>
             </div>
           </div>
           <div class="me-steps-bar">
