@@ -152,6 +152,11 @@ const SCENARIOS = {
 
   // ═══ MICRO PRECISION (free play, no benchmark threshold) ═══
   w1w6t_micro:     { cat:'cours', sub:'micro_precision', type:'click', useHits:true, label:'1w6ts Micro' },
+  // gridshot/speedflick : modes historiques avec mode-card mais sans entrée
+  // SCENARIOS — startWarmupRun filtrait silencieusement les phases warmup qui
+  // les utilisaient (routine 4 phases réduite à 2) et getLabel() crashait.
+  gridshot:        { cat:'cours', sub:'speed', type:'click', useHits:true, label:'Gridshot' },
+  speedflick:      { cat:'cours', sub:'flick', type:'click', useHits:true, label:'Speed Flick' },
 
   // ═══ COURS DRILLS (not in benchmark, free play only) ═══
   crosshair_drill: { cat:'cours', sub:'placement', type:'click', label:'Crosshair Placement Drill' },
@@ -476,7 +481,10 @@ function setCurrentTier(t) { currentTier = t; renderBenchmark(); updateMenuStats
 // Le résultat agrégé (threads totaux, rang global, découpage par catégorie) est
 // affiché à la fin sur #benchmark-run-summary.
 function startBenchmarkRun(tier) {
-  if (G.running || G.benchmarkRun) return;
+  if (G.running || G.benchmarkRun || G.warmupRun) {
+    if (window.showToast) window.showToast.warn('Une session est déjà en cours — termine-la ou quitte-la d\'abord');
+    return;
+  }
   tier = tier || currentTier || 'medium';
   // Filtre : scénarios benchmark (avec .th) déverrouillés pour ce tier
   const queue = Object.keys(SCENARIOS).filter(k => SCENARIOS[k].th && isScenarioUnlocked(k, tier));
@@ -717,7 +725,12 @@ window.showBenchmarkRunHistory = showBenchmarkRunHistory;
 // pas de tier forcé, durées variables (60s/90s) selon la phase.
 // ============================================================
 function startWarmupRun(routine) {
-  if (G.running || G.warmupRun || G.benchmarkRun) return;
+  // Feedback explicite : l'ancien guard silencieux laissait un bouton
+  // "Lancer" muet quand un run fantôme traînait (avant le fix resetRunState).
+  if (G.running || G.warmupRun || G.benchmarkRun) {
+    if (window.showToast) window.showToast.warn('Une session est déjà en cours — termine-la ou quitte-la d\'abord');
+    return;
+  }
   if (!Array.isArray(routine) || routine.length === 0) {
     if (window.showToast) window.showToast.warn('Routine vide — re-génère');
     return;
@@ -781,9 +794,14 @@ function finalizeWarmupRun() {
   const avgReact = run.results.reduce((s, r) => s + (r.avgReaction || 0), 0) / Math.max(1, run.results.filter(r => r.avgReaction).length);
   const durationMin = Math.round((Date.now() - run.startedAt) / 60000);
 
-  // Compare to user's all-time avg accuracy (rough heuristic — career stats)
+  // Compare to user's all-time avg accuracy (rough heuristic — career stats).
+  // Le delta n'a de sens que si l'utilisateur a un historique : sans le check
+  // games>0, un nouveau joueur voyait "(+72% vs ton avg)" (comparaison à 0).
   let careerAcc = null;
-  try { careerAcc = Math.round((JSON.parse(localStorage.getItem('visc_career'))?.acc || 0)); } catch {}
+  try {
+    const career = JSON.parse(localStorage.getItem('visc_career'));
+    if (career && career.games > 0 && Number.isFinite(career.acc)) careerAcc = Math.round(career.acc);
+  } catch {}
   const accDelta = careerAcc != null ? (acc - careerAcc) : null;
 
   G.warmupRun = null;
@@ -924,15 +942,20 @@ function updateSensDisplay() {
 function initSettingsChips() {
   const s = loadSettings();
 
-  // UI Theme chips
-  document.getElementById('ui-theme-chips')?.addEventListener('click', e => {
-    const chip = e.target.closest('.sett-theme-chip');
-    if (!chip) return;
-    const t = chip.dataset.theme;
-    saveSettings({ theme: t }); applyTheme(t);
-    document.querySelectorAll('.sett-theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === t));
-    const sel = document.getElementById('opt-theme'); if (sel) sel.value = t;
-  });
+  // initSettingsChips est rappelée par applySettings (init, cloud sync, reset)
+  // — sans guard, chaque appel empilait un nouveau listener sur les chips/FOV.
+  const themeChips = document.getElementById('ui-theme-chips');
+  if (themeChips && !themeChips.dataset.bound) {
+    themeChips.dataset.bound = '1';
+    themeChips.addEventListener('click', e => {
+      const chip = e.target.closest('.sett-theme-chip');
+      if (!chip) return;
+      const t = chip.dataset.theme;
+      saveSettings({ theme: t }); applyTheme(t);
+      document.querySelectorAll('.sett-theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === t));
+      const sel = document.getElementById('opt-theme'); if (sel) sel.value = t;
+    });
+  }
   // Mark active
   document.querySelectorAll('.sett-theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === (s.theme || 'default')));
 
@@ -962,16 +985,21 @@ function initSettingsChips() {
   if (fovSlider) {
     fovSlider.value = s.hFov || 103;
     if (fovVal) fovVal.textContent = s.hFov || 103;
-    fovSlider.addEventListener('input', e => {
-      const v = parseInt(e.target.value);
-      if (fovVal) fovVal.textContent = v;
-      saveSettings({ hFov: v });
-      updateFOV();
-    });
+    if (!fovSlider.dataset.bound) {
+      fovSlider.dataset.bound = '1';
+      fovSlider.addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        if (fovVal) fovVal.textContent = v;
+        saveSettings({ hFov: v });
+        updateFOV();
+      });
+    }
   }
 
   // Crosshair presets
   document.querySelectorAll('.xh-preset').forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = '1';
     btn.addEventListener('click', () => {
       const preset = XH_PRESETS[btn.dataset.preset];
       if (!preset) return;
@@ -992,6 +1020,8 @@ function applySettings() {
   $('#opt-sens-val').step = (SENS_DEFAULTS[s.sensMode]||SENS_DEFAULTS.cm360).step;
   G.cm360 = s.cm360 || 34;
   $('#opt-diff').value = s.difficulty; $('#opt-duration').value = s.duration;
+  const _diffM = $('#opt-diff-settings'); if (_diffM) _diffM.value = s.difficulty;
+  const _durM = $('#opt-duration-settings'); if (_durM) _durM.value = s.duration;
   $('#opt-sound').checked = s.soundOn;
   $('#opt-volume').value = s.soundVolume;
   $('#opt-volume-val').textContent = Math.round(s.soundVolume * 100) + '%';
@@ -1248,7 +1278,10 @@ function mkSwitchTargets(positions, r, props) {
     // baseX/baseY/baseZ = position de spawn, utilisée dans updateSwitchTargets pour
     // que les oscillations se fassent autour de la position voulue (évite un ancien
     // bug où l'array hardcodée [-3,0,3,4.5] override les positions passées).
-    const t = { mesh, alive:true, x:p[0],y:p[1],z:p[2], baseX:p[0],baseY:p[1],baseZ:p[2], idx:i, ...props, phase:rand(0,Math.PI*2), phaseY:rand(0,Math.PI*2) };
+    // spawnTime requis : shoot() calcule rt = Date.now() - active.spawnTime.
+    // Sans lui, tous les modes switch poussaient NaN dans reactionTimes
+    // (bonus vitesse jamais appliqué, réaction "N/A", gauge Speed à 0).
+    const t = { mesh, alive:true, x:p[0],y:p[1],z:p[2], baseX:p[0],baseY:p[1],baseZ:p[2], idx:i, spawnTime:Date.now(), ...props, phase:rand(0,Math.PI*2), phaseY:rand(0,Math.PI*2) };
     switchTargets.push(t); G.targets.push(t);
   });
   G.switchActiveIdx=0; G.switchTimer=0;
@@ -1660,7 +1693,7 @@ function _mkGridTarget(col, row, r) {
 function spawn_gridshot() {
   if(!G.running) return;
   // Nettoyer
-  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
+  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);_disposeMesh(t.mesh);}});
   G.targets=[];
   // Indicateurs de grille (très discrets) pour visualiser les 9 cases
   if(!G._gridDots) G._gridDots=[];
@@ -1743,7 +1776,7 @@ function _spawnW1w6tOne() {
 function spawn_w1w6t_micro() {
   if(!G.running) return;
   // Cleanup full reset (like gridshot)
-  G.targets.forEach(t=>{ if(t.alive){ t.alive=false; targetsGroup.remove(t.mesh); } });
+  G.targets.forEach(t=>{ if(t.alive){ t.alive=false; targetsGroup.remove(t.mesh);_disposeMesh(t.mesh); } });
   G.targets = [];
   for (let i = 0; i < W1W6T_COUNT; i++) _spawnW1w6tOne();
 }
@@ -2413,6 +2446,8 @@ function updateSwitchTargets(dt) {
     G.switchTimer=0;
     G.switchActiveIdx = (G.switchActiveIdx+1) % switchTargets.length;
     switchTargets.forEach((t,i) => { t.mesh.material = i===G.switchActiveIdx ? M.t4 : M.tDim; });
+    const nowActive = switchTargets[G.switchActiveIdx];
+    if (nowActive) nowActive.spawnTime = Date.now(); // réaction mesurée depuis l'activation
     audioEngine.play('countdown');
   }
 }
@@ -2423,7 +2458,7 @@ function updateDynamic(dt) {
     if(t.pop) {
       t.vy -= 6*dt; t.mesh.position.x += (t.vx||0)*dt; t.mesh.position.y += t.vy*dt;
       t.age += dt;
-      if(t.age > t.ttl || t.mesh.position.y < -1) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+      if(t.age > t.ttl || t.mesh.position.y < -1) { t.alive=false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); G.misses++; G.combo=0; updateHUD(); }
     } else if(t.pokeball) {
       // Pokeball Frenzy: drifting targets that shrink and expire
       t.age += dt;
@@ -2432,15 +2467,15 @@ function updateDynamic(dt) {
       if(t.mesh.position.y < 0.3||t.mesh.position.y > 4.5) t.vy *= -1;
       const lifeFrac = Math.min(1, t.age / t.ttl);
       t.mesh.scale.setScalar(Math.max(0.6, 1 - lifeFrac * 0.35));
-      if(t.age >= t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+      if(t.age >= t.ttl) { t.alive=false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); G.misses++; G.combo=0; updateHUD(); }
     } else if(t.floater) {
       t.mesh.position.y += t.vy*dt; t.mesh.position.x += (t.vx||0)*dt;
-      if(t.mesh.position.y > 5) { t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD(); }
+      if(t.mesh.position.y > 5) { t.alive=false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); G.misses++; G.combo=0; updateHUD(); }
     } else if(t.reaction) {
       // Reaction Drill: target auto-expires if not clicked in time
       const age = (Date.now()-t.spawnTime)/1000;
       if(age > t.ttl) {
-        t.alive=false; targetsGroup.remove(t.mesh); G.misses++; G.combo=0; updateHUD();
+        t.alive=false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); G.misses++; G.combo=0; updateHUD();
         if (t._triggerDelay && G.mode === 'flickdelay') {
           G._flickNextAt = Date.now() + (G._flickDelayNext || 0.8) * 1000;
         }
@@ -2497,8 +2532,12 @@ function isSwitchMode(m) {
   return ['vox_ts2','beants','floatts','waldots','devts','domiswitch','tamts'].includes(m);
 }
 function isDynamicMode(m) {
+  // reaction_drill : cibles reaction:true + ttl — sans updateDynamic le TTL
+  // n'expire jamais (le drill devenait du click statique sans pénalité).
+  // burst_drill : cibles dynamic:true avec vx/vy en medium/hard — sans
+  // updateDynamic elles restaient immobiles (difficulté fictive).
   return ['pasu_reload','vt_bounceshot','ctrlsphere_clk','popcorn_mv','pasu_angelic','pasu_perfected','pasu_micro','floatheads_t','vox_click','pokeball_frenzy',
-          'widepeek','flickdelay'].includes(m);
+          'widepeek','flickdelay','reaction_drill','burst_drill'].includes(m);
 }
 
 // ---- SHOOTING ----
@@ -2525,6 +2564,8 @@ function shoot() {
         G.switchTimer=0;
         G.switchActiveIdx=(G.switchActiveIdx+1)%switchTargets.length;
         switchTargets.forEach((t,i)=>{t.mesh.material=i===G.switchActiveIdx?M.t4:M.tDim;});
+        const nextActive=switchTargets[G.switchActiveIdx];
+        if(nextActive) nextActive.spawnTime=Date.now(); // réaction mesurée depuis l'activation
         updateHUD(); return;
       }
     }
@@ -2627,7 +2668,7 @@ function hitTarget(t) {
     G._flickNextAt = Date.now() + (G._flickDelayNext || 0.8) * 1000;
   }
   const mesh=t.mesh; let a=0;
-  const anim=()=>{a+=0.08;mesh.scale.setScalar(Math.max(0,1-a*3));if(a<0.35)requestAnimationFrame(anim);else targetsGroup.remove(mesh);};
+  const anim=()=>{a+=0.08;mesh.scale.setScalar(Math.max(0,1-a*3));if(a<0.35)requestAnimationFrame(anim);else {targetsGroup.remove(mesh);_disposeMesh(mesh);}};
   anim(); updateHUD();
 
   // Respawn for specific modes
@@ -2767,19 +2808,30 @@ function startGame(mode) {
     return;
   }
   G.mode=mode;
+  // isOverridden : benchmark/warmup forcent diff+duration — ces valeurs ne
+  // doivent PAS être persistées dans les settings. Une durée warmup (ex. 135s)
+  // n'existe pas dans les options du select #opt-duration → au reload le
+  // select restait vide → parseInt('')=NaN → partie qui ne finit jamais.
+  const isOverridden = G.benchmarkMode || (G.warmupRun && G.warmupRun.currentStep);
   if(G.benchmarkMode) { G.diff=currentTier==='easier'?'easy':currentTier==='hard'?'hard':'medium'; G.duration=60; }
   else if(G.warmupRun && G.warmupRun.currentStep) {
     // Override diff/duration from the warmup routine step
     G.diff = G.warmupRun.currentStep.diff || 'medium';
     G.duration = G.warmupRun.currentStep.duration || 60;
   }
-  else { G.diff=$('#opt-diff').value; G.duration=parseInt($('#opt-duration').value); }
+  else {
+    G.diff=$('#opt-diff').value;
+    G.duration=parseInt($('#opt-duration').value);
+    if (!Number.isFinite(G.duration) || G.duration <= 0) G.duration = 60; // select vide/corrompu
+  }
   const sMode=$('#opt-sens-mode').value, sVal=parseFloat($('#opt-sens-val').value)||34;
   const dpi=parseInt($('#opt-dpi').value)||800;
   G.cm360=gameSensToCm360(sMode, sVal);
   G.soundOn=$('#opt-sound').checked;
   audioEngine.enabled=G.soundOn; audioEngine.init();
-  saveSettings({sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,difficulty:G.diff,duration:G.duration,soundOn:G.soundOn});
+  const settingsPatch = {sensMode:sMode,sensVal:sVal,cm360:G.cm360,dpi:dpi,soundOn:G.soundOn};
+  if (!isOverridden) { settingsPatch.difficulty = G.diff; settingsPatch.duration = G.duration; }
+  saveSettings(settingsPatch);
 
   G.score=0;G.hits=0;G.misses=0;G.combo=0;G.bestCombo=0;G.reactionTimes=[];G.targets=[];G.clickLog=[];
   G.yaw=0;G.pitch=0;G.trackFrames=0;G.trackOnTarget=0;G.recoilY=0;G.swayPhase=0;
@@ -2818,7 +2870,24 @@ function doCountdown(cb) {
   let c=3; const el=document.createElement('div');
   el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8rem;font-weight:900;color:#ff4655;text-shadow:0 0 60px rgba(255,70,85,0.6);z-index:300;pointer-events:none;';
   document.body.appendChild(el); el.textContent=c; audioEngine.play('countdown');
-  const ci=setInterval(()=>{c--;if(c>0){el.textContent=c;audioEngine.play('countdown');}else{el.textContent='GO!';audioEngine.play('start');clearInterval(ci);setTimeout(()=>{el.remove();cb();},300);}},700);
+  const ci=setInterval(()=>{c--;if(c>0){el.textContent=c;audioEngine.play('countdown');}else{el.textContent='GO!';audioEngine.play('start');clearInterval(ci);setTimeout(()=>{
+    el.remove();
+    // ESC pendant le 3-2-1 fait sauter le pointer lock (G.running encore false
+    // → ni pauseGame ni le handler pointerlockchange ne rattrapent) : la partie
+    // démarrait déverrouillée, souris et clics morts. On re-propose le
+    // click-to-start au lieu de lancer une partie injouable.
+    if (!document.pointerLockElement) {
+      const cts = $('#click-to-start');
+      cts.classList.remove('hidden');
+      cts.addEventListener('click', () => {
+        lockPointer();
+        cts.classList.add('hidden');
+        cb();
+      }, { once: true });
+      return;
+    }
+    cb();
+  },300);}},700);
 }
 
 function doSpawn() {
@@ -2832,7 +2901,7 @@ function endGame() {
   G.running=false; clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer=null;
   if(G.autoFireTimer){ clearInterval(G.autoFireTimer); G.autoFireTimer=null; }
   if(document.exitPointerLock) document.exitPointerLock();
-  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);}});
+  G.targets.forEach(t=>{if(t.alive){t.alive=false;targetsGroup.remove(t.mesh);_disposeMesh(t.mesh);}});
   G.targets=[]; trackTarget=null; switchTargets=[];
   audioEngine.play('end');
 
@@ -3721,8 +3790,12 @@ $('#opt-dpi').addEventListener('input',e=>{
   G.cm360=gameSensToCm360(mode, val);
   saveSettings({dpi:dpi,cm360:G.cm360});
 });
-$('#opt-diff').addEventListener('change',e=>saveSettings({difficulty:e.target.value}));
-$('#opt-duration').addEventListener('change',e=>saveSettings({duration:parseInt(e.target.value)}));
+$('#opt-diff').addEventListener('change',e=>{saveSettings({difficulty:e.target.value});const m=$('#opt-diff-settings');if(m)m.value=e.target.value;});
+$('#opt-duration').addEventListener('change',e=>{saveSettings({duration:parseInt(e.target.value)});const m=$('#opt-duration-settings');if(m)m.value=e.target.value;});
+// Selects miroir du panneau Paramètres > Jeu (IDs distincts des selects
+// free-play depuis le fix des doublons) — synchro bidirectionnelle.
+$('#opt-diff-settings')?.addEventListener('change',e=>{saveSettings({difficulty:e.target.value});$('#opt-diff').value=e.target.value;});
+$('#opt-duration-settings')?.addEventListener('change',e=>{saveSettings({duration:parseInt(e.target.value)});$('#opt-duration').value=e.target.value;});
 $('#opt-sound').addEventListener('change',e=>saveSettings({soundOn:e.target.checked}));
 $('#opt-volume').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
@@ -3798,6 +3871,11 @@ let pauseTimeLeft = 0;
 function pauseGame() {
   if (!G.running || paused) return;
   paused = true;
+  // Gèle la simulation : gameLoop ne teste que G.running, sans ça les cibles
+  // continuent de bouger/expirer derrière le menu pause (tracking % qui chute,
+  // cibles TTL qui comptent des misses, rotation switch qui continue).
+  G.running = false;
+  G._pausedAt = Date.now();
   clearInterval(G.timerInterval);
   clearInterval(G.spawnTimer); G.spawnTimer = null;
   pauseTimeLeft = G.timeLeft;
@@ -3828,6 +3906,15 @@ function resumeGame() {
   function doResume() {
     btn.classList.add('hidden');
     lockPointer();
+    // Décale les horloges murales de la durée de pause : sans ça les cibles
+    // TTL expirent instantanément au resume et les temps de réaction gonflent
+    // de toute la durée de pause.
+    if (G._pausedAt) {
+      const shift = Date.now() - G._pausedAt;
+      G.targets.forEach(t => { if (t.alive && t.spawnTime) t.spawnTime += shift; });
+      if (G.startTime) G.startTime += shift;
+      G._pausedAt = 0;
+    }
     G.running = true;
     clearInterval(G.timerInterval);
     clearInterval(G.spawnTimer); G.spawnTimer = null;
@@ -3843,36 +3930,58 @@ function resumeGame() {
   btn.addEventListener('click', doResume, { once: true });
 }
 
-function quitToMenu() {
+// Nettoyage commun des sorties de partie : sans ça, un Warmup/Benchmark Run
+// abandonné via le menu pause reste actif (G.warmupRun/G.benchmarkRun) et
+// détourne toutes les parties suivantes (diff/duration écrasés, endGame qui
+// pousse les résultats dans le run fantôme, boutons de lancement muets).
+function resetRunState() {
+  G.warmupRun = null;
+  G.benchmarkRun = null;
+  G.benchmarkMode = false;
+  window._coachLaunchSource = null;
+}
+
+function _quitCleanup() {
   paused = false;
   G.running = false;
+  G._pausedAt = 0;
   clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
+  if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
   if (document.exitPointerLock) document.exitPointerLock();
-  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
+  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); } });
   G.targets = []; trackTarget = null; switchTargets = [];
+  resetRunState();
   $('#pause-menu').classList.add('hidden');
+}
+
+function quitToMenu() {
+  _quitCleanup();
   showScreen('menu-screen');
 }
 
 function quitToBenchmark() {
-  paused = false;
-  G.running = false;
-  clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
-  if (document.exitPointerLock) document.exitPointerLock();
-  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
-  G.targets = []; trackTarget = null; switchTargets = [];
-  $('#pause-menu').classList.add('hidden');
+  _quitCleanup();
   showScreen('benchmark-screen');
   renderBenchmark();
 }
 
 function pauseToSettings() {
-  quitToMenu();
-  // Scroll to crosshair section after showing menu
-  setTimeout(() => {
-    const xhSection = document.querySelector('#xh-preview');
-    if (xhSection) xhSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 100);
+  _quitCleanup();
+  // Le panneau settings vit dans le coaching hub (onglet hub-settings) — pas
+  // sur menu-screen. Sans le switch d'onglet, l'utilisateur atterrissait sur
+  // l'accueil et le scroll vers #xh-preview (panneau masqué) ne faisait rien.
+  const coach = document.getElementById('coaching-screen');
+  if (coach && typeof coachingSwitchTab === 'function') {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    coach.classList.add('active');
+    coachingSwitchTab('hub-settings');
+    setTimeout(() => {
+      const xhSection = document.querySelector('#xh-preview');
+      if (xhSection) xhSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  } else {
+    showScreen('menu-screen');
+  }
 }
 
 // ESC + F3 key handler
@@ -3900,7 +4009,7 @@ $('#pause-restart')?.addEventListener('click', () => {
   paused = false;
   G.running = false;
   clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
-  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); } });
+  G.targets.forEach(t => { if(t.alive) { t.alive = false; targetsGroup.remove(t.mesh); _disposeMesh(t.mesh); } });
   G.targets = []; trackTarget = null; switchTargets = [];
   $('#pause-menu').classList.add('hidden');
   startGame(G.mode);
@@ -4112,10 +4221,10 @@ const DATA_VERSION = 2; // bump this number to force a localStorage reset for al
   if (stored < DATA_VERSION) {
     // Preserve auth token and settings only
     const token = localStorage.getItem('ch_token');
-    const settings = localStorage.getItem('valAim3Dv3_settings');
+    const settings = localStorage.getItem('visc_settings');
     localStorage.clear();
     if (token) localStorage.setItem('ch_token', token);
-    if (settings) localStorage.setItem('valAim3Dv3_settings', settings);
+    if (settings) localStorage.setItem('visc_settings', settings);
     localStorage.setItem('mayhaim_data_version', String(DATA_VERSION));
     console.log('[reset] localStorage wiped (data version ' + stored + ' → ' + DATA_VERSION + ')');
   }
@@ -4153,7 +4262,7 @@ function _collectLocalData() {
   data.xp = parseInt(localStorage.getItem('valAim3D_xp') || '0', 10);
   try { data.missions = JSON.parse(localStorage.getItem('valAim3D_missions')) || []; } catch { data.missions = []; }
   // Settings
-  try { data.settings = JSON.parse(localStorage.getItem('valAim3Dv3_settings')) || {}; } catch { data.settings = {}; }
+  try { data.settings = JSON.parse(localStorage.getItem('visc_settings')) || {}; } catch { data.settings = {}; }
   return data;
 }
 
@@ -4181,7 +4290,7 @@ function _applyMergedData(data) {
   if (data.missions) localStorage.setItem('valAim3D_missions', JSON.stringify(data.missions));
   // Settings
   if (data.settings && Object.keys(data.settings).length > 0) {
-    localStorage.setItem('valAim3Dv3_settings', JSON.stringify(data.settings));
+    localStorage.setItem('visc_settings', JSON.stringify(data.settings));
     if (typeof applySettings === 'function') applySettings();
   }
 }

@@ -777,6 +777,13 @@ function globalLogout() {
   coachingUser = null;
   coachingUserRole = null;
   localStorage.removeItem('ch_token');
+  // Purge des caches tracker : sur machine partagée, les stats Valorant et
+  // l'historique de matchs du compte déconnecté restaient lisibles en clair.
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('mh_tracker_cache_') || k.startsWith('mh_tracker_search_') || k.startsWith('mh_match_'))
+      .forEach(k => localStorage.removeItem(k));
+  } catch {}
   clearInterval(_notifPollInterval);
   _notifPollInterval = null;
   clearInterval(_msgPollInterval);
@@ -2209,7 +2216,7 @@ function _launchRoutineExercise(routine, idx) {
   setTimeout(() => {
     const modeBtn = document.querySelector(`.mode-card[data-mode="${ex.mode}"]`);
     if (modeBtn) modeBtn.click();
-    else if (typeof startGame === 'function') startGame(ex.mode);
+    else if (typeof startGame === 'function') { if (typeof G !== 'undefined') G.benchmarkMode = false; startGame(ex.mode); }
   }, 100);
 }
 
@@ -2346,7 +2353,7 @@ function initWarmupPanel() {
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
         if (modeBtn) modeBtn.click();
-        else if (typeof startGame === 'function') startGame(mode);
+        else if (typeof startGame === 'function') { if (typeof G !== 'undefined') G.benchmarkMode = false; startGame(mode); }
       }, 100);
     });
   });
@@ -2743,9 +2750,9 @@ function adminRenderUsers() {
           </select>
           ${locked
             ? `<button class="admin-btn admin-btn-unlock" onclick="adminUnlockUser(${u.id})" title="Déverrouiller">${icon('unlock',14)}</button>`
-            : `<button class="admin-btn admin-btn-lock" onclick="adminLockUser(${u.id},'${san(u.username)}')" title="Verrouiller">${icon('lock',14)}</button>`}
+            : `<button class="admin-btn admin-btn-lock" data-username="${san(u.username)}" onclick="adminLockUser(${u.id}, this.dataset.username)" title="Verrouiller">${icon('lock',14)}</button>`}
           ${u.mfa_enabled ? `<button class="admin-btn admin-btn-mfa" onclick="adminResetMfa(${u.id})" title="Reset MFA">${icon('key',14)}</button>` : ''}
-          <button class="admin-btn admin-btn-del" onclick="adminDeleteUser(${u.id},'${san(u.username)}')" title="Supprimer">${icon('trash',14)}</button>
+          <button class="admin-btn admin-btn-del" data-username="${san(u.username)}" onclick="adminDeleteUser(${u.id}, this.dataset.username)" title="Supprimer">${icon('trash',14)}</button>
         </div></td>
       </tr>`;
     }).join('')}</tbody>
@@ -3786,7 +3793,7 @@ function openCoursDetail(cours) {
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
         if (modeBtn) modeBtn.click();
-        else if (typeof startGame === 'function') startGame(mode);
+        else if (typeof startGame === 'function') { if (typeof G !== 'undefined') G.benchmarkMode = false; startGame(mode); }
       }, 100);
     });
   });
@@ -4635,7 +4642,7 @@ function _renderAiCoach(a, generatedAt, weekLabel, weekStart, daysLeft) {
           <div class="aic-plan-conseil">${san(s.conseil || '')}</div>
         </div>
         <div class="aic-plan-reps">${s.reps || 1}×/sem</div>
-        <button class="aic-plan-play" onclick="${s.key ? `(typeof G!=='undefined'&&(G.benchmarkMode=false,startGame('${s.key}')))` : ''}" title="Lancer">▶</button>
+        <button class="aic-plan-play" onclick="${(s.key && /^[a-z0-9_]+$/.test(s.key)) ? `(typeof G!=='undefined'&&(G.benchmarkMode=false,startGame('${s.key}')))` : ''}" title="Lancer">▶</button>
       </div>`).join('');
   }
 
@@ -4929,6 +4936,16 @@ function trackerTabLoad() {
   const main = document.getElementById('trk-main');
   if (!main) return;
   _trackerCtx = 'self';
+  // Restaure la visibilité : trackerSearchPlayer masque trk-main (display:none)
+  // et affiche trk-search-results. Sans ce reset, revenir sur l'onglet Tracker
+  // après une recherche laissait la vue search affichée avec un contexte
+  // 'self' — tous les filtres re-rendaient le wrap invisible (UI morte).
+  main.style.display = '';
+  const searchResults = document.getElementById('trk-search-results');
+  if (searchResults) { searchResults.style.display = 'none'; searchResults.innerHTML = ''; }
+  _trackerSearch = null;
+  _trackerSrchRaw = null;
+  _trkMatchLimit = _TRK_PAGE_SIZE;
   if (!coachingUser?.riot_gamename) {
     main.innerHTML = `
       <div class="trk-link-screen">
@@ -5124,15 +5141,24 @@ async function trackerUnlink() {
   trackerTabLoad();
 }
 
+let _trkLoadInFlight = false;
 async function trackerLoadStats(btn, opts) {
   const wrap = document.getElementById('trk-stats-wrap');
   if (!wrap) return;
+  // Déduplication : re-visiter l'onglet pendant un refresh en vol lançait un
+  // 2e appel ?action=tracker en parallèle (jusqu'à ~13 calls Henrik chacun sur
+  // le rate-limit partagé — exactement ce que le cache devait éviter).
+  if (_trkLoadInFlight) return;
   const forceRefresh = opts?.forceRefresh === true;
 
   // Serve cached data immediately if available, then refresh in background
   const cached = _trkCacheGet('self');
   if (cached && cached.usable && !forceRefresh) {
     _trackerRawData = cached.data;
+    // Le calendrier des actes est requis pour les labels "E10 · Act 3" du
+    // dropdown Période — sans cet await, le chemin cache affichait
+    // "Acte inconnu" jusqu'au prochain fetch réseau.
+    try { await _trkLoadActs(); } catch {}
     const peakEl = document.getElementById('trk-self-peak');
     if (peakEl && cached.data.account?.peak_rank) {
       peakEl.innerHTML = `<div class="trk-hero-peak">Peak · <span style="color:${_riotTierColor(cached.data.account.peak_rank)}">${san(cached.data.account.peak_rank)}</span></div>`;
@@ -5151,6 +5177,7 @@ async function trackerLoadStats(btn, opts) {
     wrap.innerHTML = `<div class="trk-loading">${icon('chart',20)} Chargement des stats…</div>`;
   }
 
+  _trkLoadInFlight = true;
   try {
     // Kick off acts fetch in parallel with tracker data
     const [res] = await Promise.all([
@@ -5158,6 +5185,9 @@ async function trackerLoadStats(btn, opts) {
       _trkLoadActs(),
     ]);
     const data = await res.json();
+    // L'utilisateur a pu naviguer vers une recherche pendant le fetch — ne pas
+    // écraser la vue courante avec le rendu self.
+    if (_trackerCtx !== 'self') { return; }
     if (!res.ok) {
       // Network error: if we have cached data, keep showing it with a stale badge
       if (cached && cached.usable) {
@@ -5194,7 +5224,7 @@ async function trackerLoadStats(btn, opts) {
       <p style="color:#ff4655;font-size:0.85rem;margin-bottom:12px">Erreur réseau</p>
       <button class="trk-btn trk-btn-primary" onclick="trackerLoadStats(this, {forceRefresh:true})">Réessayer</button></div>`;
   }
-  finally { if(btn) btn.disabled=false; }
+  finally { _trkLoadInFlight = false; if(btn) btn.disabled=false; }
 }
 
 function trackerLoad() { trackerLoadStats(); }
@@ -5252,6 +5282,7 @@ function _trkRenderSearchResults(data, name, tag, resultsEl, opts) {
   _trackerApplyFilter(_trackerSrchRaw, 'trk-search-stats-wrap');
 }
 
+let _trkSearchSeq = 0;
 async function trackerSearchPlayer() {
   const input = document.getElementById('trk-search-input');
   if (!input) return;
@@ -5266,9 +5297,15 @@ async function trackerSearchPlayer() {
   const resultsEl = document.getElementById('trk-search-results');
   if (!resultsEl) return;
 
+  // Jeton de séquence : sans lui, une recherche lente (A) qui aboutit après
+  // une recherche rapide (B) écrasait l'affichage de B avec les données de A
+  // (stats du mauvais joueur affichées sous le hero de l'autre).
+  const seq = ++_trkSearchSeq;
+
   // Store search state for mode switching
   _trackerCtx = 'search';
   _trackerSearch = { name, tag, region };
+  _trkMatchLimit = _TRK_PAGE_SIZE; // reset pagination héritée du contexte précédent
 
   // Hide own profile, show search results
   if (mainEl) mainEl.style.display = 'none';
@@ -5288,10 +5325,13 @@ async function trackerSearchPlayer() {
 
   try {
     const [res] = await Promise.all([
-      fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`),
+      fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}`, { headers:{'Authorization':`Bearer ${coachingToken}`} }),
       _trkLoadActs(),
     ]);
     const data = await res.json();
+    // Réponse périmée (nouvelle recherche lancée entre-temps) ou contexte
+    // quitté ("← Mon profil" pendant le fetch) : on jette silencieusement.
+    if (seq !== _trkSearchSeq || _trackerCtx !== 'search') return;
     if (!res.ok) {
       if (usedCache) {
         // Keep showing cached + add stale badge
@@ -5306,11 +5346,18 @@ async function trackerSearchPlayer() {
         <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
       return;
     }
+    data._fullFetched = false;
     _trkSearchCacheSet(name, tag, region, data);
     _trkRenderSearchResults(data, name, tag, resultsEl);
     return; // we've fully rendered, skip the legacy inline render below
   } catch(e) {
-    if (usedCache) return; // keep stale cache visible
+    if (seq !== _trkSearchSeq || _trackerCtx !== 'search') return;
+    if (usedCache) {
+      // Même signal que le chemin HTTP non-ok : l'utilisateur doit savoir que
+      // les données affichées datent (l'ancien code ne montrait rien offline).
+      resultsEl.querySelector('.trk-hero--search')?.insertAdjacentHTML('beforebegin', _trkStaleBadge(Date.now() - cached.ts));
+      return;
+    }
     resultsEl.innerHTML = `<div style="text-align:center;padding:32px 0">
       <p style="color:#ff4655;font-size:0.9rem;margin-bottom:14px">Erreur réseau</p>
       <button class="trk-btn trk-btn-ghost" onclick="trackerSearchBack()">← Retour</button></div>`;
@@ -5324,9 +5371,11 @@ function trackerSearchBack() {
   if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
   const input = document.getElementById('trk-search-input');
   if (input) input.value = '';
+  _trkSearchSeq++; // invalide les fetches de recherche encore en vol
   _trackerCtx = 'self';
   _trackerSearch = null;
   _trackerSrchRaw = null;
+  _trkMatchLimit = _TRK_PAGE_SIZE; // évite d'hériter d'une pagination 300+ (jank)
   // Re-apply filter on self data (tabs active state stays)
   _trackerApplyFilter(_trackerRawData, 'trk-stats-wrap');
 }
@@ -5487,7 +5536,7 @@ function trackerRender(data, el) {
     const rrStr   = fmtRR(m.rr_change);
     const mkHtml  = fmtMultikills(m.multikills);
     const modeLabel = m.mode || 'Competitive';
-    const clickable = m.match_id ? `onclick="_trkOpenMatch('${san(m.match_id)}')" style="cursor:pointer"` : '';
+    const clickable = m.match_id ? `data-matchid="${san(m.match_id)}" onclick="_trkOpenMatch(this.dataset.matchid)" style="cursor:pointer"` : '';
     return `<div class="trk-card ${isWin ? 'trk-card-win' : 'trk-card-loss'}" ${clickable}>
       <div class="trk-card-left">
         <div class="trk-card-agent">
@@ -5556,7 +5605,7 @@ window._trkLoadFullSearchHistory = async function(btn) {
   const { name, tag, region } = _trackerSearch;
   if (btn) { btn.disabled = true; btn.innerHTML = `${icon('chart',14)} Chargement…`; }
   try {
-    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}&full=1`);
+    const res = await fetch(`${API_BASE}/profile?action=tracker-search&name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${encodeURIComponent(region)}&full=1`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
       if (btn) { btn.disabled = false; btn.textContent = res.status === 429 ? `Rate-limit · ${data.retryAfter||60}s` : 'Erreur — réessayer'; }
@@ -5629,7 +5678,7 @@ window._trkOpenMatch = async function(matchId) {
   modal.innerHTML = `<div class="trk-match-loading">${icon('chart',22)} Chargement du match…</div>`;
 
   try {
-    const res = await fetch(`${API_BASE}/profile?action=tracker-match&matchId=${encodeURIComponent(matchId)}`);
+    const res = await fetch(`${API_BASE}/profile?action=tracker-match&matchId=${encodeURIComponent(matchId)}`, { headers:{'Authorization':`Bearer ${coachingToken}`} });
     const data = await res.json();
     if (!res.ok) {
       const cooldownMsg = res.status === 429 && data.retryAfter
@@ -6592,7 +6641,7 @@ function renderConversations(convs) {
     const name = san(c.other_username || '?');
     const unread = (c.unread || 0) > 0;
     const last = c.last_message ? san(c.last_message.substring(0, 40)) + (c.last_message.length > 40 ? '…' : '') : '<em style="color:var(--dim)">Aucun message</em>';
-    return `<div class="msg-conv-item${_activeRelId == c.rel_id ? ' active' : ''}" onclick="openConversation(${c.rel_id},'${name}')">
+    return `<div class="msg-conv-item${_activeRelId == c.rel_id ? ' active' : ''}" data-name="${name}" onclick="openConversation(${c.rel_id}, this.dataset.name)">
       <div class="msg-conv-avatar">${name[0]?.toUpperCase() || '?'}</div>
       <div class="msg-conv-info">
         <div class="msg-conv-name">${name}${unread ? `<span class="msg-unread-badge">${c.unread}</span>` : ''}</div>
@@ -6861,7 +6910,7 @@ function renderDailyChallenge(d) {
       setTimeout(() => {
         const modeBtn = document.querySelector(`.mode-card[data-mode="${mode}"]`);
         if (modeBtn) modeBtn.click();
-        else if (typeof startGame === 'function') startGame(mode);
+        else if (typeof startGame === 'function') { if (typeof G !== 'undefined') G.benchmarkMode = false; startGame(mode); }
       }, 100);
     };
   }

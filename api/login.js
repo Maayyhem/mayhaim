@@ -168,7 +168,7 @@ module.exports = async function handler(req, res) {
       }
 
       let decoded;
-      try { decoded = jwt.verify(partial_token, process.env.JWT_SECRET); }
+      try { decoded = jwt.verify(partial_token, process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
       catch { return res.status(401).json({ error: 'Session expirée, reconnecte-toi' }); }
 
       if (!decoded.partial) return res.status(401).json({ error: 'Token invalide' });
@@ -213,6 +213,10 @@ module.exports = async function handler(req, res) {
       FROM users WHERE email = ${email}
     `;
     if (result.length === 0) {
+      // Compare factice pour égaliser le temps de réponse (sinon un attaquant
+      // distingue "email inexistant" (rapide) de "mauvais mot de passe" (lent
+      // à cause de bcrypt) et énumère les comptes.
+      await bcrypt.compare(password, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
@@ -233,7 +237,9 @@ module.exports = async function handler(req, res) {
         return res.status(429).json({ error: 'Trop de tentatives. Compte bloqué 15 minutes.' });
       }
       await sql`UPDATE users SET failed_attempts = ${attempts} WHERE id = ${user.id}`;
-      return res.status(401).json({ error: `Email ou mot de passe incorrect (${5 - attempts} essai${5 - attempts > 1 ? 's' : ''} restant${5 - attempts > 1 ? 's' : ''})` });
+      // Message identique au cas "email inexistant" — le compteur d'essais
+      // restants confirmait l'existence du compte (énumération).
+      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
     // Reset on success

@@ -19,7 +19,7 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
   catch { return null; }
 }
 
@@ -109,8 +109,11 @@ module.exports = async function handler(req, res) {
 
   // ── PATCH — mettre à jour ─────────────────────────────────────────────
   if (req.method === 'PATCH') {
-    const { plan_id, scenarios, status, title, description, target_energy, target_scenario } = req.body;
-    if (!plan_id) return res.status(400).json({ error: 'plan_id requis' });
+    const { scenarios, status, title, description, target_energy, target_scenario } = req.body;
+    // Cast + validation : un plan_id non-numérique provoquait une erreur
+    // Postgres non catchée ("invalid input syntax for integer" → 500).
+    const plan_id = parseInt(req.body?.plan_id);
+    if (!Number.isFinite(plan_id)) return res.status(400).json({ error: 'plan_id requis (entier)' });
 
     // Vérifier accès
     const rows = await sql`
@@ -143,8 +146,8 @@ module.exports = async function handler(req, res) {
 
   // ── DELETE ────────────────────────────────────────────────────────────
   if (req.method === 'DELETE') {
-    const { plan_id } = req.body;
-    if (!plan_id) return res.status(400).json({ error: 'plan_id requis' });
+    const plan_id = parseInt(req.body?.plan_id);
+    if (!Number.isFinite(plan_id)) return res.status(400).json({ error: 'plan_id requis (entier)' });
 
     if (decoded.role !== 'coach' && decoded.role !== 'admin') {
       return res.status(403).json({ error: 'Rôle coach requis' });

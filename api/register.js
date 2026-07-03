@@ -36,6 +36,16 @@ module.exports = async function handler(req, res) {
     if (username.length < 3) {
       return res.status(400).json({ error: 'Pseudo minimum 3 caractères' });
     }
+    // Charset + longueur : le username est réinjecté dans le HTML de dizaines
+    // d'endroits (admin panel, conversations, leaderboards). Sans restriction,
+    // un pseudo piégé type `x');fetch(...)//` devient un vecteur XSS stocké.
+    // Même regex que la route update-profile (cohérence).
+    if (username.length > 32 || !/^[a-zA-Z0-9_\-\.]+$/.test(username)) {
+      return res.status(400).json({ error: 'Pseudo invalide — lettres, chiffres, _ - . uniquement (max 32)' });
+    }
+    if (objective && String(objective).length > 200) {
+      return res.status(400).json({ error: 'Objectif trop long (max 200 caractères)' });
+    }
 
     const sql = neon(process.env.DATABASE_URL);
 
@@ -49,7 +59,7 @@ module.exports = async function handler(req, res) {
       return res.status(409).json({ error: 'Ce pseudo est déjà pris' });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password, 12);
     const result = await sql`
       INSERT INTO users (email, username, password_hash, role, current_rank, peak_elo, objective)
       VALUES (${email}, ${username}, ${hash}, 'student', ${current_rank}, ${peak_elo||null}, ${objective||null})

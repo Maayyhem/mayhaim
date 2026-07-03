@@ -17,7 +17,7 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
   catch { return null; }
 }
 
@@ -49,10 +49,12 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ error: 'Ce joueur n\'est pas dans votre roster' });
     }
 
+    // Caps serveur : ces champs texte étaient non bornés (abus de stockage).
+    const _cap = (v, n) => v == null ? null : String(v).slice(0, n);
     const result = await sql`
       INSERT INTO feedback (coach_id, player_id, run_id, content, strengths, weaknesses, week_objective)
-      VALUES (${decoded.id}, ${player_id}, ${run_id||null}, ${content},
-              ${strengths||null}, ${weaknesses||null}, ${week_objective||null})
+      VALUES (${decoded.id}, ${player_id}, ${run_id||null}, ${_cap(content, 4000)},
+              ${_cap(strengths, 2000)}, ${_cap(weaknesses, 2000)}, ${_cap(week_objective, 1000)})
       RETURNING *
     `;
     // Notifier le joueur (non-bloquant)

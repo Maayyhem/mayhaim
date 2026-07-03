@@ -1,5 +1,35 @@
 # Changelog — MayhAim
 
+## 2.4.9 — 2026-07-03
+
+### 🛡 Audit complet — 25+ bugs corrigés (5 reviews parallèles sur tout le projet)
+
+**Sécurité (critique/high) :**
+- **Faille MFA critique** : `mfa-setup` renvoyait le secret TOTP existant à toute session porteuse d'un partial token. Un attaquant connaissant le mot de passe obtenait le secret → calculait le code → contournait entièrement la MFA. Le secret n'est plus jamais renvoyé une fois la MFA activée (403).
+- **`coach-data` public** : la lecture GET était servie AVANT le contrôle d'auth — dump public du store coachs. Auth requise désormais.
+- **Rôles jamais revalidés** : un admin rétrogradé gardait ses pouvoirs 7 jours (durée du JWT). `update-role` revalide le rôle en DB à chaque appel.
+- **Proxys Henrik ouverts** : `tracker-search`/`tracker-match` sans auth → n'importe qui pouvait épuiser le quota API partagé. Auth requise (le front envoie le token).
+- **XSS stocké** (admin panel + conversations) : un username piégé type `x');fetch(...)//` exécutait du JS dans la session admin au clic (les entités HTML sont décodées dans les attributs avant le parsing JS). Pattern data-attribute + charset strict à l'inscription (`[a-zA-Z0-9_\-\.]`, max 32).
+- **Electron** : permissions toutes accordées silencieusement (caméra/micro/géoloc) → allowlist pointerLock/fullscreen ; `shell.openExternal` sans validation (lancement de `file://`/`ms-msdt:` possible) → https/http only ; check d'origine OAuth `includes()` → égalité stricte ; CSP réelle appliquée (l'ancien handler était un no-op) ; version de MAJ assainie avant `executeJavaScript`.
+- Énumération d'utilisateurs au login (compteur d'essais restants + timing bcrypt) : message uniforme + compare factice. Pinning JWT `HS256`. bcrypt coût 12. Caps de longueur serveur (messages 2000, feedback 4000, username 32, objective 200). Clamps anti-empoisonnement sur les scores benchmark. Fuites `err.message`/réponses brutes Henrik supprimées des réponses client.
+
+**Gameplay (high) :**
+- **La pause ne gelait RIEN** : les cibles continuaient de bouger/expirer derrière le menu (tracking % qui s'effondrait, misses TTL comptées, son de switch en boucle). `G.running=false` en pause + décalage des horloges TTL/réaction au resume.
+- **Runs fantômes** : quitter un Warmup/Benchmark Run via le menu pause laissait `G.warmupRun`/`G.benchmarkRun` actifs → toutes les parties suivantes détournées (durée/diff écrasées, résultats aspirés dans le run mort, boutons de lancement muets). Nettoyage systématique dans tous les chemins de sortie.
+- **Reaction Drill cassé** : absent de `isDynamicMode` → le TTL n'expirait jamais, le mécanisme central du drill (rater si trop lent) était mort. Idem **Burst Drill** (cibles immobiles en medium/hard).
+- **Routine warmup amputée** : `gridshot`/`speedflick` n'existaient pas dans SCENARIOS → les phases Wake-up et Reflex étaient silencieusement supprimées au lancement (routine 4 phases → 2).
+- **Réaction NaN en switch** : `spawnTime` jamais posé sur les cibles switch → 7 scénarios sans bonus vitesse, réaction "N/A", gauge Speed à 0.
+- **Durées warmup persistées** : une durée de phase (ex. 135s) était sauvée dans les settings → au reload, select vide → `parseInt('')=NaN` → partie qui ne finit jamais.
+
+**UX/Data (medium) :**
+- IDs dupliqués `#opt-diff`/`#opt-duration` : les selects du panneau Paramètres > Jeu étaient morts (IDs renommés + synchro bidirectionnelle).
+- Clé settings fantôme `valAim3Dv3_settings` : le wipe DATA_VERSION croyait préserver les réglages (il préservait une clé morte) et le cloud sync synchronisait dans le vide.
+- `benchmarkMode` jamais reset après une partie → les lanceurs du hub héritaient du mode benchmark (durée forcée, scénarios verrouillés muets).
+- Tracker : dédup des appels concurrents, jeton de séquence sur la recherche (stats du mauvais joueur affichées), restauration de la vue au retour d'onglet, badge stale en cas d'erreur réseau offline, purge des caches au logout (machine partagée), calendrier des actes chargé depuis le cache.
+- "Pause → Sensibilité & Crosshair" atterrissait sur l'Accueil au lieu des Paramètres.
+- Overlay F3 invisible hors partie (parent en display:none) — déplacé hors de #game-screen.
+- Fuites GPU : géométries Three.js disposées à chaque retrait de cible (hits, expirations, quits). Listeners dupliqués sur FOV/thèmes/presets après cloud sync. Volume audio NaN neutralisé. ESC pendant le countdown 3-2-1 ne lance plus une partie déverrouillée.
+
 ## 2.4.8 — 2026-04-24
 
 ### 🔥 Nouveau : Pre-game Warmup (routine smart auto-chaînée)

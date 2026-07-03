@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
 
     let decoded;
     try {
-      decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+      decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] });
     } catch (e) {
       return res.status(401).json({ error: 'Token invalide' });
     }
@@ -39,6 +39,18 @@ module.exports = async function handler(req, res) {
     }
 
     const sql = neon(process.env.DATABASE_URL);
+
+    // Revalidation en base : le rôle du JWT peut être périmé (admin rétrogradé
+    // ou supprimé pendant la durée de vie du token 7j). Sans ça, un ex-admin
+    // garde tous les pouvoirs jusqu'à expiration.
+    const actorRows = await sql`SELECT role, locked_until FROM users WHERE id = ${decoded.id} LIMIT 1`;
+    const actor = actorRows[0];
+    if (!actor || actor.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin requis' });
+    }
+    if (actor.locked_until && new Date(actor.locked_until) > new Date()) {
+      return res.status(403).json({ error: 'Compte verrouillé' });
+    }
 
     // Helper audit log (non-bloquant)
     const auditLog = async (action, targetId, targetUsername, details) => {

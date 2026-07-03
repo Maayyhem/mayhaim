@@ -17,7 +17,7 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
   catch { return null; }
 }
 
@@ -68,13 +68,21 @@ module.exports = async function handler(req, res) {
       }
     } catch {}
 
+    // Clamps serveur : les valeurs restent pilotées par le client (pas de
+    // simulation server-side possible), mais on borne au plausible pour
+    // limiter l'empoisonnement des percentiles/classements par des valeurs
+    // absurdes (score 10^15, accuracy 5000%...).
+    const _int = (v, min, max, dflt) => {
+      const n = parseInt(v);
+      return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : dflt;
+    };
     await sql`
       INSERT INTO benchmark_runs
         (user_id, scenario, score, accuracy, hits, misses, energy, rank_name, difficulty, duration, is_benchmark)
       VALUES
-        (${decoded.id}, ${scenario}, ${score||0}, ${accuracy||0}, ${hits||0},
-         ${misses||0}, ${energy||0}, ${rank_name||null}, ${difficulty||'medium'},
-         ${duration||60}, ${is_benchmark||false})
+        (${decoded.id}, ${String(scenario).slice(0, 60)}, ${_int(score, 0, 1000000, 0)}, ${_int(accuracy, 0, 100, 0)}, ${_int(hits, 0, 100000, 0)},
+         ${_int(misses, 0, 100000, 0)}, ${_int(energy, 0, 10000, 0)}, ${rank_name ? String(rank_name).slice(0, 40) : null}, ${difficulty||'medium'},
+         ${_int(duration, 10, 600, 60)}, ${is_benchmark||false})
     `;
     return res.status(201).json({ success: true });
   }

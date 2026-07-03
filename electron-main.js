@@ -94,10 +94,12 @@ function createMainWindow() {
     }, wait);
   });
 
-  // Allow pointer lock without user prompt (required for FPS aim mode)
+  // Allowlist strict : pointerLock (FPS aim) + fullscreen uniquement.
+  // L'ancien handler accordait TOUT (caméra, micro, géoloc, clipboard…) sans
+  // prompt — n'importe quel script compromis y avait accès silencieusement.
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'pointerLock') return callback(true);
-    callback(true);
+    const allowed = ['pointerLock', 'fullscreen'];
+    callback(allowed.includes(permission));
   });
 
   // F11 → toggle fullscreen
@@ -132,8 +134,14 @@ function createMainWindow() {
         },
       };
     }
-    // Everything else (discord.gg invite, external refs) → default browser
-    shell.openExternal(url);
+    // Everything else (discord.gg invite, external refs) → default browser.
+    // Validation du protocole : sans ça, window.open('file:///C:/...') ou un
+    // protocole custom (ms-msdt:, smb:) lancé depuis une XSS ouvre des
+    // ressources locales — vecteur d'exécution de code sous Windows.
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:' || u.protocol === 'http:') shell.openExternal(url);
+    } catch {}
     return { action: 'deny' };
   });
 
@@ -146,7 +154,9 @@ function createMainWindow() {
     const catchToken = (targetUrl) => {
       try {
         const u = new URL(targetUrl);
-        if (!u.origin.includes('mayhaim.vercel.app')) return false;
+        // Égalité stricte : includes() matchait aussi
+        // https://mayhaim.vercel.app.attacker.com (fixation de session).
+        if (u.origin !== 'https://mayhaim.vercel.app') return false;
         const hashParams = new URLSearchParams(
           u.hash.startsWith('#') ? u.hash.slice(1) : ''
         );
@@ -172,9 +182,25 @@ Menu.setApplicationMenu(null);
 
 app.whenReady().then(() => {
   global.__mayhaim_start = Date.now();
-  // CSP: allow loading from local files + calls to Vercel API + Discord CDN
+  // CSP réelle (l'ancien handler renvoyait les headers inchangés — no-op).
+  // Principal gain : bloquer tout <script src> distant hors jsdelivr (chart.js).
+  // Les scripts inline restent autorisés (l'app utilise des onclick inline).
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({ responseHeaders: details.responseHeaders });
+    const csp = [
+      "default-src 'self' https:",
+      "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https:",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      "connect-src 'self' https:",
+      "object-src 'none'",
+    ].join('; ');
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    });
   });
 
   // Splash first (shows immediately), then main in background
@@ -203,8 +229,12 @@ app.whenReady().then(() => {
       console.log('[updater] Update available:', info.version);
       emit('available', { version: info.version });
       if (mainWindow) {
+        // Version assainie avant interpolation dans executeJavaScript : un feed
+        // de MAJ compromis avec une version contenant une quote injecterait du
+        // JS dans le renderer.
+        const safeVersion = String(info.version || '').replace(/[^0-9a-zA-Z.\-]/g, '');
         mainWindow.webContents.executeJavaScript(
-          `window.showToast && window.showToast('Mise à jour v${info.version} en téléchargement…', {type:'info',icon:'⬇',duration:4000})`
+          `window.showToast && window.showToast('Mise à jour v${safeVersion} en téléchargement…', {type:'info',icon:'⬇',duration:4000})`
         );
       }
     });

@@ -14,7 +14,7 @@ function verifyToken(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   try {
-    return jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    return jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] });
   } catch (e) { return null; }
 }
 

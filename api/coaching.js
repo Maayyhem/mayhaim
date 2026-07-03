@@ -17,7 +17,7 @@ function setCors(req, res) {
 function verifyToken(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
-  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); }
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
   catch { return null; }
 }
 
@@ -134,6 +134,10 @@ module.exports = async function handler(req, res) {
       updated_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(data_type, data_key)
     )`;
+    // Lecture : utilisateur connecté requis (les strats/données coach sont
+    // du contenu interne, pas public). Écriture : coach/admin uniquement.
+    const decoded = verifyToken(req);
+    if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
     if (req.method === 'GET') {
       const type = req.query?.type;
       const rows = type
@@ -141,8 +145,6 @@ module.exports = async function handler(req, res) {
         : await sql`SELECT * FROM coach_data ORDER BY updated_at DESC`;
       return res.status(200).json({ data: rows });
     }
-    const decoded = verifyToken(req);
-    if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
     if (decoded.role !== 'admin' && decoded.role !== 'coach') return res.status(403).json({ error: 'Coach ou Admin requis' });
     if (req.method === 'POST') {
       const { data_type, data_key, data_value } = req.body;
@@ -918,8 +920,11 @@ module.exports = async function handler(req, res) {
 
     // ── Envoyer un message ────────────────────────────────────────────────
     if (action === 'send-message') {
-      const { rel_id, content } = req.body;
+      let { rel_id, content } = req.body;
       if (!rel_id || !content) return res.status(400).json({ error: 'rel_id et content requis' });
+      // Cap serveur : sans borne, un body de plusieurs Mo passait tel quel en
+      // DB (abus de stockage) et était réaffiché ailleurs.
+      content = String(content).slice(0, 2000);
       const rel = await sql`SELECT * FROM coaching_relationships WHERE id = ${rel_id} AND (coach_id = ${decoded.id} OR player_id = ${decoded.id}) AND status = 'active'`;
       if (!rel.length) return res.status(403).json({ error: 'Non autorisé' });
       const msg = await sql`INSERT INTO messages (rel_id, sender_id, content) VALUES (${rel_id}, ${decoded.id}, ${content}) RETURNING *`;

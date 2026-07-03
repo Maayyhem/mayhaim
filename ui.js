@@ -155,7 +155,17 @@
 
     const icon = document.createElement('span');
     icon.className = 'toast-icon';
-    icon.innerHTML = opts.icon != null ? opts.icon : TOAST_ICONS[type] || '';
+    // Les icônes custom passées par les appelants sont des emoji/texte courts.
+    // innerHTML seulement pour les icônes internes (TOAST_ICONS contient du
+    // SVG) — une valeur externe contenant du markup passe en textContent pour
+    // fermer le footgun XSS (ex. icône dérivée d'une donnée serveur).
+    const customIcon = opts.icon != null ? String(opts.icon) : null;
+    if (customIcon != null) {
+      if (customIcon.includes('<')) icon.textContent = customIcon;
+      else icon.innerHTML = customIcon;
+    } else {
+      icon.innerHTML = TOAST_ICONS[type] || '';
+    }
     el.appendChild(icon);
 
     const body = document.createElement('div');

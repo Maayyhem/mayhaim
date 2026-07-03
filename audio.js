@@ -18,16 +18,18 @@ class AudioEngine {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  setVolume(v) { this.volume = Math.max(0, Math.min(1, v)); }
+  // Number.isFinite : un settings corrompu (volume NaN) passait le clamp
+  // Math.max/min (NaN reste NaN) puis crashait Web Audio à chaque son.
+  setVolume(v) { this.volume = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.5; }
   setPack(name) { this.pack = name; }
-  setSubVolume(type, v) { this.subVolumes[type] = Math.max(0, Math.min(1, v)); }
+  setSubVolume(type, v) { this.subVolumes[type] = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; }
   muteType(type, muted) { if (muted) this.muted.add(type); else this.muted.delete(type); }
   isMuted(type) { return this.muted.has(type); }
 
   play(type) {
     if (!this.enabled || !this.ctx || this.volume <= 0) return;
     if (this.muted.has(type)) return;
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
     const pack = PACK_ENGINES[this.pack] || PACK_ENGINES.clean;
     const fn = pack[type];
     const sub = this.subVolumes[type] ?? 1;

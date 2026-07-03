@@ -486,7 +486,7 @@ function verifyToken(req, allowPartial = false) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
   try {
-    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET, { algorithms: ['HS256'] });
     if (decoded.partial) {
       return allowPartial ? decoded : null;
     }
@@ -536,15 +536,22 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ data: rows[0].data, updated_at: rows[0].updated_at });
     }
 
-    // MFA setup : génère secret + QR — partial token accepté
+    // MFA setup : génère secret + QR — partial token accepté UNIQUEMENT
+    // tant que la MFA n'est pas encore activée. Une fois mfa_enabled=true, le
+    // secret ne doit plus JAMAIS être renvoyé (sinon un attaquant qui a le mot
+    // de passe obtient un partial token, lit le secret, calcule le TOTP et
+    // contourne totalement la MFA).
     if (action === 'mfa-setup') {
       const decoded = verifyToken(req, true);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
 
-      const rows = await sql`SELECT id, email, username, mfa_secret FROM users WHERE id = ${decoded.id}`;
+      const rows = await sql`SELECT id, email, username, mfa_secret, mfa_enabled FROM users WHERE id = ${decoded.id}`;
       if (rows.length === 0) return res.status(404).json({ error: 'Introuvable' });
 
       const user = rows[0];
+      if (user.mfa_enabled) {
+        return res.status(403).json({ error: 'MFA déjà activée — désactive-la d\'abord depuis les paramètres (code TOTP requis)' });
+      }
       let secret = user.mfa_secret;
       if (!secret) {
         secret = authenticator.generateSecret();
@@ -568,8 +575,12 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ notifications: rows, unread });
     }
 
-    // ── Tracker Search (public, no auth) ────────────────────────────
+    // ── Tracker Search — auth requise : chaque recherche coûte ~7-44 appels
+    // Henrik sur la clé PARTAGÉE de l'app. Public = n'importe qui peut épuiser
+    // le quota de tous les utilisateurs en bouclant l'endpoint.
     if (action === 'tracker-search') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Connexion requise pour utiliser le tracker' });
       const { name, tag } = req.query || {};
       const region = (['eu','na','ap','br','latam','kr'].includes(req.query?.region)) ? req.query.region : 'eu';
       if (!name || !tag) return res.status(400).json({ error: 'Paramètres name et tag requis' });
@@ -627,12 +638,14 @@ module.exports = async function handler(req, res) {
         const aggregated = _aggregateFromRecent(merged);
         return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...aggregated });
       } catch(err) {
-        return res.status(502).json({ error: `Service indisponible: ${err.message}` });
+        console.error("[api] upstream error:", err); return res.status(502).json({ error: "Service temporairement indisponible — réessaie" });
       }
     }
 
-    // ── Match detail (public, no auth) ───────────────────────────────
+    // ── Match detail — auth requise (même clé Henrik partagée) ───────
     if (action === 'tracker-match') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Connexion requise pour utiliser le tracker' });
       const { matchId } = req.query || {};
       if (!matchId) return res.status(400).json({ error: 'matchId requis' });
       try {
@@ -743,7 +756,7 @@ module.exports = async function handler(req, res) {
           round_summary: roundSummary,
         });
       } catch(err) {
-        return res.status(502).json({ error: `Service indisponible: ${err.message}` });
+        console.error("[api] upstream error:", err); return res.status(502).json({ error: "Service temporairement indisponible — réessaie" });
       }
     }
 
@@ -832,7 +845,7 @@ module.exports = async function handler(req, res) {
             recent_matches: recent,
           });
         } catch(err) {
-          return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
+          console.error("[api] upstream error:", err); return res.status(502).json({ error: err.name === "AbortError" ? "Timeout — réessaie" : "Erreur réseau — réessaie" });
         }
       }
 
@@ -882,7 +895,7 @@ module.exports = async function handler(req, res) {
         const aggregated = _aggregateFromRecent(merged);
         return res.status(200).json({ account: { gamename: name, tagline: tag, rank, lp, peak_rank: peakRank }, ...aggregated });
       } catch(err) {
-        return res.status(502).json({ error: `Service indisponible: ${err.message}` });
+        console.error("[api] upstream error:", err); return res.status(502).json({ error: "Service temporairement indisponible — réessaie" });
       }
     }
 
@@ -1034,7 +1047,7 @@ module.exports = async function handler(req, res) {
           `;
           return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp: null, region: shard } });
         } catch(err) {
-          return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
+          console.error("[api] upstream error:", err); return res.status(502).json({ error: err.name === "AbortError" ? "Timeout — réessaie" : "Erreur réseau — réessaie" });
         }
       }
 
@@ -1045,8 +1058,8 @@ module.exports = async function handler(req, res) {
         if (acc.status === 404) return res.status(404).json({ error: 'Compte Riot introuvable — vérifie le Pseudo#TAG' });
         if (acc.status === 429) return res.status(429).json(rateLimit429Body(acc));
         if (acc.status !== 200 || !acc.data?.data?.puuid) {
-          const msg = acc.data?.errors?.[0]?.message || acc.data?.message || `Erreur ${acc.status}`;
-          return res.status(502).json({ error: `Henrik API: ${msg}`, detail: JSON.stringify(acc.data).slice(0, 300) });
+          console.error('[link-riot] henrik account error', acc.status, JSON.stringify(acc.data).slice(0, 300));
+          return res.status(502).json({ error: 'Service Valorant indisponible — réessaie dans quelques minutes' });
         }
         const puuid = acc.data.data.puuid;
         const region = (acc.data.data.region || 'eu').toLowerCase();
@@ -1060,7 +1073,7 @@ module.exports = async function handler(req, res) {
         await sql`UPDATE users SET riot_gamename=${name}, riot_tagline=${tag}, riot_puuid=${puuid}, riot_rank=${rank}, riot_lp=${lp}, riot_region=${region}, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
         return res.status(200).json({ success: true, riot: { gamename: name, tagline: tag, rank, lp, region } });
       } catch(err) {
-        return res.status(502).json({ error: err.name === 'AbortError' ? 'Timeout — réessaie' : `Erreur réseau: ${err.message}` });
+        console.error("[api] upstream error:", err); return res.status(502).json({ error: err.name === "AbortError" ? "Timeout — réessaie" : "Erreur réseau — réessaie" });
       }
     }
 
@@ -1081,7 +1094,7 @@ module.exports = async function handler(req, res) {
           await sql`UPDATE users SET riot_rank=${rank}, riot_lp=NULL, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
           return res.status(200).json({ success: true, riot: { gamename: riot_gamename, tagline: riot_tagline, rank, lp: null } });
         } catch(err) {
-          return res.status(502).json({ error: `Erreur réseau: ${err.message}` });
+          console.error("[api] upstream error:", err); return res.status(502).json({ error: "Erreur réseau — réessaie" });
         }
       }
 
@@ -1097,7 +1110,7 @@ module.exports = async function handler(req, res) {
         await sql`UPDATE users SET riot_rank=${rank}, riot_lp=${lp}, riot_rank_synced_at=NOW() WHERE id=${decoded.id}`;
         return res.status(200).json({ success: true, riot: { gamename: riot_gamename, tagline: riot_tagline, rank, lp } });
       } catch(err) {
-        return res.status(502).json({ error: `Erreur réseau: ${err.message}` });
+        console.error("[api] upstream error:", err); return res.status(502).json({ error: "Erreur réseau — réessaie" });
       }
     }
 
