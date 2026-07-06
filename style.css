@@ -3914,3 +3914,224 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 @keyframes streakPop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .res-streak-freeze, .res-streak-tokens { font-size: 0.75rem; }
 .res-streak-record { color: #e8c56d; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE / RESPONSIVE HUB — v2.6
+   Deux paliers : ≤768px (tablette + drawer nav) et ≤480px (téléphone).
+   TOUT est scopé dans des media queries max-width : Electron impose
+   une fenêtre min de 1280×720 et n'entre JAMAIS dans ces règles.
+   Le jeu 3D (#game-screen, #hud, .pause-*, #results-screen) n'est
+   volontairement PAS ciblé ici : il est desktop-only (Pointer Lock)
+   et bloqué en amont par isMobilePlayBlocked() — voir ui.js/game3d.js.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Éléments mobile-only : inertes en desktop */
+.ch-mobile-menu-btn { display: none; }
+.ch-sidebar-backdrop { display: none; }
+.me-mobile-note { display: none; }
+
+/* ── PALIER TABLETTE / MOBILE : ≤768px ─────────────────────────── */
+@media (max-width: 768px) {
+
+  /* iOS : 100vh déborde sous la barre d'URL → dvh quand supporté */
+  body { height: 100vh; height: 100dvh; }
+
+  /* ── Navigation : sidebar → drawer off-canvas ── */
+  .ch-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    height: 100vh; height: 100dvh;
+    width: min(300px, 85vw);
+    z-index: 880; /* > contenu hub, < modal-backdrop (900) et toasts (9999) */
+    transform: translateX(-105%);
+    transition: transform 0.25s var(--ease);
+  }
+  .ch-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 12px 0 40px rgba(0,0,0,0.5);
+  }
+  .ch-sidebar-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    z-index: 870;
+    background: rgba(0,0,0,0.55);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s var(--ease);
+  }
+  .ch-sidebar-backdrop.active { opacity: 1; pointer-events: auto; }
+
+  /* Hamburger */
+  .ch-mobile-menu-btn {
+    display: inline-flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    width: 44px; height: 44px; flex-shrink: 0;
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; padding: 0;
+  }
+  .ch-mobile-menu-btn span {
+    display: block; width: 18px; height: 2px;
+    background: var(--txt); border-radius: 1px;
+    transition: transform 0.2s var(--ease), opacity 0.2s var(--ease);
+  }
+  .ch-mobile-menu-btn.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .ch-mobile-menu-btn.open span:nth-child(2) { opacity: 0; }
+  .ch-mobile-menu-btn.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* Topbar compacte */
+  .ch-topbar { padding: 0 10px; gap: 10px; }
+  .ch-topbar-title {
+    flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .notif-panel { max-width: calc(100vw - 24px); }
+
+  /* Zone de contenu : jamais de scroll horizontal de page */
+  .ch-scroll { padding: 16px 12px; overflow-x: hidden; }
+
+  /* ── Touch targets ≥ 44px ── */
+  .ch-nav-item { min-height: 44px; padding: 11px 12px; font-size: 0.9rem; }
+  .ch-nav-group-header { min-height: 40px; }
+  .ch-nav-search { min-height: 42px; }
+  .ch-nav-search-icon { top: 13px; }
+  .ch-sidebar-logout { min-height: 44px; }
+  .social-link { width: 40px; height: 40px; }
+  .btn-primary, .btn-secondary, .btn-outline, .btn-back,
+  .wu-btn, .wu-action-btn, .trk-btn, .trk-search-btn,
+  .wrt-btn, .wrs-btn, .home-quick-btn, .lb-toggle-btn,
+  .cp-modal-tab, .pgw-toggle-btn, .fc-nav, .me-tool, .me-step-add,
+  .admin-filter-btn, .xh-preset, .sett-theme-chip {
+    min-height: 44px;
+  }
+  .bench-gtier-chip { display: inline-flex; align-items: center; min-height: 40px; }
+  .fp-pl-btn { width: 44px; height: 44px; }
+  .ch-modal-close { padding: 10px 14px; top: 2px; right: 2px; }
+  select, textarea,
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    min-height: 44px;
+  }
+  input[type="color"] { min-height: 36px; min-width: 44px; }
+
+  /* ── Écran d'auth : formulaire long → scrollable, centrage sûr ── */
+  #auth-screen { overflow-y: auto; justify-content: flex-start; }
+  #auth-screen .auth-wrap { margin: auto; }
+
+  /* ── Grilles → colonnes réduites ── */
+  .trk-overview { grid-template-columns: 1fr; }
+  .trk-split { grid-template-columns: 1fr; }
+  .msg-layout { grid-template-columns: 1fr; }
+  .msg-conversations {
+    border-right: none; border-bottom: 1px solid var(--border);
+    max-height: 200px;
+  }
+  .pf-bottom-grid { grid-template-columns: 1fr; }
+  .sett-layout { grid-template-columns: 1fr; }
+
+  /* ── Tableaux / contenus larges : scroll DANS leur conteneur ── */
+  /* Benchmark : 1fr = minmax(auto,1fr) → la piste ne rétrécit pas sous le
+     min-content des lignes nowrap. minmax(0,1fr) + min-width:0 corrigent. */
+  .bench-categories { grid-template-columns: minmax(0, 1fr); }
+  .bench-cat { min-width: 0; }
+  .trk-panel { overflow-x: auto; }
+  .trk-form-bar { overflow-x: auto; padding-bottom: 4px; }
+  .cp-modal-panel { overflow-x: auto; }
+  .cp-modal-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; }
+  .cp-modal-tab { white-space: nowrap; flex-shrink: 0; }
+  #daily-leaderboard { overflow-x: auto; }
+  #ch-lb-global { overflow-x: auto; }
+  .me-steps-list { overflow-x: auto; }
+
+  /* ── Modales → plein écran ── */
+  .ch-modal { padding: 0; }
+  .ch-modal-content {
+    max-width: none; width: 100%;
+    height: 100vh; height: 100dvh;
+    max-height: none;
+    border-radius: 0; border-left: none; border-right: none;
+    padding: 22px 16px;
+  }
+  .modal-backdrop { padding: 0; }
+  .modal-panel {
+    max-width: none !important; width: 100%;
+    min-height: 100vh; min-height: 100dvh;
+    max-height: none;
+    border-radius: 0; border-left: none; border-right: none;
+  }
+  .trk-match-overlay { padding: 0; }
+  .trk-match-modal {
+    max-width: none; width: 100%;
+    height: 100vh; height: 100dvh;
+    max-height: none;
+    border-radius: 0 !important; border: none;
+  }
+
+  /* ── Éditeur de stratégies : consultation OK, édition = PC ── */
+  .me-mobile-note {
+    display: block;
+    background: rgba(255, 200, 80, 0.08);
+    border: 1px solid rgba(255, 200, 80, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.8rem; line-height: 1.45;
+    color: var(--txt);
+    margin-bottom: 14px;
+  }
+  .me-canvas-wrap { padding: 8px; }
+  .me-strats-bar { flex-wrap: wrap; }
+  .me-strats-bar input { flex: 1 1 100% !important; }
+
+  /* Admin : formulaires empilables */
+  .admin-ann-form > * { min-width: 0; }
+  .admin-section-header { flex-wrap: wrap; gap: 8px; }
+}
+
+/* ── PALIER TÉLÉPHONE : ≤480px ─────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Grilles de cartes → 1 colonne */
+  .mode-grid { grid-template-columns: 1fr; }
+  .cours-grid { grid-template-columns: 1fr; }
+  .weekly-grid { grid-template-columns: 1fr; }
+  .missions-grid { grid-template-columns: 1fr; }
+  .ach-grid { grid-template-columns: repeat(2, 1fr); }
+  .ch-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .dash-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .trk-stats-strip { grid-template-columns: repeat(2, 1fr); }
+  .trk-perf-card { grid-template-columns: 1fr; }
+  .pgw-step { grid-template-columns: 26px 1fr auto; }
+  .pgw-step-icon { display: none; }
+
+  /* Cartes / héros compacts */
+  .home-hero { padding: 18px 14px; }
+  .daily-hero { padding: 18px 14px; }
+  .ch-stat-card { padding: 14px; }
+  .ch-stat-val { font-size: 1.45rem; }
+  .bench-overall { padding: 14px; }
+  .bench-rank-big { font-size: 1.5rem; }
+  .pf-header { flex-wrap: wrap; }
+  .trk-hero-content { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .trk-hero-actions { width: 100%; }
+
+  /* Flashcards scénarios : hint clavier inutile au tactile */
+  .fc-hint { display: none; }
+
+  /* Toasts : pleine largeur lisible */
+  #toast-container { top: 64px; width: calc(100vw - 24px); }
+
+  /* Messages : zone de chat plus courte pour laisser le clavier passer */
+  .msg-chat-messages { min-height: 180px; max-height: 260px; }
+
+  /* Tracker : recherche empilée */
+  .trk-search-inner { flex-wrap: wrap; padding: 6px; gap: 6px; }
+  .trk-search-icon { display: none; }
+  .trk-search-input { flex: 1 1 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; }
+  .trk-region-select {
+    flex: 1; height: auto; min-height: 44px;
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .trk-search-btn { flex: 2; border-radius: 8px; }
+
+  /* Playlists : lignes du builder empilées */
+  .fp-pl-builder-row { flex-direction: column; }
+  .fp-pl-builder-row > * { width: 100%; box-sizing: border-box; }
+}
