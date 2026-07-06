@@ -464,9 +464,15 @@
         </div>
       </aside>
 
+      <!-- Backdrop du menu mobile (invisible en desktop, voir style.css) -->
+      <div class="ch-sidebar-backdrop" id="ch-sidebar-backdrop"></div>
+
       <!-- MAIN AREA -->
       <div class="ch-main">
         <div class="ch-topbar">
+          <button id="ch-mobile-menu-btn" class="ch-mobile-menu-btn" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
           <div class="ch-topbar-title" id="ch-topbar-title">Dashboard</div>
           <div class="ch-topbar-actions">
             <div id="ch-notif-wrap" style="position:relative">
@@ -1537,6 +1543,7 @@
         <!-- MAP EDITOR -->
         <div id="ch-map-editor" class="ch-panel">
           <h2 class="ch-section-title">Map Editor</h2>
+          <div class="me-mobile-note">📱 L'éditeur de stratégies est conçu pour PC : sur mobile tu peux consulter les maps et tes strats sauvegardées, mais l'édition se fait sur ordinateur.</div>
           <div class="me-toolbar">
             <select id="me-map-select">
               <option value="Bind">Bind</option><option value="Haven">Haven</option><option value="Ascent">Ascent</option>

@@ -743,8 +743,60 @@
   }
 
   /* ============================================================
+     MOBILE — détection écran tactile/étroit + modale "jeu sur PC"
+     Le jeu 3D requiert la Pointer Lock API (souris capturée) :
+     indisponible sur écran tactile. Détection combinée :
+       pointer principal "coarse" (tactile) ET (pas de hover OU
+       viewport ≤ 1024px — couvre téléphones et tablettes).
+     Electron (desktop, fenêtre min 1280×720, pointer fine) n'est
+     JAMAIS concerné : escape hatch explicite en première ligne.
+     ============================================================ */
+  function isMobilePlayBlocked() {
+    if (window.MAYHAIM_IS_ELECTRON) return false;
+    try {
+      var coarse  = window.matchMedia('(pointer: coarse)').matches;
+      var noHover = window.matchMedia('(hover: none)').matches;
+      var narrow  = window.matchMedia('(max-width: 1024px)').matches;
+      return coarse && (noHover || narrow);
+    } catch (e) { return false; }
+  }
+
+  var _mobilePlayModal = null;
+  function showMobilePlayModal() {
+    // Une seule instance à la fois (double-tap sur un bouton de lancement)
+    if (_mobilePlayModal) return _mobilePlayModal;
+    var content = document.createElement('div');
+    content.innerHTML =
+      '<div style="text-align:center;padding:6px 0 2px;">' +
+        '<div style="font-size:2.6rem;line-height:1;margin-bottom:14px;">🖥️</div>' +
+        '<div style="font-size:1.05rem;font-weight:800;margin-bottom:10px;">L’entraînement se joue sur PC</div>' +
+        '<p style="font-size:0.86rem;color:var(--dim);line-height:1.55;margin:0 0 16px;">' +
+          'Le jeu 3D utilise le verrouillage du pointeur souris, indisponible sur mobile et tablette. ' +
+          'Tu peux consulter ici tout le hub (tracker, stats, benchmark, cours) — et lancer tes sessions d’aim depuis un ordinateur.' +
+        '</p>' +
+        '<a href="https://mayhaim.vercel.app" target="_blank" rel="noopener" class="btn-primary" ' +
+           'style="display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;min-height:46px;box-sizing:border-box;">' +
+           '⬇ Télécharger l’app PC</a>' +
+        '<button type="button" id="mobile-play-ok" class="btn-secondary" ' +
+           'style="width:100%;min-height:44px;margin-top:10px;">Compris</button>' +
+      '</div>';
+    _mobilePlayModal = showModal({
+      title: 'Disponible sur PC',
+      content: content,
+      size: 'sm',
+      onClose: function () { _mobilePlayModal = null; },
+    });
+    content.querySelector('#mobile-play-ok').addEventListener('click', function () {
+      _mobilePlayModal && _mobilePlayModal.close();
+    });
+    return _mobilePlayModal;
+  }
+
+  /* ============================================================
      EXPORTS
      ============================================================ */
+  window.isMobilePlayBlocked = isMobilePlayBlocked;
+  window.showMobilePlayModal = showMobilePlayModal;
   window.showToast = showToast;
   window.showModal = showModal;
   window.showConfirm = showConfirm;

@@ -8001,6 +8001,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
+  // ── Menu mobile (hamburger → drawer) ──
+  // La sidebar devient un drawer off-canvas ≤768px (voir style.css).
+  // Câblé UNE seule fois : dataset.wired empêche tout double-listener si ce
+  // bloc venait à être rejoué (hot reload, double DOMContentLoaded…).
+  (function initMobileNav() {
+    const btn = document.getElementById('ch-mobile-menu-btn');
+    const sidebar = document.querySelector('.ch-sidebar');
+    const backdrop = document.getElementById('ch-sidebar-backdrop');
+    if (!btn || !sidebar || btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+
+    const setOpen = (open) => {
+      sidebar.classList.toggle('mobile-open', open);
+      backdrop?.classList.toggle('active', open);
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+    };
+    btn.addEventListener('click', () => setOpen(!sidebar.classList.contains('mobile-open')));
+    backdrop?.addEventListener('click', () => setOpen(false));
+    // Navigation → on referme le drawer (délégation : même cible que la nav)
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.closest('.ch-tab-btn')) setOpen(false);
+    });
+    // Retour desktop (rotation tablette / resize) → état propre garanti :
+    // le transform du drawer ne doit jamais persister en layout desktop.
+    const mq = window.matchMedia('(min-width: 769px)');
+    const onDesktop = (m) => { if (m.matches) setOpen(false); };
+    if (mq.addEventListener) mq.addEventListener('change', onDesktop);
+    else if (mq.addListener) mq.addListener(onDesktop); // vieux Safari
+  })();
+
   // Les hooks endGame (_updateCoachingReturnBtn, _renderHeatmap)
   // sont appelés directement depuis game3d.js#endGame()
 });
