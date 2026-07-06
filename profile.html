@@ -12,14 +12,23 @@
   <script src="ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
-    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+    /* style.css (partagé avec l'app) pose body{overflow:hidden;height:100vh;
+       user-select:none} — correct pour le hub (scroll interne .ch-scroll) mais
+       ça bloquait le scroll et la sélection de cette page publique. On rétablit
+       un flux de page normal. NB: la variable de texte est --txt (pas --text). */
+    body {
+      background: var(--bg); color: var(--txt); font-family: var(--font);
+      min-height: 100vh; height: auto; width: auto;
+      overflow-y: auto; overflow-x: hidden;
+      user-select: text;
+    }
     .pub-wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
 
     /* TOPBAR */
     .pub-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
     .pub-logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
     .pub-logo span { color: var(--accent); }
-    .pub-back-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; font-family: var(--font); text-decoration: none; }
+    .pub-back-btn { background: var(--card); border: 1px solid var(--border); color: var(--txt); border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; font-family: var(--font); text-decoration: none; display: inline-flex; align-items: center; }
     .pub-back-btn:hover { background: var(--card-hover); }
 
     /* HEADER */
@@ -37,7 +46,7 @@
     /* STATS ROW */
     .pub-stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
     .pub-stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 10px; text-align: center; }
-    .pub-stat-val { display: block; font-size: 1.35rem; font-weight: 800; color: var(--text); }
+    .pub-stat-val { display: block; font-size: 1.35rem; font-weight: 800; color: var(--txt); }
     .pub-stat-val.accent { color: var(--accent); }
     .pub-stat-lbl { display: block; font-size: 0.7rem; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
 
@@ -86,7 +95,7 @@
 
     /* SHARE */
     .pub-share-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    .pub-share-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 0.8rem; font-family: var(--font); display: flex; align-items: center; gap: 6px; }
+    .pub-share-btn { background: none; border: 1px solid var(--border); color: var(--txt); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 0.8rem; font-family: var(--font); display: flex; align-items: center; gap: 6px; }
     .pub-share-btn:hover { background: var(--card-hover); }
     .pub-share-copied { font-size: 0.75rem; color: #10b981; display: none; }
 
@@ -98,6 +107,20 @@
       .pub-stats-row { grid-template-columns: repeat(3, 1fr); }
       .pub-bottom-grid { grid-template-columns: 1fr; }
       .pub-header { flex-wrap: wrap; }
+      /* Touch targets ≥ 44px (page souvent ouverte sur téléphone) */
+      .pub-back-btn, .pub-share-btn { min-height: 44px; }
+    }
+    @media(max-width: 480px) {
+      .pub-wrap { padding: 20px 12px 40px; }
+      .pub-topbar { margin-bottom: 20px; }
+      .pub-header { padding: 16px; gap: 14px; }
+      .pub-username { font-size: 1.25rem; }
+      .pub-avatar { width: 52px; height: 52px; font-size: 1.6rem; }
+      .pub-global-rank { text-align: left; width: 100%; }
+      .pub-section { padding: 14px; }
+      .pub-stats-row { gap: 8px; }
+      .pub-stat { padding: 12px 6px; }
+      .pub-stat-val { font-size: 1.15rem; }
     }
   </style>
 </head>
