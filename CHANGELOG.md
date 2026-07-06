@@ -1,5 +1,21 @@
 # Changelog — MayhAim
 
+## 2.7.0 — 2026-07-06
+
+### 👋 Onboarding premier lancement
+- Wizard de bienvenue en 4 étapes au tout premier lancement : accueil, réglage de la sensibilité (DPI + sens Valorant, cm/360 calculé en direct), tour des 5 onglets du hub, puis « Lancer mon premier entraînement » (Gridshot facile 60s)
+- Skippable à tout moment (bouton ou touche Échap), **relançable** depuis Paramètres → « Revoir le tutoriel »
+- Les utilisateurs existants ne le voient jamais : détecté via les données locales (compte, réglages, historique) → marqué comme vu silencieusement
+- La sensibilité choisie est appliquée immédiatement (pas seulement sauvegardée) — elle ne peut plus être écrasée à la première partie
+
+### 📱 Hub responsive mobile
+- Le hub (entraînement, tracker, stratégies, profil) est désormais utilisable sur téléphone et tablette — le jeu 3D reste desktop-only (Pointer Lock)
+- Navigation : la sidebar devient un menu hamburger coulissant sous ≤768px
+- Grilles de cartes en 1 colonne, tableaux et graphes du tracker scrollables horizontalement dans leur conteneur (la page ne déborde jamais), modales en plein écran, cibles tactiles ≥44px
+- Sur écran tactile, les boutons de lancement de partie affichent proprement « L'entraînement se joue sur PC » au lieu d'un écran cassé
+- `profile.html` (profil public partagé) rendu responsive + correction du scroll et d'une couleur de texte
+- Aucun impact sur desktop ni sur l'app Electron (fenêtre min 1280×720, jamais en mode mobile)
+
 ## 2.6.0 — 2026-07-03
 
 ### 🔥 Streak quotidien
