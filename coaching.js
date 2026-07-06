@@ -929,6 +929,9 @@ function showApp() {
   loadNotifications();
   clearInterval(_notifPollInterval);
   _notifPollInterval = setInterval(loadNotifications, 30000);
+  // Onboarding premier lancement (onboarding.js) — no-op si le flag
+  // mayh_onboarded est posé (utilisateur existant, skip ou déjà complété).
+  if (typeof maybeShowOnboarding === 'function') setTimeout(maybeShowOnboarding, 300);
 }
 
 // ============ COACHING INIT ============

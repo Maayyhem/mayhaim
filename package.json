@@ -45,6 +45,7 @@
       "coaching.js",
       "coachplayer.js",
       "game3d.js",
+      "onboarding.js",
       "shared/formulas.js",
       "audio.js",
       "ui.js",
