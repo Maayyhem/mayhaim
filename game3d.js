@@ -2997,6 +2997,19 @@ const INTERVAL_MODES = {
 };
 
 function startGame(mode) {
+  // Mobile/tactile : le jeu 3D requiert le Pointer Lock (impossible sur écran
+  // tactile) → message propre au lieu d'un écran cassé. startGame est le point
+  // de passage unique de TOUS les lancements (mode cards, benchmark run, warmup,
+  // playlists, daily) — on nettoie donc aussi tout run orchestré déjà amorcé
+  // pour ne pas laisser un état fantôme (G.benchmarkRun/G.warmupRun) qui
+  // bloquerait les prochains clics avec "une session est déjà en cours".
+  if (window.isMobilePlayBlocked && window.isMobilePlayBlocked()) {
+    if (G.benchmarkRun) abortBenchmarkRun();
+    if (G.warmupRun) abortWarmupRun();
+    G.benchmarkMode = false;
+    if (window.showMobilePlayModal) window.showMobilePlayModal();
+    return;
+  }
   // Safety: prevent launching a benchmark scenario that's locked at the current tier
   if (G.benchmarkMode && SCENARIOS[mode]?.th && !isScenarioUnlocked(mode, currentTier)) {
     const prevTier = currentTier === 'hard' ? 'medium' : 'easier';
