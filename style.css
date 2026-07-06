@@ -3914,3 +3914,77 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 @keyframes streakPop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .res-streak-freeze, .res-streak-tokens { font-size: 0.75rem; }
 .res-streak-record { color: #e8c56d; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }
+
+/* ═══════════════════════════════════════════════════════════
+   ONBOARDING — wizard premier lancement (onboarding.js)
+   Plein écran au-dessus du hub, sous les toasts (--z-toast).
+   ═══════════════════════════════════════════════════════════ */
+#onboarding-overlay {
+  position: fixed; inset: 0; z-index: var(--z-modal);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%, var(--red-g), transparent),
+    var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-6); overflow-y: auto;
+  animation: chFadeIn var(--dur-norm) var(--ease-out);
+}
+.onb-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-xl);
+  width: 100%; max-width: 620px; margin: auto;
+  padding: var(--sp-6) var(--sp-8) var(--sp-8);
+}
+.onb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); }
+.onb-dots { display: flex; gap: var(--sp-2); }
+.onb-dot {
+  width: 10px; height: 10px; border-radius: var(--r-full);
+  background: var(--border); transition: all var(--dur-norm) var(--ease);
+}
+.onb-dot.active { background: var(--accent); transform: scale(1.25); box-shadow: 0 0 10px var(--red-g); }
+.onb-dot.done { background: var(--dim); }
+.onb-skip {
+  background: none; border: 1px solid var(--border); color: var(--dim);
+  border-radius: var(--r-sm); padding: 6px 14px; cursor: pointer;
+  font-family: var(--font); font-size: var(--fs-sm); font-weight: 600;
+  transition: all var(--dur-fast) var(--ease);
+}
+.onb-skip:hover { color: var(--txt); border-color: var(--dim); }
+.onb-step { display: none; }
+.onb-step.active { display: block; animation: chFadeIn var(--dur-norm) var(--ease-out); }
+.onb-hero-icon { text-align: center; color: var(--accent); margin: var(--sp-3) 0 var(--sp-4); filter: drop-shadow(0 0 14px var(--red-g)); }
+.onb-title { font-size: var(--fs-2xl); font-weight: 800; margin-bottom: var(--sp-3); display: flex; align-items: center; justify-content: center; gap: var(--sp-2); text-align: center; }
+.onb-brand { letter-spacing: 1px; }
+.onb-brand span { color: var(--accent); }
+.onb-sub { color: var(--dim); font-size: var(--fs-md); line-height: 1.55; text-align: center; max-width: 480px; margin: 0 auto var(--sp-5); }
+.onb-sens-form {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--sp-4) var(--sp-5); margin-bottom: var(--sp-4);
+}
+.onb-sens-form .sett-input { background: var(--card); } /* contraste sur fond --bg */
+.onb-cm-line { font-size: var(--fs-lg); text-align: center; margin-top: var(--sp-3); }
+.onb-cm-line span { color: var(--accent); font-weight: 800; }
+.onb-hint { font-size: var(--fs-xs); color: var(--dim); text-align: center; margin-top: var(--sp-2); }
+.onb-tour-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3); margin-bottom: var(--sp-4);
+}
+.onb-tour-card {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--sp-4);
+  transition: all var(--dur-fast) var(--ease);
+}
+.onb-tour-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.onb-tour-icon { color: var(--accent); }
+.onb-tour-name { font-weight: 700; font-size: var(--fs-md); }
+.onb-tour-desc { font-size: var(--fs-xs); color: var(--dim); line-height: 1.45; }
+.onb-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-5); }
+.onb-footer .btn-primary, .onb-footer .btn-secondary { padding: 11px 22px; font-size: var(--fs-sm); }
+.onb-footer-final { flex-wrap: wrap; }
+.onb-final-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 560px) {
+  .onb-card { padding: var(--sp-5); }
+  .onb-tour-grid { grid-template-columns: 1fr 1fr; }
+  .onb-footer, .onb-final-actions { flex-direction: column-reverse; align-items: stretch; }
+  .onb-footer .btn-primary, .onb-footer .btn-secondary { width: 100%; }
+}
