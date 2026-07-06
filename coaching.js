@@ -7898,6 +7898,22 @@ async function settMfaDisableConfirm() {
   }
 }
 
+// Révoque toutes les sessions du compte (bump token_version serveur) puis
+// déconnecte localement — le seul token encore valide sera celui du prochain login.
+async function settLogoutAllSessions() {
+  if (!confirm('Déconnecter TOUS les appareils connectés à ce compte ?\n\nTu devras te reconnecter partout, y compris ici.')) return;
+  try {
+    await fetch(`${API_BASE}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${coachingToken}` },
+      body: JSON.stringify({ action: 'logout-all' })
+    });
+  } catch(e) {}
+  showToast?.('Toutes les sessions ont été déconnectées');
+  globalLogout();
+}
+window.settLogoutAllSessions = settLogoutAllSessions;
+
 document.addEventListener('DOMContentLoaded', () => {
   // Discord OAuth callback : token ou erreur passés via URL fragment (#).
   // Le fragment n'est jamais envoyé au serveur → ne fuite pas dans les logs

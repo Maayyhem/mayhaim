@@ -992,3 +992,6 @@ module.exports = async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 };
+
+// Export nommé pour les tests unitaires (le handler reste l'export par défaut).
+module.exports.estimatePercentile = estimatePercentile;

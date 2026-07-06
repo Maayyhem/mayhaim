@@ -1,11 +1,12 @@
 {
   "name": "mayhaim",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "private": true,
   "description": "MayhAim — Aim trainer FPS + coaching hub",
   "author": "Maayyhem",
   "main": "electron-main.js",
   "scripts": {
+    "test": "node --test tests/formulas.test.js tests/api.test.js",
     "setup-db": "node scripts/setup-db.js",
     "build:icons": "node scripts/build-icons.js",
     "electron": "electron .",
@@ -44,6 +45,7 @@
       "coaching.js",
       "coachplayer.js",
       "game3d.js",
+      "shared/formulas.js",
       "audio.js",
       "ui.js",
       "style.css",

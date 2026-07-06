@@ -3,6 +3,30 @@ const jwt = require('jsonwebtoken');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 
+// Tables auto-créées UNE FOIS par cold start (flag module-level) — avant ce
+// guard, les CREATE TABLE tournaient sur CHAQUE requête API (latence + charge
+// DB inutiles sur l'endpoint le plus sollicité de l'app).
+let _profileTablesReady = false;
+async function ensureProfileTables(sql) {
+  if (_profileTablesReady) return;
+  await sql`CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    tab TEXT,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS user_sync_data (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    data JSONB NOT NULL DEFAULT '{}',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  _profileTablesReady = true;
+}
+
 let _riotColReady = false;
 async function ensureRiotColumns(sql) {
   if (_riotColReady) return;
@@ -14,8 +38,19 @@ async function ensureRiotColumns(sql) {
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_lp INTEGER`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_region TEXT`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS riot_rank_synced_at TIMESTAMPTZ`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0`;
   } catch(e) {}
   _riotColReady = true;
+}
+
+// Révocation de sessions : les tokens embarquent `tv` (token_version au moment
+// du login). "Déconnecter toutes les sessions" bump la version en DB → tous
+// les tokens émis avant deviennent invalides sur les actions sensibles.
+// Les tokens legacy (sans tv) passent pendant leur fenêtre de 7 jours.
+async function assertTokenFresh(sql, decoded) {
+  if (decoded.tv === undefined) return true;
+  const r = await sql`SELECT COALESCE(token_version, 0) AS tv FROM users WHERE id = ${decoded.id}`;
+  return r.length > 0 && Number(r[0].tv) === Number(decoded.tv);
 }
 
 // Note Henrik API v4.0.0 (déc. 2024) : clé requise, header `Authorization: <key>`.
@@ -503,25 +538,7 @@ module.exports = async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   await ensureRiotColumns(sql);
-
-  // Auto-create notifications table
-  await sql`CREATE TABLE IF NOT EXISTS notifications (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL,
-    title TEXT NOT NULL,
-    body TEXT,
-    tab TEXT,
-    read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  )`;
-
-  // Auto-create sync table
-  await sql`CREATE TABLE IF NOT EXISTS user_sync_data (
-    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    data JSONB NOT NULL DEFAULT '{}',
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-  )`;
+  await ensureProfileTables(sql);
 
   // ── GET ────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
@@ -916,13 +933,22 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
     const { action, code } = req.body || {};
 
+    // Déconnecter TOUTES les sessions : bump token_version → tous les JWT
+    // émis avant (y compris volés) échouent le check assertTokenFresh.
+    if (action === 'logout-all') {
+      const decoded = verifyToken(req, false);
+      if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      await sql`UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = ${decoded.id}`;
+      return res.status(200).json({ success: true });
+    }
+
     // Activer MFA : vérifie code + active → retourne full JWT
     if (action === 'mfa-enable') {
       const decoded = verifyToken(req, true);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
       if (!code) return res.status(400).json({ error: 'Code requis' });
 
-      const rows = await sql`SELECT id, email, username, role, mfa_secret FROM users WHERE id = ${decoded.id}`;
+      const rows = await sql`SELECT id, email, username, role, mfa_secret, COALESCE(token_version, 0) AS tv FROM users WHERE id = ${decoded.id}`;
       if (rows.length === 0) return res.status(404).json({ error: 'Introuvable' });
 
       const user = rows[0];
@@ -937,7 +963,7 @@ module.exports = async function handler(req, res) {
       await sql`UPDATE users SET mfa_enabled = true WHERE id = ${decoded.id}`;
 
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true, tv: Number(user.tv) },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -951,6 +977,7 @@ module.exports = async function handler(req, res) {
     if (action === 'mfa-disable') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      if (!(await assertTokenFresh(sql, decoded))) return res.status(401).json({ error: 'Session révoquée — reconnecte-toi' });
       if (!code) return res.status(400).json({ error: 'Code requis' });
 
       const rows = await sql`SELECT mfa_secret FROM users WHERE id = ${decoded.id}`;
@@ -970,6 +997,7 @@ module.exports = async function handler(req, res) {
     if (action === 'update-profile') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      if (!(await assertTokenFresh(sql, decoded))) return res.status(401).json({ error: 'Session révoquée — reconnecte-toi' });
 
       const { username, current_rank, objective } = req.body || {};
 
@@ -1004,6 +1032,7 @@ module.exports = async function handler(req, res) {
     if (action === 'link-riot') {
       const decoded = verifyToken(req, false);
       if (!decoded) return res.status(401).json({ error: 'Non autorisé' });
+      if (!(await assertTokenFresh(sql, decoded))) return res.status(401).json({ error: 'Session révoquée — reconnecte-toi' });
 
       const { riot_id } = req.body || {};
       if (!riot_id) return res.status(400).json({ error: 'Riot ID requis (ex: Pseudo#EUW)' });

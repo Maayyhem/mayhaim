@@ -69,7 +69,7 @@ module.exports = async function handler(req, res) {
     const user = result[0];
     // Students get a full token directly — MFA not required
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+      { id: user.id, email: user.email, role: user.role, mfa_verified: true, tv: 0 },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );

@@ -39,17 +39,24 @@ module.exports = async function handler(req, res) {
     }
 
     const sql = neon(process.env.DATABASE_URL);
+    // La colonne token_version est référencée par le SELECT ci-dessous —
+    // ALTER idempotent au cas où cette route tourne avant login/profile.
+    try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0`; } catch(e) {}
 
     // Revalidation en base : le rôle du JWT peut être périmé (admin rétrogradé
     // ou supprimé pendant la durée de vie du token 7j). Sans ça, un ex-admin
     // garde tous les pouvoirs jusqu'à expiration.
-    const actorRows = await sql`SELECT role, locked_until FROM users WHERE id = ${decoded.id} LIMIT 1`;
+    const actorRows = await sql`SELECT role, locked_until, COALESCE(token_version, 0) AS tv FROM users WHERE id = ${decoded.id} LIMIT 1`;
     const actor = actorRows[0];
     if (!actor || actor.role !== 'admin') {
       return res.status(403).json({ error: 'Admin requis' });
     }
     if (actor.locked_until && new Date(actor.locked_until) > new Date()) {
       return res.status(403).json({ error: 'Compte verrouillé' });
+    }
+    // Token émis avant un "déconnecter toutes les sessions" → refusé
+    if (decoded.tv !== undefined && Number(decoded.tv) !== Number(actor.tv)) {
+      return res.status(401).json({ error: 'Session révoquée — reconnecte-toi' });
     }
 
     // Helper audit log (non-bloquant)

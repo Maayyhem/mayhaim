@@ -2,27 +2,16 @@
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
-// Sensitivity system: convert any game sens + DPI to cm/360, then to radians/pixel
-// cm/360 = 2.54 * 360 / (gameSens * yawRate * DPI)
-// yawRate per game:
-const YAW_RATES = { valorant:0.07, cs2:0.022, overwatch:0.0066, apex:0.022, fortnite:0.5555 };
-
+// Sensitivity system : les formules pures vivent dans shared/formulas.js
+// (module UMD, testé unitairement dans tests/). Ici on ne garde que le
+// binding DOM (lecture du DPI depuis les settings).
 function getDPI() { return parseFloat($('#opt-dpi')?.value) || 800; }
 
-function gameSensToCm360(mode, val) {
-  if (mode === 'cm360') return val;
-  const yaw = YAW_RATES[mode];
-  return 2.54 * 360 / (val * yaw * getDPI());
-}
-function cm360ToGameSens(mode, cm360) {
-  if (mode === 'cm360') return cm360;
-  const yaw = YAW_RATES[mode];
-  return 2.54 * 360 / (cm360 * yaw * getDPI());
-}
+function gameSensToCm360(mode, val) { return MayhFormulas.gameSensToCm360(mode, val, getDPI()); }
+function cm360ToGameSens(mode, cm360) { return MayhFormulas.cm360ToGameSens(mode, cm360, getDPI()); }
+function cm360ToRad(cm360) { return MayhFormulas.cm360ToRad(cm360, getDPI()); }
 
 const SENS_DEFAULTS = { cm360:{step:0.5,def:34}, valorant:{step:0.01,def:0.48}, cs2:{step:0.01,def:1.53}, overwatch:{step:0.1,def:5.09}, apex:{step:0.01,def:1.53}, fortnite:{step:0.1,def:6} };
-
-function cm360ToRad(cm360) { return (2 * Math.PI * 2.54) / (cm360 * getDPI()); }
 
 const DIFF = {
   easy:   { tR:[0.5,0.7], sp:[4,3], spd:1.2, gR:0.55, pR:[0.28,0.38], maxT:4, spawnRate:1.2, switchInt:2.5 },

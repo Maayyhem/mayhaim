@@ -1,5 +1,24 @@
 # Changelog — MayhAim
 
+## 2.5.1 — 2026-07-03
+
+### 🏗 Fondations techniques
+
+**Tests automatisés + CI**
+- Nouvelle suite de tests (`npm test`, node:test natif, zéro dépendance) : formules de sensibilité (conversions Valorant/CS2/OW/Apex/Fortnite ↔ cm/360, roundtrips, rad/count), threads Viscose, médiane, percentiles (client ET serveur testés pour cohérence), smoke-require de tous les endpoints API
+- Les formules pures sont extraites dans `shared/formulas.js` (UMD : navigateur + node) — le comportement en jeu est inchangé, mais désormais couvert
+- Workflow GitHub Actions `CI` : syntax check de tout le JS + tests sur chaque push/PR — les régressions sont bloquées AVANT qu'un tag de release parte en build
+
+**Performance API**
+- Les `CREATE TABLE IF NOT EXISTS` de `/api/profile` tournaient sur CHAQUE requête (l'endpoint le plus sollicité de l'app) → désormais une fois par cold start. Latence en baisse sur tout le tracker/profil.
+
+**Monitoring d'erreurs client**
+- Les erreurs JS non catchées et promesses rejetées sont maintenant remontées au serveur (table `client_errors`, max 5/session, dédupliquées, champs bornés, rétention 5000) — première visibilité réelle sur les crashes utilisateurs
+
+**Révocation de sessions**
+- Nouveau bouton Paramètres > Sécurité > "Déconnecter toutes les sessions" : révoque tous les JWT émis (y compris volés) via un compteur `token_version` en base
+- Les tokens embarquent leur version ; les actions sensibles (MFA, liaison Riot, update profil, admin) refusent les tokens d'une version périmée
+
 ## 2.5.0 — 2026-07-03
 
 ### 🚀 Niveau supérieur — 3 axes : Kovaak's · Tracker Network · ValoPlant

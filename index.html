@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MayhAim — aim trainer FPS + coaching hub. Viscose Benchmark, tactical scenarios, Daily Training, VOD library.">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.5.0">
+  <meta name="app-version" content="2.5.1">
   <title>MayhAim — Aim Trainer & Coaching Hub</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
@@ -895,6 +895,13 @@
           <input id="sett-mfa-disable-code" type="text" class="cp-input" placeholder="Code à 6 chiffres" maxlength="7" inputmode="numeric" style="text-align:center;letter-spacing:0.2em;font-size:1.1rem;width:100%;margin-bottom:8px">
           <button class="btn-secondary" style="width:100%" onclick="settMfaDisableConfirm()">Désactiver le MFA</button>
           <div id="sett-mfa-disable-msg" class="cp-msg" style="margin-top:6px"></div>
+        </div>
+        <div class="sett-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div>
+            <span class="sett-row-label">Déconnecter toutes les sessions</span>
+            <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Révoque tous les appareils connectés à ce compte (y compris celui-ci)</div>
+          </div>
+          <button class="btn-secondary" onclick="settLogoutAllSessions()" style="font-size:0.78rem;white-space:nowrap">Tout déconnecter</button>
         </div>
         <div style="margin-top:12px">
           <button id="sett-mfa-toggle-btn" class="btn-secondary" style="font-size:0.82rem;width:100%" onclick="settMfaToggle()">Chargement...</button>
@@ -2165,6 +2172,7 @@
     </div>
   </div>
 
+  <script src="shared/formulas.js"></script>
   <script src="audio.js"></script>
   <script src="maps.js"></script>
   <script src="scenario-maps-data.js"></script>

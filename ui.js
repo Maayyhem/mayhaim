@@ -353,6 +353,31 @@
      without crashing the whole app.
      ============================================================ */
   let _errorFloodGate = 0;
+  // Rapport serveur : max 5 par session, dédupliqué par message — donne enfin
+  // de la visibilité sur les crashes réels des utilisateurs (avant : aucune).
+  let _errReportCount = 0;
+  const _errReported = new Set();
+  function reportErrorToServer(reason, msg) {
+    try {
+      if (_errReportCount >= 5 || _errReported.has(msg)) return;
+      _errReported.add(msg);
+      _errReportCount++;
+      const apiBase = (typeof API_BASE !== 'undefined') ? API_BASE : '/api';
+      const version = document.querySelector('meta[name="app-version"]')?.content || '?';
+      fetch(`${apiBase}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'client-error',
+          message: msg.slice(0, 500),
+          stack: (reason?.stack || '').slice(0, 2000),
+          url: location.pathname + location.hash.slice(0, 80),
+          version,
+          ua: navigator.userAgent.slice(0, 300),
+        }),
+      }).catch(() => {});
+    } catch {}
+  }
   function handleGlobalError(reason) {
     // Rate-limit: max 1 error toast per 3s
     const now = Date.now();
@@ -364,6 +389,7 @@
     console.error('[MayhAim error]', reason);
     // Show user-facing toast only for "real" errors (skip noisy irrelevant ones)
     if (/ResizeObserver|Non-Error promise rejection captured|Script error\.?$/i.test(msg)) return;
+    reportErrorToServer(reason, msg);
     showToast.error(`Erreur : ${msg.slice(0, 140)}`, { duration: 5000 });
   }
   window.addEventListener('error', (e) => handleGlobalError(e.error || e.message));

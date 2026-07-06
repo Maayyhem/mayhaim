@@ -39,6 +39,16 @@ async function ensureDiscordColumn(sql) {
   _discordColReady = true;
 }
 
+// token_version : requis par les SELECT de login (COALESCE) — l'ALTER doit
+// tourner AVANT la première requête qui référence la colonne, sinon le login
+// entier casse sur les bases pas encore migrées.
+let _tvColReady = false;
+async function ensureTokenVersionColumn(sql) {
+  if (_tvColReady) return;
+  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0`; } catch(e) {}
+  _tvColReady = true;
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -137,8 +147,9 @@ module.exports = async function handler(req, res) {
         user = inserted[0];
       }
 
+      const tvRow = await sql`SELECT COALESCE(token_version, 0) AS tv FROM users WHERE id = ${user.id}`;
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true, tv: Number(tvRow[0]?.tv) || 0 },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -160,6 +171,7 @@ module.exports = async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
+    await ensureTokenVersionColumn(sql);
     // ── Step 2 : vérifier le code TOTP ───────────────────────────────
     if (action === 'mfa-verify') {
       const { partial_token, code } = req.body || {};
@@ -174,7 +186,8 @@ module.exports = async function handler(req, res) {
       if (!decoded.partial) return res.status(401).json({ error: 'Token invalide' });
 
       const rows = await sql`
-        SELECT id, email, username, role, mfa_secret, mfa_enabled, current_rank, peak_elo, objective
+        SELECT id, email, username, role, mfa_secret, mfa_enabled, current_rank, peak_elo, objective,
+               COALESCE(token_version, 0) AS tv
         FROM users WHERE id = ${decoded.id}
       `;
       if (rows.length === 0) return res.status(401).json({ error: 'Utilisateur introuvable' });
@@ -191,7 +204,7 @@ module.exports = async function handler(req, res) {
       if (!valid) return res.status(401).json({ error: 'Code incorrect ou expiré' });
 
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true, tv: Number(user.tv) || 0 },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -209,7 +222,8 @@ module.exports = async function handler(req, res) {
 
     const result = await sql`
       SELECT id, email, username, password_hash, role, mfa_secret, mfa_enabled,
-             failed_attempts, locked_until, current_rank, peak_elo, objective
+             failed_attempts, locked_until, current_rank, peak_elo, objective,
+             COALESCE(token_version, 0) AS tv
       FROM users WHERE email = ${email}
     `;
     if (result.length === 0) {
@@ -250,7 +264,7 @@ module.exports = async function handler(req, res) {
     // Student sans MFA → accès direct
     if (!isPrivileged && !user.mfa_enabled) {
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, mfa_verified: true },
+        { id: user.id, email: user.email, role: user.role, mfa_verified: true, tv: Number(user.tv) || 0 },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );

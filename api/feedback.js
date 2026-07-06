@@ -21,9 +21,47 @@ function verifyToken(req) {
   catch { return null; }
 }
 
+let _errTableReady = false;
+async function ensureErrorTable(sql) {
+  if (_errTableReady) return;
+  await sql`CREATE TABLE IF NOT EXISTS client_errors (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    message TEXT NOT NULL,
+    stack TEXT,
+    url TEXT,
+    app_version TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  _errTableReady = true;
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // ── Rapport d'erreur client (monitoring) ──────────────────────────────
+  // Auth optionnelle : les crashes arrivent aussi hors-login. Tous les champs
+  // sont bornés côté serveur, et on n'insère jamais plus d'un rapport par
+  // requête — le throttle principal est côté client (max 5/session).
+  if (req.method === 'POST' && req.body?.action === 'client-error') {
+    const sql = neon(process.env.DATABASE_URL);
+    await ensureErrorTable(sql);
+    const who = verifyToken(req); // null accepté
+    const b = req.body || {};
+    const cap = (v, n) => v == null ? null : String(v).slice(0, n);
+    const message = cap(b.message, 500);
+    if (!message) return res.status(400).json({ error: 'message requis' });
+    try {
+      await sql`INSERT INTO client_errors (user_id, message, stack, url, app_version, user_agent)
+        VALUES (${who?.id || null}, ${message}, ${cap(b.stack, 2000)}, ${cap(b.url, 300)},
+                ${cap(b.version, 20)}, ${cap(b.ua, 300)})`;
+      // Rétention simple : on garde les 5000 derniers rapports
+      await sql`DELETE FROM client_errors WHERE id < (SELECT COALESCE(MAX(id),0) - 5000 FROM client_errors)`;
+    } catch(e) { console.error('[client-error] insert failed', e.message); }
+    return res.status(204).end();
+  }
 
   const decoded = verifyToken(req);
   if (!decoded) return res.status(401).json({ error: 'Non autorisé' });

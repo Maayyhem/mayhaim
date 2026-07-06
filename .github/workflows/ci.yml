@@ -1,0 +1,33 @@
+# CI — vérifie la syntaxe de tout le JS + lance les tests unitaires.
+# Bloque les régressions AVANT qu'un tag de release ne parte en build.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Syntax check (tous les JS livrés)
+        run: |
+          set -e
+          for f in *.js api/*.js shared/*.js scripts/*.js tests/*.js; do
+            node --check "$f"
+            echo "OK $f"
+          done
+
+      - name: Tests unitaires
+        run: npm test
