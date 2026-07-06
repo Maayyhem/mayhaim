@@ -3900,3 +3900,17 @@ h1, h2, h3 { letter-spacing: -0.02em; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══ STREAK QUOTIDIEN ═══ */
+#res-streak-wrap { margin-top: 8px; }
+.res-streak {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.14), rgba(245,158,11,0.05));
+  border: 1px solid rgba(245,158,11,0.4); color: #f59e0b;
+  border-radius: 20px; padding: 5px 14px; font-size: 0.82rem; font-weight: 600;
+}
+.res-streak b { font-size: 0.95rem; }
+.res-streak-new { animation: streakPop 0.5s var(--ease-spring); }
+@keyframes streakPop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.res-streak-freeze, .res-streak-tokens { font-size: 0.75rem; }
+.res-streak-record { color: #e8c56d; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }

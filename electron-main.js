@@ -7,7 +7,76 @@
 
 const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('electron');
 const path = require('node:path');
+const net = require('node:net');
 const { autoUpdater } = require('electron-updater');
+
+// ════════════════════════════════════════════════════════════════
+// DISCORD RICH PRESENCE — client IPC minimal (named pipe), zéro dépendance.
+// ACTIVATION : crée une application sur https://discord.com/developers
+// (New Application → copie l'Application ID) et colle l'ID ci-dessous.
+// Vide = feature désactivée proprement (aucune tentative de connexion).
+// ════════════════════════════════════════════════════════════════
+const DISCORD_RPC_CLIENT_ID = process.env.MAYHAIM_DISCORD_APP_ID || '';
+
+const rpc = { sock: null, ready: false, connecting: false, lastActivity: null };
+
+function rpcFrame(op, payload) {
+  const json = Buffer.from(JSON.stringify(payload), 'utf8');
+  const head = Buffer.alloc(8);
+  head.writeInt32LE(op, 0);
+  head.writeInt32LE(json.length, 4);
+  return Buffer.concat([head, json]);
+}
+
+function rpcConnect() {
+  if (!DISCORD_RPC_CLIENT_ID || rpc.ready || rpc.connecting) return;
+  rpc.connecting = true;
+  // Discord écoute sur discord-ipc-0..9 selon les instances ouvertes
+  let attempt = 0;
+  const tryPipe = () => {
+    if (attempt > 9) { rpc.connecting = false; return; }
+    const pipePath = process.platform === 'win32'
+      ? `\\\\?\\pipe\\discord-ipc-${attempt}`
+      : `${process.env.XDG_RUNTIME_DIR || '/tmp'}/discord-ipc-${attempt}`;
+    const sock = net.connect(pipePath);
+    sock.on('connect', () => {
+      rpc.sock = sock;
+      sock.write(rpcFrame(0, { v: 1, client_id: DISCORD_RPC_CLIENT_ID })); // handshake
+    });
+    sock.on('data', (buf) => {
+      // Première réponse = READY → on peut envoyer les activités
+      if (!rpc.ready) {
+        rpc.ready = true;
+        rpc.connecting = false;
+        if (rpc.lastActivity) rpcSetActivity(rpc.lastActivity);
+      }
+    });
+    sock.on('error', () => { attempt++; tryPipe(); });
+    sock.on('close', () => { rpc.sock = null; rpc.ready = false; rpc.connecting = false; });
+  };
+  tryPipe();
+}
+
+function rpcSetActivity(data) {
+  rpc.lastActivity = data;
+  if (!DISCORD_RPC_CLIENT_ID) return;
+  if (!rpc.ready) { rpcConnect(); return; } // envoyé automatiquement au READY
+  try {
+    const activity = data ? {
+      details: String(data.details || 'MayhAim').slice(0, 128),
+      state: String(data.state || '').slice(0, 128) || undefined,
+      timestamps: data.startedAt ? { start: Math.floor(data.startedAt / 1000) } : undefined,
+      assets: { large_image: 'logo', large_text: 'MayhAim — Aim Trainer' },
+    } : null;
+    rpc.sock.write(rpcFrame(1, {
+      cmd: 'SET_ACTIVITY',
+      args: { pid: process.pid, activity },
+      nonce: String(Date.now()),
+    }));
+  } catch { /* Discord fermé entre-temps : silencieux */ }
+}
+
+ipcMain.on('rpc:activity', (_e, data) => { try { rpcSetActivity(data); } catch {} });
 
 // ── Chromium command-line switches (MUST be set before app.whenReady) ──
 // Chromium caps rAF at 60Hz by default on some Windows configs even if the

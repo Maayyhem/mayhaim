@@ -1005,6 +1005,95 @@ function initPlaylists() {
 window.initPlaylists = initPlaylists;
 window.renderPlaylists = renderPlaylists;
 
+// ============================================================
+// STREAK QUOTIDIEN — style Duolingo, avec freeze tokens
+// 1 partie terminée = le jour compte. 7 jours consécutifs = +1 freeze
+// (max 2). Un jour raté est absorbé par un freeze si disponible.
+// ============================================================
+function loadStreak() { try { return JSON.parse(localStorage.getItem('mh_streak')) || {}; } catch { return {}; } }
+
+function updateStreak() {
+  const dayStr = d => d.toISOString().slice(0, 10);
+  const today = dayStr(new Date());
+  const s = loadStreak();
+  if (s.lastDay === today) return s; // déjà compté aujourd'hui
+  const yesterday = dayStr(new Date(Date.now() - 86400000));
+  const twoDaysAgo = dayStr(new Date(Date.now() - 2 * 86400000));
+  if (s.lastDay === yesterday) {
+    s.current = (s.current || 0) + 1;
+  } else if (s.lastDay === twoDaysAgo && (s.freezes || 0) > 0) {
+    // Un seul jour raté + freeze dispo : la flamme survit
+    s.freezes--;
+    s.current = (s.current || 0) + 1;
+    s.usedFreeze = today;
+  } else {
+    s.current = 1; // reset (ou premier jour)
+  }
+  s.lastDay = today;
+  s.best = Math.max(s.best || 0, s.current);
+  if (s.current % 7 === 0) s.freezes = Math.min(2, (s.freezes || 0) + 1);
+  localStorage.setItem('mh_streak', JSON.stringify(s));
+  return s;
+}
+window.loadStreak = loadStreak;
+
+function renderStreakBadge(s, isNewDay) {
+  const wrap = $('#res-streak-wrap');
+  if (!wrap) return;
+  if (!s || !s.current) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  wrap.innerHTML = `<div class="res-streak ${isNewDay ? 'res-streak-new' : ''}">
+    🔥 <b>${s.current}</b> jour${s.current > 1 ? 's' : ''} d'affilée
+    ${s.usedFreeze === s.lastDay ? ' <span class="res-streak-freeze">🧊 freeze utilisé</span>' : ''}
+    ${(s.freezes || 0) > 0 ? ` <span class="res-streak-tokens">${'🧊'.repeat(s.freezes)}</span>` : ''}
+    ${s.current === s.best && s.current > 1 ? ' <span class="res-streak-record">record !</span>' : ''}
+  </div>`;
+}
+
+// ============================================================
+// PB CELEBRATION — confetti canvas au nouveau record
+// ============================================================
+function launchConfetti() {
+  const cv = document.createElement('canvas');
+  cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9998';
+  document.body.appendChild(cv);
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const colors = ['#ff4655', '#e8c56d', '#4ade80', '#58a6ff', '#d882f5', '#ffffff'];
+  const parts = Array.from({ length: 140 }, () => ({
+    x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * 0.3,
+    y: innerHeight * 0.35,
+    vx: (Math.random() - 0.5) * 14,
+    vy: -6 - Math.random() * 10,
+    rot: Math.random() * Math.PI * 2,
+    vr: (Math.random() - 0.5) * 0.3,
+    w: 6 + Math.random() * 6,
+    h: 4 + Math.random() * 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  const t0 = performance.now();
+  (function frame(t) {
+    const elapsed = (t - t0) / 1000;
+    if (elapsed > 2.6) { cv.remove(); return; }
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    const fade = elapsed > 2 ? 1 - (elapsed - 2) / 0.6 : 1;
+    for (const p of parts) {
+      p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      p.vx *= 0.99;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    requestAnimationFrame(frame);
+  })(t0);
+}
+
 // Toast visuel pour feedback "scénario verrouillé"
 // Delegates to the global toast system (ui.js). Kept as alias for existing callers.
 function _showLockToast(msg) {
@@ -2955,6 +3044,14 @@ function startGame(mode) {
   G.switchActiveIdx=0;G.switchTimer=0;
 
   const sc=SCENARIOS[mode];
+  // Discord Rich Presence (Electron uniquement, no-op ailleurs)
+  try {
+    window.MAYHAIM_RPC?.setActivity({
+      details: sc ? sc.label : mode,
+      state: G.benchmarkMode ? 'Viscose Benchmark' : G.warmupRun ? 'Pre-game Warmup' : 'Free Play',
+      startedAt: Date.now(),
+    });
+  } catch {}
   $('#hud-mode').textContent = sc ? (G.benchmarkMode ? getLabel(mode) : sc.label) : mode;
   $('#hud-diff').textContent = G.benchmarkMode
     ? (window._coachLaunchSource?.tab==='ch-daily-training' ? 'Daily' : 'Benchmark')
@@ -3009,6 +3106,7 @@ function doSpawn() {
 
 function endGame() {
   if (!G.running) return; // guard against double-calls (stale interval, resume race)
+  try { window.MAYHAIM_RPC?.setActivity(null); } catch {}
   G.running=false; clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer=null;
   if(G.autoFireTimer){ clearInterval(G.autoFireTimer); G.autoFireTimer=null; }
   if(document.exitPointerLock) document.exitPointerLock();
@@ -3053,6 +3151,7 @@ function endGame() {
       } else if(G.score > prevPB) {
         const delta = G.score - prevPB;
         pbWrap.innerHTML = `<div class="res-pb-badge res-pb-new">${icon('trophy',16)} NOUVEAU RECORD &nbsp;+${delta.toLocaleString()} pts</div>`;
+        launchConfetti(); // moment de célébration — un record se fête
       } else {
         const delta = G.score - prevPB;
         pbWrap.innerHTML = `<div class="res-pb-badge res-pb-below">Record : ${prevPB.toLocaleString()} pts &nbsp;<span>${delta >= 0 ? '+' : ''}${delta.toLocaleString()}</span></div>`;
@@ -3254,6 +3353,12 @@ function endGame() {
 
   showScreen('results-screen');
   renderRunTimeline();
+  // Streak : toute partie terminée fait vivre la flamme du jour
+  {
+    const beforeDay = loadStreak().lastDay;
+    const streak = updateStreak();
+    renderStreakBadge(streak, beforeDay !== streak.lastDay);
+  }
 
   // Hooks coaching (définis dans coaching.js, chargé avant game3d.js)
   if (typeof _updateCoachingReturnBtn === 'function') _updateCoachingReturnBtn();
@@ -4131,6 +4236,7 @@ function _quitCleanup() {
   paused = false;
   G.running = false;
   G._pausedAt = 0;
+  try { window.MAYHAIM_RPC?.setActivity(null); } catch {}
   clearInterval(G.timerInterval); clearInterval(G.spawnTimer); G.spawnTimer = null;
   if(G.autoFireTimer){clearInterval(G.autoFireTimer);G.autoFireTimer=null;}
   if (document.exitPointerLock) document.exitPointerLock();
@@ -4449,6 +4555,8 @@ function _collectLocalData() {
   try { data.missions = JSON.parse(localStorage.getItem('valAim3D_missions')) || []; } catch { data.missions = []; }
   // Settings
   try { data.settings = JSON.parse(localStorage.getItem('visc_settings')) || {}; } catch { data.settings = {}; }
+  // Streak (suit le compte entre appareils)
+  try { data.streak = JSON.parse(localStorage.getItem('mh_streak')) || {}; } catch { data.streak = {}; }
   return data;
 }
 
@@ -4478,6 +4586,17 @@ function _applyMergedData(data) {
   if (data.settings && Object.keys(data.settings).length > 0) {
     localStorage.setItem('visc_settings', JSON.stringify(data.settings));
     if (typeof applySettings === 'function') applySettings();
+  }
+  // Streak : on garde la version la plus avancée (lastDay le plus récent,
+  // sinon le meilleur best) pour ne pas écraser la flamme locale du jour.
+  if (data.streak && data.streak.lastDay) {
+    try {
+      const local = JSON.parse(localStorage.getItem('mh_streak')) || {};
+      const remote = data.streak;
+      const keep = (!local.lastDay || remote.lastDay > local.lastDay) ? remote : local;
+      keep.best = Math.max(local.best || 0, remote.best || 0);
+      localStorage.setItem('mh_streak', JSON.stringify(keep));
+    } catch {}
   }
 }
 

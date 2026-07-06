@@ -1,5 +1,24 @@
 # Changelog — MayhAim
 
+## 2.6.0 — 2026-07-03
+
+### 🔥 Streak quotidien
+- Toute partie terminée fait vivre la flamme du jour : compteur de jours consécutifs affiché sur l'écran de résultats (animation au premier jeu du jour)
+- **Freeze tokens** 🧊 : +1 tous les 7 jours de streak (max 2), consommé automatiquement si tu rates UN jour — la flamme survit
+- Record de streak affiché, synchronisé entre appareils via le cloud sync
+
+### 🎉 Célébration de record
+- Nouveau PB → pluie de confettis plein écran (2.5s) en plus du badge NOUVEAU RECORD
+
+### 🎮 Discord Rich Presence (app Electron)
+- Tes amis Discord voient "MayhAim — Pasu Angelic · Viscose Benchmark" avec le temps de jeu quand tu t'entraînes
+- Implémentation native (named pipe, zéro dépendance), silencieuse si Discord est fermé
+- **Activation requise** : créer une application sur discord.com/developers (2 min, gratuit) et renseigner l'Application ID via la variable d'environnement `MAYHAIM_DISCORD_APP_ID` au build (ou dans electron-main.js). Sans ID, la feature est proprement désactivée.
+
+### 📌 Déjà là (découvert pendant l'audit, pas besoin de le construire)
+- Daily Challenge global avec leaderboard : onglet "Daily Challenge" du hub
+- Partage de profil public : bouton sur l'onglet Profil (`profile.html?u=pseudo`)
+
 ## 2.5.1 — 2026-07-03
 
 ### 🏗 Fondations techniques

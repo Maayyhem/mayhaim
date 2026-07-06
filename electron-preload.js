@@ -32,6 +32,14 @@ window.MAYHAIM_UPDATER = {
   },
 };
 
+// ───── Discord Rich Presence bridge ─────
+// game3d.js appelle setActivity({details, state, startedAt}) au lancement
+// d'un scénario et setActivity(null) en fin de partie. No-op côté main si
+// aucun DISCORD_RPC_CLIENT_ID n'est configuré.
+window.MAYHAIM_RPC = {
+  setActivity: (data) => { try { ipcRenderer.send('rpc:activity', data); } catch {} },
+};
+
 try {
   const clPath = path.join(__dirname, 'CHANGELOG.md');
   if (fs.existsSync(clPath)) {
