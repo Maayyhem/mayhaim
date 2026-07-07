@@ -3435,13 +3435,8 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   .trk-match-body { padding: 10px 10px 16px; }
 }
 
-/* Respect user motion preference */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Respect user motion preference : UN SEUL bloc prefers-reduced-motion,
+   conservé plus bas (fin de cascade). Doublon purgé. */
 
 /* ═══════════════════════════════════════════════════════════
    BENCHMARK RUN : bouton dashboard + écran transition + résumé
