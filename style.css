@@ -921,7 +921,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .ch-nav-badge {
   margin-left: auto;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size:var(--fs-xs);
   font-weight: 800;
   min-width: 18px;
@@ -1241,7 +1241,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   transition: all var(--dur-norm);
 }
 .qcm-choice:hover:not(:disabled) .qcm-choice-letter {
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: var(--on-accent);
 }
 .qcm-choice-text { font-size:var(--fs-md); line-height: 1.4; }
 .qcm-choice:disabled { cursor: default; opacity: 0.7; transform: none !important; }
@@ -1249,7 +1249,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   border-color: var(--success) !important; background: var(--success-bg) !important;
   opacity: 1 !important;
 }
-.qcm-choice--correct .qcm-choice-letter { background: var(--success); color: #fff; }
+.qcm-choice--correct .qcm-choice-letter { background: var(--success); color: var(--on-accent); }
 .qcm-choice--wrong {
   border-color: var(--danger) !important; background: var(--danger-bg) !important;
   opacity: 1 !important;
@@ -1310,7 +1310,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   font-size:var(--fs-md); font-weight: 600; color: var(--txt); margin-bottom: 8px;
 }
 .qcm-mgr-num {
-  flex-shrink: 0; background: var(--accent); color: #fff;
+  flex-shrink: 0; background: var(--accent); color: var(--on-accent);
   padding: 2px 8px; border-radius: 6px; font-size:var(--fs-xs); font-weight: 800;
 }
 .qcm-mgr-choices {
@@ -1742,7 +1742,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .msg-conv-item { display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); transition:background var(--dur-fast); }
 .msg-conv-item:hover, .msg-conv-item.active { background:var(--accent-bg); }
 .msg-conv-item.active .msg-conv-name { color:var(--accent); }
-.msg-conv-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.msg-conv-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent); color: var(--on-accent); font-weight:700; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .msg-conv-info { flex:1; min-width:0; }
 .msg-conv-name { font-size:var(--fs-sm); font-weight:600; color:var(--txt); display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .msg-conv-last { font-size:var(--fs-xs); color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
@@ -1755,7 +1755,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .msg-mine { align-self:flex-end; align-items:flex-end; }
 .msg-theirs { align-self:flex-start; align-items:flex-start; }
 .msg-text { padding:8px 12px; border-radius:16px; font-size:var(--fs-sm); line-height:1.4; word-break:break-word; }
-.msg-mine .msg-text { background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+.msg-mine .msg-text { background:var(--accent); color: var(--on-accent); border-bottom-right-radius:4px; }
 .msg-theirs .msg-text { background:rgba(255,255,255,0.08); color:var(--txt); border-bottom-left-radius:4px; }
 /* ── Daily Challenge ── */
 .daily-hero { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; text-align:center; margin-bottom:20px; }
@@ -2406,7 +2406,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .cp-modal-recent-date { color:var(--dim); font-size:var(--fs-xs); flex-shrink:0; }
 
 /* Notification badges */
-.ch-nav-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:var(--accent); color:#fff; font-size:var(--fs-xs); font-weight:800; margin-left:5px; vertical-align:middle; }
+.ch-nav-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:var(--accent); color: var(--on-accent); font-size:var(--fs-xs); font-weight:800; margin-left:5px; vertical-align:middle; }
 
 /* Warm-up auto */
 .wu-header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
@@ -2424,7 +2424,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .wu-threads { color:var(--accent); font-weight:600; }
 .wu-new-badge { background:rgba(167,139,250,0.15); color:#a78bfa; border:1px solid rgba(167,139,250,0.3); padding:1px 6px; border-radius:4px; font-size:var(--fs-xs); font-weight:700; }
 .wu-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; min-width:30px; text-align:center; }
-.wu-play-btn { flex-shrink:0; width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; border:none; font-size:var(--fs-md); cursor:pointer; transition:opacity var(--dur-fast); }
+.wu-play-btn { flex-shrink:0; width:32px; height:32px; border-radius:8px; background:var(--accent); color: var(--on-accent); border:none; font-size:var(--fs-md); cursor:pointer; transition:opacity var(--dur-fast); }
 .wu-play-btn:hover { opacity:0.8; }
 
 /* ============ COACH IA ============ */
@@ -2484,7 +2484,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .aic-plan-label { font-weight:700; color:var(--txt); font-size:var(--fs-md); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .aic-plan-conseil { font-size:var(--fs-sm); color:var(--dim); margin-top:2px; }
 .aic-plan-reps { font-size:1rem; font-weight:800; color:var(--accent); flex-shrink:0; }
-.aic-plan-play { flex-shrink:0; width:32px; height:32px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:var(--fs-sm); cursor:pointer; transition:opacity var(--dur-fast); font-family:var(--font); }
+.aic-plan-play { flex-shrink:0; width:32px; height:32px; background:var(--accent); color: var(--on-accent); border:none; border-radius:8px; font-size:var(--fs-sm); cursor:pointer; transition:opacity var(--dur-fast); font-family:var(--font); }
 .aic-plan-play:hover { opacity:0.8; }
 
 /* Week badge + countdown */
@@ -2632,7 +2632,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   margin-top: var(--sp-4);
   padding: var(--sp-2) var(--sp-5);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--r-md);
   font-family: var(--font);
