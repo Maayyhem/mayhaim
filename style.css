@@ -1,3 +1,23 @@
+/* ============================================================
+   FONTS LOCALES — CSP `font-src 'self' data:`, AUCUN CDN.
+   Inter Variable + JetBrains Mono Variable (licence SIL OFL 1.1),
+   fichiers embarqués dans /fonts/.
+   ============================================================ */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ============================================================
@@ -7,8 +27,8 @@
    ============================================================ */
 :root {
   /* Typography */
-  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
+  --font: 'Inter','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --font-mono: 'JetBrains Mono','Cascadia Mono','Consolas',ui-monospace,monospace;
 
   /* Font sizes (step scale) */
   --fs-xs: 0.68rem;
