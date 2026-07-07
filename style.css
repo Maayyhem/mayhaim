@@ -21,80 +21,118 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ============================================================
-   DESIGN TOKENS
-   Theme-invariant (spacing, radii, shadows, motion, z-index).
-   Theme-specific colors live in [data-theme="..."] blocks below.
+   DESIGN TOKENS — OBSIDIAN SIGNAL v3
+   Surfaces noires mates IDENTIQUES sur les 4 thèmes (le thème =
+   le signal, pas le châssis). Sémantiques invariants. Chiffres
+   monospace tabulaires. Accent rationné à l'interactif.
    ============================================================ */
 :root {
-  /* Typography */
+  /* ---- Typo ---- */
   --font: 'Inter','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
   --font-mono: 'JetBrains Mono','Cascadia Mono','Consolas',ui-monospace,monospace;
+  --tnum: 'tnum' 1;   /* usage : font-feature-settings:var(--tnum) */
 
-  /* Font sizes (step scale) */
-  --fs-xs: 0.68rem;
-  --fs-sm: 0.78rem;
-  --fs-md: 0.9rem;
-  --fs-lg: 1.05rem;
-  --fs-xl: 1.3rem;
-  --fs-2xl: 1.65rem;
-  --fs-3xl: 2.1rem;
+  /* ---- Échelle typo — PLANCHER ABSOLU 11px ---- */
+  --fs-xs: 0.6875rem;  /* 11px — micro-labels uppercase, th, badges */
+  --fs-sm: 0.8125rem;  /* 13px — UI dense, td, boutons */
+  --fs-md: 0.875rem;   /* 14px — base */
+  --fs-lg: 1rem;       /* 16px — sous-titres, corps de lecture */
+  --fs-xl: 1.25rem;    /* 20px — titres de panel */
+  --fs-2xl: 1.625rem;  /* 26px — valeurs de stats standard (mono) */
+  --fs-3xl: 2.5rem;    /* 40px — score final, rang (mono only) */
+  --fs-stat: clamp(2rem, 1.4rem + 2.2vw, 3rem); /* stats héroïques (résultats, home) */
+  --lh-tight: 1.1;   /* chiffres, héros */
+  --lh-snug: 1.4;    /* UI */
+  --lh-body: 1.65;   /* lecture longue (#cours-content) */
+  --ls-wide: 0.08em;  /* LE seul letter-spacing uppercase */
+  --ls-tight: -0.015em; /* titres >= --fs-xl uniquement */
 
-  /* Spacing scale (4px base) */
-  --sp-0: 0;
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
-  --sp-10: 40px;
-  --sp-12: 48px;
-  --sp-16: 64px;
+  /* ---- Surfaces — IDENTIQUES sur les 4 thèmes ---- */
+  --bg-deep: #060609;  /* fond canvas replay/heatmap, puits profonds */
+  --bg:      #0a0a0f;  /* fond app — ANCRE DE MARQUE */
+  --card:    #111118;  /* surface 1 : cartes */
+  --card-h:  #16161f;  /* surface 1 hover */
+  --raised:  #1a1a24;  /* surface 2 : modales, popovers, dropdowns, toasts */
+  --inset:   #0d0d13;  /* puits : inputs, th de tables */
+  --card-hover: var(--card-h); /* répare le token fantôme (profile.html) */
 
-  /* Radii */
-  --r-xs: 4px;
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 20px;
-  --r-full: 9999px;
+  /* ---- Texte — 3 niveaux, tous AA ---- */
+  --txt:   #eaedf5;  /* 15.9:1 sur --card */
+  --dim:   #9aa3b8;  /* 6.9:1 — texte courant secondaire, labels */
+  --faint: #7e8699;  /* 4.7:1 sur --raised — meta, th, placeholders (plancher AA) */
+  --text-muted: var(--faint); /* répare le fantôme */
 
-  /* Shadows (theme-neutral — use rgba(0,0,0,...)) */
-  --sh-sm: 0 1px 2px rgba(0,0,0,0.25);
-  --sh-md: 0 4px 12px rgba(0,0,0,0.3);
-  --sh-lg: 0 8px 30px rgba(0,0,0,0.4);
-  --sh-xl: 0 20px 60px rgba(0,0,0,0.55);
-  --sh-glow: 0 0 24px var(--red-g);
+  /* ---- Bordures — 2 niveaux ---- */
+  --border:   #23232f;  /* hairline par défaut */
+  --border-2: #343442;  /* emphase, hover, éléments interactifs */
+  --sep: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); /* séparateur lumineux 1px */
 
-  /* Motion */
-  --dur-fast: 120ms;
-  --dur-norm: 200ms;
-  --dur-slow: 350ms;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* ---- Sémantiques — INVARIANTS PAR THÈME ---- */
+  --success:#4ade80; --success-bg:rgba(74,222,128,.10); --success-brd:rgba(74,222,128,.35);
+  --danger: #f87171; --danger-bg: rgba(248,113,113,.10); --danger-brd: rgba(248,113,113,.35);
+  --warn:   #fbbf24; --warn-bg:   rgba(251,191,36,.10);  --warn-brd:   rgba(251,191,36,.35);
+  --info:   #60a5fa; --info-bg:   rgba(96,165,250,.10);  --info-brd:   rgba(96,165,250,.35);
+  --green: var(--success); --blue: var(--info); --gold: var(--warn); /* alias rétro-compat */
 
-  /* Z-index scale */
-  --z-base: 1;
-  --z-sticky: 100;
-  --z-dropdown: 500;
-  --z-modal-backdrop: 900;
-  --z-modal: 1000;
-  --z-toast: 9999;
+  /* ---- Accent + dérivés ---- */
+  --accent: #ff4655; /* fallback si data-theme absent */
+  --accent-hi:  color-mix(in srgb, var(--accent) 85%, #ffffff);      /* hover CTA */
+  --accent-dim: color-mix(in srgb, var(--accent) 62%, #0a0a0f);      /* pressed */
+  --accent-bg:  color-mix(in srgb, var(--accent) 10%, transparent);  /* nav active, sélection */
+  --accent-brd: color-mix(in srgb, var(--accent) 40%, transparent);
+  --on-accent: #0a0a0f; /* texte SUR fond accent (blanc sur #ff4655 = 3.36:1, échec AA) */
+  --red: var(--accent);
+  --red-g: color-mix(in srgb, var(--accent) 30%, transparent);
 
-  /* Layout */
-  --sidebar-w: 220px;
-  --header-h: 56px;
-  --content-max-w: 1200px;
+  /* ---- Interaction ---- */
+  --hover-veil: rgba(255,255,255,.05);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+
+  /* ---- Élévation — mate ---- */
+  --edge: inset 0 1px 0 rgba(255,255,255,.04); /* liseré « usiné » haut de surface */
+  --sh-sm: 0 1px 2px rgba(0,0,0,.4);
+  --sh-md: 0 4px 16px rgba(0,0,0,.45);
+  --sh-lg: 0 12px 32px rgba(0,0,0,.55);
+  --sh-xl: 0 24px 64px rgba(0,0,0,.7); /* modales uniquement */
+  --sh-glow: 0 0 0 1px var(--accent-brd), 0 0 24px color-mix(in srgb, var(--accent) 18%, transparent); /* CTA + PB uniquement */
+  --grad-hero: radial-gradient(120% 100% at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%);
+
+  /* ---- Espacements ---- */
+  --sp-0:0; --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+  --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px; --sp-16:64px;
+
+  /* ---- Rayons ---- */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-full:9999px;
+  --cut: 14px; /* coin coupé — HÉROS UNIQUEMENT */
+
+  /* ---- Motion ---- */
+  --dur-instant:90ms; --dur-fast:150ms; --dur-norm:200ms; --dur-slow:320ms;
+  --ease:cubic-bezier(.4,0,.2,1); --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1); /* RÉSERVÉ célébrations PB/succès */
+
+  /* ---- Z-index — carte complète ---- */
+  --z-base:1; --z-sticky:100; --z-dropdown:300; --z-game:500; --z-hud:600;
+  --z-pause:700; --z-drawer:880; --z-modal-backdrop:900; --z-modal:1000; --z-toast:9999;
+
+  /* ---- Layout ---- */
+  --sidebar-w:220px; --header-h:56px; --content-max-w:1200px;
+
+  /* ---- Contrôles ---- */
+  --ctl-h:36px; --ctl-h-sm:28px; --ctl-h-lg:44px; --table-row-h:32px;
+
+  /* ---- Canvas (lus par getComputedStyle → ctx) : LITTÉRAUX SEULEMENT,
+          JAMAIS de color-mix/var() imbriqué ici — canvas fillStyle ne les parse pas ---- */
+  --ch-up:#4ade80; --ch-down:#f87171; --ch-info:#60a5fa; --ch-warn:#fbbf24;
+  --ch-grid:rgba(255,255,255,.06); --ch-text:#7e8699; --ch-bg:#0a0a0f;
 }
 
-[data-theme="default"] { --bg:#0d1117;--card:#161b22;--card-h:#1c2330;--border:#30363d;--red:#ff4655;--red-g:rgba(255,70,85,0.3);--green:#3fb950;--blue:#58a6ff;--txt:#e6edf3;--dim:#8b949e;--gold:#e3b341;--accent:#ff4655; }
-[data-theme="midnight"] { --bg:#0a0e1a;--card:#111827;--card-h:#1e293b;--border:#1e293b;--red:#818cf8;--red-g:rgba(129,140,248,0.3);--green:#34d399;--blue:#60a5fa;--txt:#e2e8f0;--dim:#64748b;--gold:#fbbf24;--accent:#818cf8; }
-[data-theme="emerald"] { --bg:#0a1a12;--card:#132a1c;--card-h:#1e3a28;--border:#1e3a28;--red:#10b981;--red-g:rgba(16,185,129,0.3);--green:#34d399;--blue:#2dd4bf;--txt:#d1fae5;--dim:#6b8f7a;--gold:#fbbf24;--accent:#10b981; }
-[data-theme="sakura"] { --bg:#1a0f18;--card:#2a1828;--card-h:#3a2438;--border:#3a2438;--red:#f472b6;--red-g:rgba(244,114,182,0.3);--green:#a78bfa;--blue:#c084fc;--txt:#fce7f3;--dim:#9a7a8f;--gold:#fcd34d;--accent:#f472b6; }
+/* ---- THÈMES = uniquement le signal ---- */
+[data-theme="default"]  { --accent:#ff4655; --ch-accent:#ff4655; }  /* 5.6:1 sur --card */
+[data-theme="midnight"] { --accent:#818cf8; --ch-accent:#818cf8; }  /* 6.3:1 */
+[data-theme="emerald"]  { --accent:#10b981; --ch-accent:#10b981; }  /* 7.4:1 */
+[data-theme="sakura"]   { --accent:#f472b6; --ch-accent:#f472b6; }  /* 7.1:1 */
 
-body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow:hidden; height:100vh; width:100vw; user-select:none; }
+body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snug); font-feature-settings:var(--tnum); background:var(--bg); color:var(--txt); overflow:hidden; height:100vh; width:100vw; user-select:none; }
 .screen { display:none; width:100%; height:100%; position:absolute; top:0; left:0; overflow:hidden; }
 .screen.active { display:flex; }
 .screen.active.scrollable { overflow-y:auto !important; overflow-x:hidden; }
@@ -390,7 +428,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .btn-back:hover { border-color:var(--accent); background:var(--card); }
 
 /* ============ PAUSE MENU ============ */
-#pause-menu { position:fixed; top:0; left:0; width:100%; height:100%; z-index:200; display:flex; align-items:center; justify-content:center; }
+#pause-menu { position:fixed; top:0; left:0; width:100%; height:100%; z-index:var(--z-pause); display:flex; align-items:center; justify-content:center; }
 #pause-menu.hidden { display:none !important; }
 .pause-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); }
 .pause-panel { position:relative; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:36px 44px; min-width:360px; max-width:420px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
@@ -411,7 +449,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   position: fixed !important;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  z-index: 500;
+  z-index: var(--z-game);
   display: none !important;
   cursor: none;
 }
@@ -453,7 +491,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
   position: fixed !important;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  z-index: 500;
+  z-index: var(--z-game);
   display: none !important;
   flex-direction: column;
   align-items: center;
@@ -1360,7 +1398,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .user-role-badge { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:2px 8px; border-radius:4px; }
 
 /* Modals */
-.ch-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:500; justify-content:center; align-items:center; padding:20px; }
+.ch-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(6,6,9,0.78); z-index:var(--z-modal); justify-content:center; align-items:center; padding:20px; }
 .ch-modal.active { display:flex; }
 .ch-modal-content { background:var(--card); padding:28px; border-radius:12px; border:1px solid var(--accent); max-width:480px; width:100%; max-height:85vh; overflow-y:auto; position:relative; box-shadow:0 16px 48px rgba(0,0,0,0.4); animation:chFadeIn 0.2s ease-out; }
 .ch-modal-wide { max-width:760px; }
@@ -1878,7 +1916,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 .ach-desc { font-size: 0.72rem; color: var(--dim); line-height: 1.4; }
 
 /* ═══════════ ACHIEVEMENT TOAST ═══════════ */
-.ach-toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--card); border: 1px solid rgba(255,70,85,0.5); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); max-width: 280px; }
+.ach-toast { position: fixed; bottom: 24px; right: 24px; z-index: var(--z-toast); background: var(--card); border: 1px solid rgba(255,70,85,0.5); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); max-width: 280px; }
 .ach-toast-show { transform: translateX(0); }
 .ach-toast-icon { font-size: 2rem; flex-shrink: 0; }
 .ach-toast-name { font-weight: 700; font-size: 0.85rem; color: var(--accent); margin-bottom: 2px; }
@@ -3246,8 +3284,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--txt); overflow
 
 /* ── Match Detail Modal ── */
 .trk-match-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.78); backdrop-filter: blur(6px);
+  position: fixed; inset: 0; z-index: var(--z-modal);
+  background: rgba(6,6,9,0.78);
   display: none; align-items: center; justify-content: center;
   padding: 16px;
 }
@@ -3891,9 +3929,9 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:foc
 .trk-agent-table tbody tr { transition: background var(--dur-fast) var(--ease); }
 .trk-agent-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 
-/* Hiérarchie typographique : titres serrés, uppercase labels aérés */
-h1, h2, h3 { letter-spacing: -0.02em; }
-.ch-section-title { letter-spacing: -0.01em; }
+/* Hiérarchie typographique : titres serrés (--ls-tight), un seul registre
+   uppercase (--fs-xs/600/--ls-wide) — géré par les recettes v3 plus bas. */
+h1, h2, h3 { letter-spacing: var(--ls-tight); }
 
 /* Panneaux hub : fade-in doux au switch d'onglet */
 @keyframes panelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -4036,7 +4074,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
     top: 0; left: 0; bottom: 0;
     height: 100vh; height: 100dvh;
     width: min(300px, 85vw);
-    z-index: 880; /* > contenu hub, < modal-backdrop (900) et toasts (9999) */
+    z-index: var(--z-drawer); /* > contenu hub, < modal-backdrop (900) et toasts (9999) */
     transform: translateX(-105%);
     transition: transform 0.25s var(--ease);
   }
