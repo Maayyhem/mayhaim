@@ -3761,8 +3761,8 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .trk-form-bar { display: flex; gap: 3px; flex: 1; min-width: 200px; }
 .trk-form-sq { width: 14px; height: 22px; border-radius: 3px; transition: transform 0.1s; }
 .trk-form-sq:hover { transform: scaleY(1.15); }
-.trk-form-w { background: linear-gradient(180deg, var(--success), var(--success)); }
-.trk-form-l { background: linear-gradient(180deg, var(--danger), var(--danger)); }
+.trk-form-w { background: linear-gradient(180deg, var(--success), color-mix(in srgb, var(--success) 70%, #000)); }
+.trk-form-l { background: linear-gradient(180deg, var(--danger), color-mix(in srgb, var(--danger) 70%, #000)); }
 .trk-form-count { font-size:var(--fs-sm); font-weight: 700; color: var(--txt); }
 .trk-rr-section { margin-top: 4px; }
 .trk-rr-total { font-size:var(--fs-sm); font-weight: 700; margin-left: 10px; text-transform: none; letter-spacing: 0; }

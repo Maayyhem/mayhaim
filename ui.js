@@ -103,6 +103,32 @@
   window.icon = icon;
 
   /* ============================================================
+     CHART COLORS — palette canvas/Chart.js (Obsidian Signal §13)
+     Tokens --ch-* = littéraux (jamais de color-mix : fillStyle ne
+     les parse pas). À appeler À CHAQUE draw — jamais de cache au
+     load, sinon le switch de thème ne rafraîchit pas les charts.
+     ============================================================ */
+  function chartColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n, fb) => (cs.getPropertyValue(n) || '').trim() || fb;
+    return {
+      accent: v('--ch-accent', '#ff4655'),
+      up:     v('--ch-up',     '#4ade80'),
+      down:   v('--ch-down',   '#f87171'),
+      info:   v('--ch-info',   '#60a5fa'),
+      warn:   v('--ch-warn',   '#fbbf24'),
+      grid:   v('--ch-grid',   'rgba(255,255,255,0.06)'),
+      text:   v('--ch-text',   '#7e8699'),
+      bg:     v('--ch-bg',     '#0a0a0f'),
+    };
+  }
+  const withAlpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+  const CHART_CAT = ['#60a5fa','#4ade80','#fbbf24','#f472b6','#a78bfa','#2dd4bf','#fb923c','#f87171','#c084fc','#94a3b8'];
+  window.chartColors = chartColors;
+  window.withAlpha = withAlpha;
+  window.CHART_CAT = CHART_CAT;
+
+  /* ============================================================
      TOAST
      ============================================================ */
   const TOAST_ICONS = {
