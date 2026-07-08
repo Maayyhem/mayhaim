@@ -1756,7 +1756,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .msg-mine .msg-text { background:var(--accent); color: var(--on-accent); border-bottom-right-radius:4px; }
 .msg-theirs .msg-text { background:rgba(255,255,255,0.08); color:var(--txt); border-bottom-left-radius:4px; }
 /* ── Daily Challenge ── */
-.daily-hero { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; text-align:center; margin-bottom:20px; }
+.daily-hero { background:var(--card); padding:var(--sp-6); text-align:center; margin-bottom:20px; position:relative; overflow:hidden; }
 .daily-mode-badge { font-size:1.4rem; font-weight:800; color:var(--txt); margin-bottom:6px; }
 .daily-mode-desc { font-size:var(--fs-sm); color:var(--dim); margin-bottom:14px; }
 .daily-user-stats { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; }
@@ -1967,28 +1967,12 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 /* ── Home Hero ── */
 .home-hero {
   position: relative;
-  border-radius: 16px;
-  padding: 28px 28px 24px;
+  padding: var(--sp-6) 28px;
   margin-bottom: 20px;
   overflow: hidden;
-  border: 1px solid var(--border);
 }
-.home-hero-bg {
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, var(--card) 0%, var(--bg) 50%, var(--card) 100%);
-  z-index: 0;
-}
-.home-hero-bg::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 20% 50%, var(--red-g), transparent 60%),
-              radial-gradient(ellipse at 80% 20%, var(--info-bg), transparent 50%);
-  animation: heroShimmer 8s ease-in-out infinite alternate;
-}
-@keyframes heroShimmer {
-  0% { opacity: 0.6; }
-  100% { opacity: 1; }
-}
+/* fond animé legacy neutralisé — la signature héros (fin de fichier) fournit --grad-hero */
+.home-hero-bg { position: absolute; inset: 0; z-index: 0; }
 .home-hero-content {
   position: relative; z-index: 1;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
@@ -2003,12 +1987,11 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 .home-rank-badge {
   display: flex; align-items: center; gap: 12px;
   background: rgba(0,0,0,0.3); border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px 18px;
-  backdrop-filter: blur(8px);
+  border-radius: var(--r-md); padding: 12px 18px;
 }
 .home-rank-icon { font-size: 1.8rem; }
-.home-rank-label { font-size:var(--fs-xs); text-transform: uppercase; letter-spacing:var(--ls-wide); color: var(--dim); font-weight: 700; }
-.home-rank-value { font-size: 1.1rem; font-weight: 800; color: var(--accent); margin-top: 2px; }
+.home-rank-label { font-size:var(--fs-xs); text-transform: uppercase; letter-spacing:var(--ls-wide); color: var(--faint); font-weight: 600; }
+.home-rank-value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; color: var(--txt); margin-top: 2px; font-variant-numeric: tabular-nums; }
 
 /* ── Home Stats Row ── */
 .home-stats-row {
@@ -2020,13 +2003,13 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
   border-radius: 12px; padding: 14px 16px;
   transition: border-color var(--dur-norm), transform 0.2s;
 }
-.home-stat-card:hover { border-color: var(--red-g); transform: translateY(-2px); }
-.home-stat-accent { border-left: 3px solid var(--accent); }
+.home-stat-card:hover { border-color: var(--border-2); }
 .home-stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .home-stat-icon { font-size: 1rem; }
 .home-stat-trend { font-size:var(--fs-xs); font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-.home-stat-trend.up { color: var(--green); background: var(--success-bg); }
-.home-stat-trend.down { color: var(--accent); background: var(--red-g); }
+.home-stat-trend { font-family: var(--font-mono); }
+.home-stat-trend.up { color: var(--success); background: var(--success-bg); }
+.home-stat-trend.down { color: var(--danger); background: var(--danger-bg); }
 .home-stat-val {
   font-size: 1.5rem; font-weight: 800; line-height: 1;
   margin-bottom: 4px; color: var(--txt);
@@ -2749,7 +2732,7 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 }
 .trk-region-select:focus { border-color: var(--accent); }
 
-.trk-hero--search { border-left: 3px solid var(--accent); }
+.trk-hero--search { border-left: 0; }
 
 /* ── Link Screen ── */
 .trk-link-screen {
@@ -2793,15 +2776,8 @@ body { font-family:var(--font); font-size:var(--fs-md); line-height:var(--lh-snu
 /* ── Profile Hero ── */
 .trk-hero {
   position: relative; overflow: hidden;
-  border-radius: 16px; border: 1px solid var(--border);
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--card) 0%, rgba(0,0,0,0.4) 100%);
-}
-.trk-hero::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 30% 50%, var(--red-g), transparent 65%),
-              radial-gradient(ellipse at 80% 20%, var(--info-bg), transparent 50%);
-  pointer-events: none;
+  background: var(--card);
 }
 .trk-hero-content {
   position: relative; z-index: 1;
@@ -4173,6 +4149,69 @@ input[type="number"] { font-family: var(--font-mono); font-weight: 500; text-ali
 #hud-timer, #hud-score, #hud-acc {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   OBSIDIAN SIGNAL v3 — RECETTES ÉCRANS (passe 2 : hub)
+   Titres de section «//», héros à coins coupés, modales, toasts,
+   tables, états vides. Toujours par redéfinition des classes
+   existantes, en fin de cascade desktop.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── TITRES DE SECTION — 1 recette, signature «//» (§6) ── */
+.section-title, .ch-section-title, .home-section-title, .pf-section-title,
+.trk-section-title, .trk-panel-title, .cp-sub-title, .cp-modal-section-title,
+.aic-card-label, .dash-widget-title {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font: 600 var(--fs-xs)/1.2 var(--font); text-transform: uppercase;
+  letter-spacing: var(--ls-wide); color: var(--faint);
+  margin: 0 0 var(--sp-3); padding-left: 0; border-left: 0;
+}
+.section-title::before, .ch-section-title::before, .home-section-title::before,
+.pf-section-title::before, .trk-section-title::before, .trk-panel-title::before,
+.cp-sub-title::before, .cp-modal-section-title::before, .aic-card-label::before,
+.dash-widget-title::before {
+  content: '//'; color: var(--dim); font-family: var(--font-mono); font-weight: 600;
+  flex-shrink: 0;
+}
+.section-title svg, .ch-section-title svg, .home-section-title svg, .pf-section-title svg,
+.trk-section-title svg, .trk-panel-title svg, .cp-sub-title svg, .cp-modal-section-title svg,
+.aic-card-label svg, .dash-widget-title svg {
+  width: 14px; height: 14px; color: var(--faint); flex-shrink: 0; vertical-align: middle;
+}
+.cp-modal-tab svg, #lb-tab-global svg, #lb-tab-mode svg, .trk-qtab svg {
+  width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px;
+}
+.section-title { margin-top: var(--sp-6); }
+.cp-sub-title { margin-top: var(--sp-5); }
+.home-section-header .home-section-title { margin-bottom: 0; }
+/* compteur / total à droite du titre : mono, poussé à droite */
+.trk-section-title .trk-rr-total,
+.ch-section-title .ch-title-count {
+  margin-left: auto; font-family: var(--font-mono); font-weight: 500;
+  letter-spacing: 0; text-transform: none;
+}
+/* filet bas conservé sous les titres de panels tracker */
+.trk-panel-title { padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border); }
+
+/* ── HÉROS — signature coins coupés + filet lumineux (§5) ── */
+.home-hero, .daily-hero, .res-hero, .trk-hero {
+  background: var(--card);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--edge);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)),
+                     calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+.home-hero::before, .daily-hero::before, .res-hero::before, .trk-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--grad-hero); pointer-events: none; opacity: 1;
+}
+.home-hero::after, .daily-hero::after, .res-hero::after, .trk-hero::after {
+  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+  background: var(--sep); pointer-events: none;
+}
+/* le contenu passe au-dessus du gradient */
+.daily-hero > *, .res-hero > * { position: relative; z-index: 1; }
 
 /* ═══════════════════════════════════════════════════════════
    ONBOARDING — wizard premier lancement (onboarding.js)

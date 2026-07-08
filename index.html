@@ -1648,7 +1648,7 @@
 
         <!-- MESSAGES -->
         <div id="ch-messages" class="ch-panel">
-          <h2 class="ch-section-title">&#128172; Messages</h2>
+          <h2 class="ch-section-title"><span data-icon="message"></span> Messages</h2>
           <div class="msg-layout">
             <div id="msg-conversations" class="msg-conversations">
               <p class="ch-empty" style="padding:16px;font-size:0.82rem">Chargement…</p>
@@ -1666,7 +1666,7 @@
 
         <!-- ADMIN PANEL — admin only -->
         <div id="ch-admin" class="ch-panel">
-          <h2 class="ch-section-title">&#9881; Administration</h2>
+          <h2 class="ch-section-title"><span data-icon="admin"></span> Administration</h2>
 
           <div class="admin-stats-grid">
             <div class="admin-stat-card"><div class="admin-stat-val" id="astat-total">—</div><div class="admin-stat-lbl">Utilisateurs</div></div>
@@ -1892,7 +1892,7 @@
 
           <!-- Benchmark local summary -->
           <div class="pf-section">
-            <div class="pf-section-title">📊 Viscose Benchmark</div>
+            <div class="pf-section-title"><span data-icon="chart"></span> Viscose Benchmark</div>
             <div id="pf-bench-row" class="pf-bench-row">
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-threads">—</span><span class="pf-bench-lbl">Threads</span></div>
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-energy">—</span><span class="pf-bench-lbl">Energy</span></div>
@@ -1902,7 +1902,7 @@
 
           <!-- Aim ↔ In-Game correlation -->
           <div class="pf-section pf-aimig-section">
-            <div class="pf-section-title">🎯 Aim ↔ Valorant <span style="color:var(--dim);font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0">— corrélation de tes stats</span></div>
+            <div class="pf-section-title"><span data-icon="link"></span> Aim ↔ Valorant <span style="color:var(--dim);font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0">— corrélation de tes stats</span></div>
             <div id="pf-aimig-content" class="pf-aimig-content">
               <div class="pf-aimig-loading" style="color:var(--dim);font-size:0.84rem;text-align:center;padding:16px">Analyse en cours…</div>
             </div>
@@ -1910,7 +1910,7 @@
 
           <!-- Skill radar chart -->
           <div class="pf-section">
-            <div class="pf-section-title">🕸️ Profil de compétences</div>
+            <div class="pf-section-title"><span data-icon="target"></span> Profil de compétences</div>
             <div class="pf-radar-wrap">
               <canvas id="pf-radar-chart"></canvas>
             </div>
@@ -1918,13 +1918,13 @@
 
           <!-- Trophy showcase -->
           <div class="pf-section">
-            <div class="pf-section-title">🏆 Trophées <span id="pf-trophy-count" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div class="pf-section-title"><span data-icon="trophy"></span> Trophées <span id="pf-trophy-count" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
             <div id="pf-trophy-grid" class="pf-trophy-grid"></div>
           </div>
 
           <!-- 30-day activity chart -->
           <div class="pf-section">
-            <div class="pf-section-title">📈 Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div class="pf-section-title"><span data-icon="trending"></span> Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
             <div class="pf-chart-wrap">
               <canvas id="pf-activity-chart"></canvas>
             </div>
@@ -1935,13 +1935,13 @@
 
             <!-- Recent games -->
             <div class="pf-section">
-              <div class="pf-section-title">🕹️ Parties récentes</div>
+              <div class="pf-section-title"><span data-icon="gamepad"></span> Parties récentes</div>
               <div id="pf-recent-games" class="pf-recent-list"></div>
             </div>
 
             <!-- Best modes -->
             <div class="pf-section">
-              <div class="pf-section-title">🎯 Meilleurs modes</div>
+              <div class="pf-section-title"><span data-icon="target"></span> Meilleurs modes</div>
               <div id="pf-mode-breakdown" class="pf-mode-list"></div>
             </div>
 
@@ -2006,8 +2006,8 @@
 
           <!-- Toggle: Global vs Par Mode -->
           <div class="lb-toggle-row">
-            <button class="lb-toggle-btn active" id="lb-tab-global" onclick="switchLbTab('global')">🌍 Général</button>
-            <button class="lb-toggle-btn" id="lb-tab-mode" onclick="switchLbTab('mode')">🎯 Par mode</button>
+            <button class="lb-toggle-btn active" id="lb-tab-global" onclick="switchLbTab('global')"><span data-icon="globe"></span> Général</button>
+            <button class="lb-toggle-btn" id="lb-tab-mode" onclick="switchLbTab('mode')"><span data-icon="target"></span> Par mode</button>
           </div>
 
           <!-- Global leaderboard -->
@@ -2051,7 +2051,7 @@
         <div class="cp-modal-tabs">
           <button class="cp-modal-tab active" data-ptab="cp-pt-stats">&#128202; Stats</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-plan">&#128203; Plan</button>
-          <button class="cp-modal-tab" data-ptab="cp-pt-feedback">&#128172; Feedback</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-feedback"><span data-icon="feedback"></span> Feedback</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-messages">&#9993; Messages</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-progress">&#128200; Progression</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-vods">&#127909; VODs</button>
