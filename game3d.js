@@ -803,7 +803,7 @@ function finalizeWarmupRun() {
 function showWarmupRunSummary(s) {
   const screen = $('#warmup-run-summary');
   if (!screen) return;
-  const accColor = s.accDelta == null ? 'var(--txt)' : s.accDelta >= 0 ? '#4ade80' : '#f87171';
+  const accColor = s.accDelta == null ? 'var(--txt)' : s.accDelta >= 0 ? 'var(--success)' : 'var(--danger)';
   const accDeltaTxt = s.accDelta == null ? '' : ` <span style="color:${accColor};font-size:0.78rem">(${s.accDelta>=0?'+':''}${s.accDelta}% vs ton avg)</span>`;
   const rowsHtml = s.results.map(r => {
     const accTxt = r.acc != null ? `${r.acc}%` : '—';
@@ -1061,7 +1061,8 @@ function launchConfetti() {
   cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  const colors = ['#ff4655', '#e8c56d', '#4ade80', '#58a6ff', '#d882f5', '#ffffff'];
+  const cc = window.chartColors();
+  const colors = [cc.accent, cc.warn, cc.up, cc.info, '#eaedf5'];
   const parts = Array.from({ length: 140 }, () => ({
     x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * 0.3,
     y: innerHeight * 0.35,
@@ -2875,7 +2876,7 @@ function hitTarget(t) {
 }
 
 function showHitmarker() { const h=$('#hitmarker');h.classList.remove('hidden');h.classList.add('show');setTimeout(()=>{h.classList.remove('show');h.classList.add('hidden');},100); }
-function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color='#e8c56d';f.appendChild(e);setTimeout(()=>e.remove(),1500); }
+function addPopup(pts) { const f=$('#kill-feed'),e=document.createElement('div');e.className='kill-entry';e.textContent='+'+pts+(G.combo>=5?' x'+G.combo:'');if(G.combo>=5)e.style.color=window.chartColors().warn;f.appendChild(e);setTimeout(()=>e.remove(),1500); }
 
 // ---- MOUSE (hardware jump filter only — no rolling average to avoid blocking flicks) ----
 let lastMoveTime = 0;
@@ -2945,7 +2946,7 @@ function gameLoop() {
         const drops = G._droppedSpikes || 0;
         // Detect suspicious 60Hz cap: if frame time is consistently near 16.67ms
         // and fps stays in [58, 63], Chromium might be capping regardless of display.
-        const capHint = (fps >= 58 && fps <= 63) ? '<div style="color:#f59e0b;margin-top:4px;font-size:0.72rem">⚠ 60 FPS possible cap</div>' : '';
+        const capHint = (fps >= 58 && fps <= 63) ? '<div style="color:var(--warn);margin-top:4px;font-size:0.72rem">⚠ 60 FPS possible cap</div>' : '';
         el.innerHTML = `<div>FPS <b>${fps}</b></div><div>Frame ${dtMs.toFixed(1)}ms · worst ${_fpsWorstMs.toFixed(1)}ms</div><div>cm/360 <b>${G.cm360.toFixed(2)}</b></div><div>Spikes drop <b>${drops}</b></div>${capHint}`;
       }
       _fpsLastDisplay = nowT;
@@ -3089,7 +3090,7 @@ function startGame(mode) {
 
 function doCountdown(cb) {
   let c=3; const el=document.createElement('div');
-  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8rem;font-weight:900;color:#ff4655;text-shadow:0 0 60px rgba(255,70,85,0.6);z-index:300;pointer-events:none;';
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8rem;font-weight:650;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:'+window.chartColors().accent+';text-shadow:0 4px 32px rgba(0,0,0,0.6);z-index:610;pointer-events:none;';
   document.body.appendChild(el); el.textContent=c; audioEngine.play('countdown');
   const ci=setInterval(()=>{c--;if(c>0){el.textContent=c;audioEngine.play('countdown');}else{el.textContent='GO!';audioEngine.play('start');clearInterval(ci);setTimeout(()=>{
     el.remove();
@@ -3410,8 +3411,11 @@ function renderRunTimeline() {
     return tot > 0 ? (p.hits / tot) * 100 : 100;
   });
 
+  // Palette charts — lue à CHAQUE draw (switch de thème à chaud)
+  const cc = window.chartColors();
+
   // Grille légère
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.strokeStyle = cc.grid;
   ctx.lineWidth = 1;
   for (let g = 1; g < 4; g++) {
     const y = padY + (g / 4) * (H - padY * 2);
@@ -3421,14 +3425,14 @@ function renderRunTimeline() {
   // Courbe accuracy (verte, secondaire)
   ctx.beginPath();
   accSeries.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAcc(v)) : ctx.lineTo(xAt(i), yAcc(v)));
-  ctx.strokeStyle = 'rgba(74,222,128,0.55)';
+  ctx.strokeStyle = window.withAlpha(cc.up, 0.55);
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
   // Courbe score (accent, principale) avec aire
   const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, 'rgba(255,70,85,0.25)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  grad.addColorStop(0, window.withAlpha(cc.accent, 0.25));
+  grad.addColorStop(1, window.withAlpha(cc.accent, 0));
   ctx.beginPath();
   ctx.moveTo(xAt(0), yScore(0));
   log.forEach((p, i) => ctx.lineTo(xAt(i), yScore(p.score)));
@@ -3437,7 +3441,7 @@ function renderRunTimeline() {
   ctx.fillStyle = grad; ctx.fill();
   ctx.beginPath();
   log.forEach((p, i) => i === 0 ? ctx.moveTo(xAt(i), yScore(p.score)) : ctx.lineTo(xAt(i), yScore(p.score)));
-  ctx.strokeStyle = '#ff4655';
+  ctx.strokeStyle = cc.accent;
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
   ctx.stroke();
@@ -4440,13 +4444,14 @@ function _replayDraw(elapsed) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const { trail, clicks } = _rpl.data;
+  const cc = window.chartColors();
 
   // Background
-  ctx.fillStyle = '#0a0a0f';
+  ctx.fillStyle = cc.bg;
   ctx.fillRect(0, 0, W, H);
 
   // Grid
-  ctx.strokeStyle = '#ffffff08';
+  ctx.strokeStyle = cc.grid;
   ctx.lineWidth = 1;
   for (let x = 0; x <= W; x += W/8) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
   for (let y = 0; y <= H; y += H/6) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
@@ -4490,9 +4495,9 @@ function _replayDraw(elapsed) {
     // Crosshair at current position
     const last = visibleTrail[tc - 1];
     const cx = toX(last.yaw), cy = toY(last.pitch);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#eaedf5';
     ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#00ff88cc'; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = window.withAlpha(cc.up, 0.8); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10); ctx.stroke();
   }
@@ -4506,11 +4511,11 @@ function _replayDraw(elapsed) {
     const radius = c.hit ? 7 : 5;
     ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI * 2);
     ctx.fillStyle = c.hit
-      ? `rgba(34,197,94,${alpha.toFixed(2)})`
-      : `rgba(239,68,68,${alpha.toFixed(2)})`;
+      ? window.withAlpha(cc.up, alpha)
+      : window.withAlpha(cc.down, alpha);
     ctx.fill();
     if (c.hit) {
-      ctx.strokeStyle = `rgba(134,239,172,${(alpha * 0.6).toFixed(2)})`;
+      ctx.strokeStyle = window.withAlpha(cc.up, alpha * 0.6);
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(sx, sy, radius + 4, 0, Math.PI * 2); ctx.stroke();
     }
