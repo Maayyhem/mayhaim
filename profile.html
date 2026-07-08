@@ -4,13 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#ff4655">
-  <meta name="app-version" content="2.6.0">
+  <meta name="app-version" content="2.7.0">
   <title>Profil — MayhAim</title>
   <link rel="icon" type="image/png" href="build/icon.png">
   <link rel="icon" type="image/x-icon" href="build/icon.ico">
   <link rel="stylesheet" href="style.css">
+  <script>
+    // Applique le thème choisi dans l'app (localStorage visc_settings.theme)
+    try {
+      var _s = JSON.parse(localStorage.getItem('visc_settings') || '{}');
+      if (_s && _s.theme) document.documentElement.dataset.theme = _s.theme;
+    } catch (e) {}
+  </script>
   <script src="ui.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="chart.umd.min.js"></script>
   <style>
     /* style.css (partagé avec l'app) pose body{overflow:hidden;height:100vh;
        user-select:none} — correct pour le hub (scroll interne .ch-scroll) mais
@@ -29,30 +36,32 @@
     .pub-logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
     .pub-logo span { color: var(--accent); }
     .pub-back-btn { background: var(--card); border: 1px solid var(--border); color: var(--txt); border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; font-family: var(--font); text-decoration: none; display: inline-flex; align-items: center; }
-    .pub-back-btn:hover { background: var(--card-hover); }
+    .pub-back-btn:hover { background: var(--card-h); border-color: var(--border-2); }
 
     /* HEADER */
     .pub-header { display: flex; align-items: center; gap: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
-    .pub-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-dim, rgba(255,70,85,.15)); color: var(--accent); font-size: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+    .pub-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-bg); border: 1px solid var(--border-2); color: var(--txt); font-size: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
     .pub-info { flex: 1; min-width: 0; }
-    .pub-username { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
-    .pub-rank-badge { display: inline-block; background: var(--accent-dim, rgba(255,70,85,.12)); color: var(--accent); border-radius: 6px; padding: 2px 10px; font-size: 0.78rem; font-weight: 700; margin-top: 5px; }
+    .pub-username { font-size: 1.5rem; font-weight: 700; letter-spacing: var(--ls-tight); line-height: 1.1; }
+    .pub-rank-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-brd); border-radius: var(--r-xs); padding: 2px 8px; font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-top: 5px; }
     .pub-objective { color: var(--dim); font-size: 0.83rem; margin-top: 6px; }
     .pub-global-rank { text-align: right; flex-shrink: 0; }
-    .pub-global-rank .rank-num { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; }
-    .pub-global-rank .rank-lbl { font-size: 0.72rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
-    .pub-member-since { font-size: 0.74rem; color: var(--dim); margin-top: 4px; }
+    .pub-global-rank .rank-num { font-family: var(--font-mono); font-size: 2rem; font-weight: 600; color: var(--txt); line-height: 1; font-variant-numeric: tabular-nums; }
+    .pub-global-rank .rank-lbl { font-size: var(--fs-xs); color: var(--faint); text-transform: uppercase; letter-spacing: var(--ls-wide); font-weight: 600; }
+    .pub-member-since { font-size: 0.74rem; color: var(--faint); margin-top: 4px; }
 
-    /* STATS ROW */
+    /* STATS ROW — stat-chips : valeur mono blanche, label micro --faint */
     .pub-stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
-    .pub-stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 10px; text-align: center; }
-    .pub-stat-val { display: block; font-size: 1.35rem; font-weight: 800; color: var(--txt); }
-    .pub-stat-val.accent { color: var(--accent); }
-    .pub-stat-lbl { display: block; font-size: 0.7rem; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .pub-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 10px; text-align: center; box-shadow: var(--edge); }
+    .pub-stat-val { display: block; font-family: var(--font-mono); font-size: 1.35rem; font-weight: 500; color: var(--txt); font-variant-numeric: tabular-nums; }
+    .pub-stat-val.accent { color: var(--accent); } /* SEULE stat accent : le record (PB) */
+    .pub-stat-lbl { display: block; font-size: var(--fs-xs); color: var(--faint); font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: var(--ls-wide); }
 
     /* SECTIONS */
-    .pub-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .pub-section-title { font-size: 0.85rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+    .pub-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 20px; margin-bottom: 16px; box-shadow: var(--edge); }
+    .pub-section-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: var(--ls-wide); margin-bottom: 14px; }
+    .pub-section-title::before { content: '//'; color: var(--dim); font-family: var(--font-mono); font-weight: 600; }
+    .pub-section-title svg { width: 14px; height: 14px; color: var(--faint); flex-shrink: 0; }
 
     /* ACTIVITY CHART */
     .pub-chart-wrap { height: 120px; }
@@ -64,40 +73,40 @@
     .pub-mode-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
     .pub-mode-item:last-child { border-bottom: none; }
     .pub-mode-name { flex: 1; font-size: 0.82rem; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pub-mode-score { font-size: 0.88rem; font-weight: 700; color: var(--accent); }
-    .pub-mode-acc { font-size: 0.72rem; color: var(--dim); }
+    .pub-mode-score { font-family: var(--font-mono); font-size: 0.88rem; font-weight: 500; color: var(--txt); font-variant-numeric: tabular-nums; }
+    .pub-mode-acc { font-size: var(--fs-xs); color: var(--dim); }
 
     /* RECENT GAMES */
     .pub-game-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
     .pub-game-item:last-child { border-bottom: none; }
     .pub-game-mode { flex: 1; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pub-game-score { font-weight: 700; color: var(--accent); }
-    .pub-game-acc { color: var(--dim); font-size: 0.73rem; }
-    .pub-game-date { color: var(--dim); font-size: 0.72rem; }
+    .pub-game-score { font-family: var(--font-mono); font-weight: 500; color: var(--txt); font-variant-numeric: tabular-nums; }
+    .pub-game-acc { color: var(--dim); font-size: var(--fs-xs); }
+    .pub-game-date { color: var(--faint); font-size: var(--fs-xs); }
 
-    /* STREAK BADGE */
-    .pub-streak { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#f59e0b22,#f59e0b11); border: 1px solid #f59e0b44; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #f59e0b; margin-top: 5px; }
+    /* STREAK BADGE — recette .badge--warn */
+    .pub-streak { display: inline-flex; align-items: center; gap: 5px; background: var(--warn-bg); border: 1px solid var(--warn-brd); border-radius: var(--r-xs); padding: 2px 8px; font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--warn); margin-top: 5px; }
 
-    /* TRAINING HOURS BADGE */
-    .pub-hours { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#60a5fa22,#60a5fa11); border: 1px solid #60a5fa44; border-radius: 8px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #60a5fa; margin-top: 5px; margin-left: 6px; }
+    /* TRAINING HOURS BADGE — recette .badge--info */
+    .pub-hours { display: inline-flex; align-items: center; gap: 5px; background: var(--info-bg); border: 1px solid var(--info-brd); border-radius: var(--r-xs); padding: 2px 8px; font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--info); margin-top: 5px; margin-left: 6px; }
 
     /* PERCENTILE BADGE sur les top modes */
-    .pub-mode-badge { display: inline-block; font-size: 0.66rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-right: 6px; vertical-align: middle; letter-spacing: 0.03em; }
-    .pub-mode-badge.top-10 { background: linear-gradient(135deg,#fbbf2433,#fbbf2411); border: 1px solid #fbbf2466; color: #fbbf24; }
-    .pub-mode-badge.top-25 { background: linear-gradient(135deg,#c084fc33,#c084fc11); border: 1px solid #c084fc66; color: #c084fc; }
-    .pub-mode-badge.top-50 { background: #ffffff10; border: 1px solid #ffffff22; color: var(--dim); }
+    .pub-mode-badge { display: inline-block; font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; padding: 1px 7px; border-radius: var(--r-xs); margin-right: 6px; vertical-align: middle; letter-spacing: 0.04em; }
+    .pub-mode-badge.top-10 { background: var(--warn-bg); border: 1px solid var(--warn-brd); color: var(--warn); }
+    .pub-mode-badge.top-25 { background: var(--accent-bg); border: 1px solid var(--accent-brd); color: var(--accent); }
+    .pub-mode-badge.top-50 { background: var(--hover-veil); border: 1px solid var(--border-2); color: var(--dim); }
 
     /* EMPTY / ERROR / LOADING */
     .pub-loading { text-align: center; color: var(--dim); padding: 60px 0; font-size: 0.9rem; }
     .pub-error { text-align: center; padding: 60px 20px; }
-    .pub-error-title { font-size: 2rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+    .pub-error-title { font-family: var(--font-mono); font-size: 2rem; font-weight: 600; color: var(--txt); margin-bottom: 8px; }
     .pub-error-msg { color: var(--dim); font-size: 0.9rem; }
 
     /* SHARE */
     .pub-share-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
     .pub-share-btn { background: none; border: 1px solid var(--border); color: var(--txt); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 0.8rem; font-family: var(--font); display: flex; align-items: center; gap: 6px; }
-    .pub-share-btn:hover { background: var(--card-hover); }
-    .pub-share-copied { font-size: 0.75rem; color: #10b981; display: none; }
+    .pub-share-btn:hover { background: var(--card-h); border-color: var(--border-2); }
+    .pub-share-copied { font-size: 0.75rem; color: var(--success); display: none; }
 
     /* FOOTER */
     .pub-footer { text-align: center; color: var(--dim); font-size: 0.75rem; margin-top: 40px; }
@@ -215,10 +224,10 @@ function render(data) {
       <div class="pub-avatar">${initial}</div>
       <div class="pub-info">
         <div class="pub-username">${user.username}</div>
-        ${user.current_rank ? `<div class="pub-rank-badge">🎮 ${user.current_rank}</div>` : ''}
-        ${user.objective ? `<div class="pub-objective">🎯 ${user.objective}</div>` : ''}
-        ${stats.streak > 0 ? `<div class="pub-streak">🔥 ${stats.streak} jour${stats.streak>1?'s':''} de streak</div>` : ''}
-        ${stats.training_seconds > 0 ? `<div class="pub-hours">⏱ ${formatTrainingTime(stats.training_seconds)} d'entraînement</div>` : ''}
+        ${user.current_rank ? `<div class="pub-rank-badge">${icon('gamepad',12)} ${user.current_rank}</div>` : ''}
+        ${user.objective ? `<div class="pub-objective">${user.objective}</div>` : ''}
+        ${stats.streak > 0 ? `<div class="pub-streak">${icon('flame',12)} ${stats.streak} jour${stats.streak>1?'s':''} de streak</div>` : ''}
+        ${stats.training_seconds > 0 ? `<div class="pub-hours">${icon('training',12)} ${formatTrainingTime(stats.training_seconds)} d'entraînement</div>` : ''}
         <div class="pub-member-since">${memberSince(user.created_at)}</div>
       </div>
       ${stats.rank ? `<div class="pub-global-rank">
@@ -229,7 +238,7 @@ function render(data) {
 
     <!-- Share row -->
     <div class="pub-share-row">
-      <button class="pub-share-btn" onclick="copyShareLink()">🔗 Copier le lien</button>
+      <button class="pub-share-btn" onclick="copyShareLink()">${icon('link',14)} Copier le lien</button>
       <span class="pub-share-copied" id="pub-copied">✓ Copié !</span>
     </div>
 
@@ -239,19 +248,19 @@ function render(data) {
       <div class="pub-stat"><span class="pub-stat-val accent">${Number(stats.best_score).toLocaleString()}</span><span class="pub-stat-lbl">Record</span></div>
       <div class="pub-stat"><span class="pub-stat-val">${Number(stats.avg_score).toLocaleString()}</span><span class="pub-stat-lbl">Score moy.</span></div>
       <div class="pub-stat"><span class="pub-stat-val">${stats.avg_accuracy}%</span><span class="pub-stat-lbl">Précision</span></div>
-      <div class="pub-stat"><span class="pub-stat-val">${stats.streak > 0 ? '🔥'+stats.streak : '—'}</span><span class="pub-stat-lbl">Streak</span></div>
+      <div class="pub-stat"><span class="pub-stat-val">${stats.streak > 0 ? stats.streak : '—'}</span><span class="pub-stat-lbl">Streak</span></div>
     </div>
 
     <!-- Activity chart -->
     <div class="pub-section">
-      <div class="pub-section-title">📈 Activité — 30 derniers jours</div>
+      <div class="pub-section-title">${icon('trending',14)} Activité — 30 derniers jours</div>
       <div class="pub-chart-wrap"><canvas id="pub-act-chart"></canvas></div>
     </div>
 
     <!-- Bottom grid -->
     <div class="pub-bottom-grid">
       <div class="pub-section">
-        <div class="pub-section-title">🎯 Meilleurs modes</div>
+        <div class="pub-section-title">${icon('target',14)} Meilleurs modes</div>
         ${top_modes.length === 0 ? '<p style="color:var(--dim);font-size:0.82rem">Aucune donnée</p>' :
           top_modes.map(m => `
             <div class="pub-mode-item">
@@ -264,7 +273,7 @@ function render(data) {
             </div>`).join('')}
       </div>
       <div class="pub-section">
-        <div class="pub-section-title">🕹️ Parties récentes</div>
+        <div class="pub-section-title">${icon('gamepad',14)} Parties récentes</div>
         ${recent_games.length === 0 ? '<p style="color:var(--dim);font-size:0.82rem">Aucune partie</p>' :
           recent_games.map(g => `
             <div class="pub-game-item">
@@ -299,18 +308,21 @@ function render(data) {
   if (_actChart) _actChart.destroy();
   const ctx = document.getElementById('pub-act-chart');
   if (ctx) {
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff4655';
+    // Palette charts Obsidian Signal — helper local (fallback si ui.js absent)
+    const cc = (window.chartColors && window.chartColors()) || {
+      accent: '#ff4655', grid: 'rgba(255,255,255,0.06)', text: '#7e8699'
+    };
     _actChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: days30.map(d => d.slice(5)),
-        datasets: [{ data: actData, backgroundColor: accent + '66', borderColor: accent, borderWidth: 1, borderRadius: 3 }]
+        datasets: [{ data: actData, backgroundColor: cc.accent + '66', borderColor: cc.accent, borderWidth: 1, borderRadius: 3 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: '#666', maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false } },
-          y: { ticks: { color: '#666', font: { size: 9 }, stepSize: 1 }, grid: { color: '#ffffff11' }, min: 0 }
+          x: { ticks: { color: cc.text, maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false } },
+          y: { ticks: { color: cc.text, font: { size: 9 }, stepSize: 1 }, grid: { color: cc.grid }, min: 0 }
         }
       }
     });
