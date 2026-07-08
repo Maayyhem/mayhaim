@@ -4276,18 +4276,32 @@ input[type="number"] { font-family: var(--font-mono); font-weight: 500; text-ali
 #onboarding-overlay {
   position: fixed; inset: 0; z-index: var(--z-modal);
   background:
-    radial-gradient(ellipse 70% 50% at 50% -10%, var(--red-g), transparent),
+    radial-gradient(ellipse 70% 50% at 50% -10%, var(--accent-bg), transparent),
     var(--bg);
   display: flex; align-items: center; justify-content: center;
   padding: var(--sp-6); overflow-y: auto;
   animation: chFadeIn var(--dur-norm) var(--ease-out);
 }
+/* La carte du wizard = un héros (première impression) : coins coupés,
+   gradient d'accent discret, filet lumineux — signature Obsidian Signal */
 .onb-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--r-lg); box-shadow: var(--sh-xl);
+  position: relative; overflow: hidden;
+  background: var(--card); border: 0; border-radius: 0;
+  box-shadow: var(--edge);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)),
+                     calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
   width: 100%; max-width: 620px; margin: auto;
   padding: var(--sp-6) var(--sp-8) var(--sp-8);
 }
+.onb-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--grad-hero); pointer-events: none;
+}
+.onb-card::after {
+  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+  background: var(--sep); pointer-events: none;
+}
+.onb-card > * { position: relative; z-index: 1; }
 .onb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); }
 .onb-dots { display: flex; gap: var(--sp-2); }
 .onb-dot {
@@ -4305,10 +4319,10 @@ input[type="number"] { font-family: var(--font-mono); font-weight: 500; text-ali
 .onb-skip:hover { color: var(--txt); background: var(--hover-veil); }
 .onb-step { display: none; }
 .onb-step.active { display: block; animation: chFadeIn var(--dur-norm) var(--ease-out); }
-.onb-hero-icon { text-align: center; color: var(--accent); margin: var(--sp-3) 0 var(--sp-4); }
-.onb-title { font-size: var(--fs-2xl); font-weight: 800; margin-bottom: var(--sp-3); display: flex; align-items: center; justify-content: center; gap: var(--sp-2); text-align: center; }
-.onb-brand { letter-spacing: 1px; }
-.onb-brand span { color: var(--accent); }
+.onb-hero-icon { text-align: center; color: var(--txt); margin: var(--sp-3) 0 var(--sp-4); }
+.onb-title { font-size: var(--fs-2xl); font-weight: 650; letter-spacing: var(--ls-tight); margin-bottom: var(--sp-3); display: flex; align-items: center; justify-content: center; gap: var(--sp-2); text-align: center; }
+.onb-title svg { color: var(--faint); }
+.onb-brand span { color: var(--accent); } /* marque : le seul accent du titre */
 .onb-sub { color: var(--dim); font-size: var(--fs-md); line-height: 1.55; text-align: center; max-width: 480px; margin: 0 auto var(--sp-5); }
 .onb-sens-form {
   background: var(--bg); border: 1px solid var(--border);
@@ -4316,7 +4330,8 @@ input[type="number"] { font-family: var(--font-mono); font-weight: 500; text-ali
 }
 .onb-sens-form .sett-input { background: var(--card); } /* contraste sur fond --bg */
 .onb-cm-line { font-size: var(--fs-lg); text-align: center; margin-top: var(--sp-3); }
-.onb-cm-line span { color: var(--accent); font-weight: 800; }
+/* cm/360 = donnée chiffrée : mono blanche (doctrine 1 & 3) */
+.onb-cm-line span { color: var(--txt); font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .onb-hint { font-size: var(--fs-xs); color: var(--dim); text-align: center; margin-top: var(--sp-2); }
 .onb-tour-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -4328,12 +4343,16 @@ input[type="number"] { font-family: var(--font-mono); font-weight: 500; text-ali
   border-radius: var(--r-md); padding: var(--sp-4);
   transition: all var(--dur-fast) var(--ease);
 }
-.onb-tour-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.onb-tour-icon { color: var(--accent); }
+.onb-tour-card:hover { background: var(--card-h); border-color: var(--border-2); }
+.onb-tour-icon { color: var(--dim); }
 .onb-tour-name { font-weight: 700; font-size: var(--fs-md); }
 .onb-tour-desc { font-size: var(--fs-xs); color: var(--dim); line-height: 1.45; }
 .onb-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-5); }
-.onb-footer .btn-primary, .onb-footer .btn-secondary { padding: 11px 22px; font-size: var(--fs-sm); }
+.onb-footer .btn-primary, .onb-footer .btn-secondary {
+  height: var(--ctl-h-lg); padding: 0 var(--sp-6); font-size: var(--fs-sm);
+}
+/* Dernière étape : LE CTA du wizard (un seul glow par vue) */
+.onb-step[data-step="3"] .btn-primary { box-shadow: var(--sh-glow); }
 .onb-footer-final { flex-wrap: wrap; }
 .onb-final-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 560px) {
