@@ -1308,6 +1308,9 @@ function applyCrosshair() {
   svg += '</svg>';
   $('#crosshair-overlay').innerHTML = svg;
   $('#crosshair-overlay').style.filter = 'none';
+  // Révèle l'overlay une fois le crosshair custom appliqué (retouche §14 :
+  // masqué par CSS au chargement pour supprimer le flash du crosshair par défaut)
+  $('#crosshair-overlay').style.visibility = 'visible';
   // Update preview box in menu
   const prev = $('#xh-preview');
   if (prev) prev.innerHTML = svg;
