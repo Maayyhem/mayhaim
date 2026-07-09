@@ -1,6 +1,6 @@
 {
   "name": "mayhaim",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "private": true,
   "description": "MayhAim — Aim trainer FPS + coaching hub",
   "author": "Maayyhem",
@@ -51,6 +51,9 @@
       "ui.js",
       "style.css",
       "three.min.js",
+      "chart.umd.min.js",
+      "fonts/InterVariable.woff2",
+      "fonts/JetBrainsMono-Variable.woff2",
       "scenario-maps-data.js",
       "maps.js",
       "package.json",

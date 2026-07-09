@@ -1,5 +1,19 @@
 # Changelog — MayhAim
 
+## 2.8.0 — 2026-07-09
+
+### 🎨 Refonte graphique « Obsidian Signal »
+Nouvelle identité visuelle esport premium sur toute l'application, dans l'esprit des interfaces Valorant / Faceit.
+
+- **Système de couleurs unifié** : surfaces sombres mates invariantes ancrées sur #0a0a0f, un seul accent par thème utilisé avec discipline (« une balle par vue »), sémantiques cohérentes (succès/danger/info). Les 4 thèmes (dont midnight/emerald/sakura) ne changent plus que l'accent — surfaces et texte restent stables.
+- **Typographie pro** : Inter (interface) + JetBrains Mono (toutes les données chiffrées, en chiffres tabulaires « instrument de mesure ») — polices embarquées localement, aucune dépendance CDN.
+- **Signature visuelle** : titres de section préfixés `//`, coins coupés dosés sur les éléments héros, hiérarchie et densité retravaillées écran par écran.
+- **Composants repensés** : boutons (primaire/secondaire/ghost/CTA/danger), inputs, cartes, modales, toasts, tables, badges, navigation, scrollbars — tous unifiés sur un seul système.
+- **Graphiques** : RR chart, timeline post-run, confetti et replay recâblés sur la palette du nouveau système.
+- **Accessibilité** : contrastes WCAG AA garantis partout (de 5.15 à 16.86), focus clavier net, `prefers-reduced-motion` respecté.
+- **Portée** : hub complet, écrans de jeu, onboarding, profil public partagé (profile.html) et splash Electron.
+- Aucune régression fonctionnelle : mobile responsive préservé, contrats JS intacts, `npm test` 11/11.
+
 ## 2.7.0 — 2026-07-06
 
 ### 👋 Onboarding premier lancement
