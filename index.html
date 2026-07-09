@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="ui.js"></script>
   <script src="three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="chart.umd.min.js"></script>
 </head>
 <body>
   <div id="app">
@@ -25,19 +25,19 @@
         <p class="subtitle" style="margin-bottom:30px">Viscose Benchmark - Aim Trainer</p>
         <div class="ch-auth-box">
           <div id="auth-login-form">
-            <h2 style="text-align:center;margin-bottom:6px">Connexion</h2>
-            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Connecte-toi pour acceder a MayhAim</p>
+            <h2 class="auth-title">Connexion</h2>
+            <p class="auth-intro">Connecte-toi pour acceder a MayhAim</p>
             <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-login-email" placeholder="ton@email.com"></div>
             <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-login-password" placeholder="Mot de passe"></div>
-            <button id="auth-login-btn" class="btn-primary" style="width:100%;margin-top:12px">Connexion</button>
+            <button id="auth-login-btn" class="btn-primary auth-submit">Connexion</button>
             <div id="auth-login-error" class="ch-auth-error"></div>
-            <div style="display:flex;align-items:center;gap:8px;margin:14px 0 10px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="color:var(--dim);font-size:0.75rem;white-space:nowrap">OU</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
-            <a href="/api/login?action=discord" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:11px;background:#5865F2;color:#fff;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;text-decoration:none;box-sizing:border-box;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="white"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Continuer avec Discord</a>
+            <div class="auth-sep">OU</div>
+            <a href="/api/login?action=discord" class="btn-secondary auth-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Continuer avec Discord</a>
             <div class="ch-auth-toggle">Pas de compte ? <a id="auth-toggle-register">S'inscrire</a></div>
           </div>
           <div id="auth-register-form" style="display:none">
-            <h2 style="text-align:center;margin-bottom:6px">Inscription</h2>
-            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Crée ton compte pour commencer</p>
+            <h2 class="auth-title">Inscription</h2>
+            <p class="auth-intro">Crée ton compte pour commencer</p>
             <div class="ch-auth-field"><label>Pseudo</label><input type="text" id="auth-reg-username" placeholder="Ton pseudo (min. 3 car.)"></div>
             <div class="ch-auth-field"><label>Email</label><input type="email" id="auth-reg-email" placeholder="ton@email.com"></div>
             <div class="ch-auth-field"><label>Mot de passe</label><input type="password" id="auth-reg-password" placeholder="Min. 8 caractères + 1 chiffre"></div>
@@ -65,23 +65,23 @@
               <label>Objectif <span style="color:var(--dim);font-weight:400;font-size:0.78rem">(optionnel)</span></label>
               <input type="text" id="auth-reg-objective" placeholder="ex: Atteindre Diamond, améliorer mon tracking...">
             </div>
-            <button id="auth-register-btn" class="btn-primary" style="width:100%;margin-top:12px">S'inscrire</button>
+            <button id="auth-register-btn" class="btn-primary auth-submit">S'inscrire</button>
             <div id="auth-reg-error" class="ch-auth-error"></div>
-            <div style="display:flex;align-items:center;gap:8px;margin:14px 0 10px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="color:var(--dim);font-size:0.75rem;white-space:nowrap">OU</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
-            <a href="/api/login?action=discord" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:11px;background:#5865F2;color:#fff;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;text-decoration:none;box-sizing:border-box;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="white"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Créer un compte Discord</a>
+            <div class="auth-sep">OU</div>
+            <a href="/api/login?action=discord" class="btn-secondary auth-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Créer un compte Discord</a>
             <div class="ch-auth-toggle">Déjà un compte ? <a id="auth-toggle-login">Se connecter</a></div>
           </div>
 
           <!-- MFA : saisie du code (login) -->
           <div id="auth-mfa-form" style="display:none">
             <div style="text-align:center;font-size:2rem;margin-bottom:8px"><span data-icon="lock"></span></div>
-            <h2 style="text-align:center;margin-bottom:6px">Authentification</h2>
-            <p style="text-align:center;color:var(--dim);font-size:0.85rem;margin-bottom:20px">Entre le code à 6 chiffres de ton application</p>
+            <h2 class="auth-title">Authentification</h2>
+            <p class="auth-intro">Entre le code à 6 chiffres de ton application</p>
             <div class="ch-auth-field">
               <label>Code TOTP</label>
-              <input type="text" id="auth-mfa-code" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing:0.25em;text-align:center;font-size:1.3rem;font-weight:700">
+              <input type="text" id="auth-mfa-code" class="auth-mfa-input" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric">
             </div>
-            <button id="auth-mfa-btn" class="btn-primary" style="width:100%;margin-top:12px">Vérifier</button>
+            <button id="auth-mfa-btn" class="btn-primary auth-submit">Vérifier</button>
             <div id="auth-mfa-error" class="ch-auth-error"></div>
             <div class="ch-auth-toggle"><a id="auth-mfa-back" style="cursor:pointer">← Retour</a></div>
           </div>
@@ -89,20 +89,20 @@
           <!-- MFA : configuration initiale (scan QR) -->
           <div id="auth-mfa-setup-form" style="display:none">
             <div style="text-align:center;font-size:2rem;margin-bottom:8px"><span data-icon="shield"></span></div>
-            <h2 style="text-align:center;margin-bottom:6px">Configurer le MFA</h2>
+            <h2 class="auth-title">Configurer le MFA</h2>
             <p style="text-align:center;color:var(--dim);font-size:0.83rem;margin-bottom:16px">Scanne ce QR avec <strong>Google Authenticator</strong> ou <strong>Authy</strong></p>
             <div style="text-align:center;margin-bottom:14px">
               <img id="auth-mfa-qr" src="" alt="QR Code" style="width:180px;height:180px;border-radius:10px;background:#fff;padding:8px;display:inline-block">
             </div>
             <p style="text-align:center;font-size:0.72rem;color:var(--dim);margin-bottom:4px">Ou entre manuellement :</p>
             <div style="text-align:center;margin-bottom:16px">
-              <code id="auth-mfa-secret" style="font-size:0.78rem;background:var(--bg);border:1px solid var(--border);padding:5px 10px;border-radius:6px;color:var(--accent);letter-spacing:0.12em;word-break:break-all"></code>
+              <code id="auth-mfa-secret" style="font-size:0.78rem;background:var(--inset);border:1px solid var(--border);padding:5px 10px;border-radius:6px;color:var(--txt);letter-spacing:0.12em;word-break:break-all"></code>
             </div>
             <div class="ch-auth-field">
               <label>Code de vérification (6 chiffres)</label>
-              <input type="text" id="auth-mfa-setup-code" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing:0.25em;text-align:center;font-size:1.3rem;font-weight:700">
+              <input type="text" id="auth-mfa-setup-code" class="auth-mfa-input" placeholder="000 000" maxlength="7" autocomplete="one-time-code" inputmode="numeric">
             </div>
-            <button id="auth-mfa-setup-btn" class="btn-primary" style="width:100%;margin-top:12px">Activer le MFA</button>
+            <button id="auth-mfa-setup-btn" class="btn-primary auth-submit">Activer le MFA</button>
             <div id="auth-mfa-setup-error" class="ch-auth-error"></div>
           </div>
         </div>
@@ -240,7 +240,7 @@
         <!-- Timeline de la run (style Kovaak's) -->
         <div id="run-timeline-wrap" class="res-chart-card" style="display:none">
           <div class="res-chart-title"><span data-icon="trending"></span> Progression pendant la run
-            <span style="font-size:0.68rem;color:var(--dim);font-weight:400;margin-left:8px"><span style="color:#ff4655">━</span> Score &nbsp;<span style="color:#4ade80">━</span> Précision</span>
+            <span style="font-size:var(--fs-xs);color:var(--dim);font-weight:400;margin-left:8px"><span style="color:var(--ch-accent)">━</span> Score &nbsp;<span style="color:var(--ch-up)">━</span> Précision</span>
           </div>
           <canvas id="run-timeline-canvas" style="width:100%;height:140px;display:block"></canvas>
         </div>
@@ -260,7 +260,7 @@
         </div>
 
         <div class="results-actions">
-          <button id="btn-retry" class="btn-primary">↺ Rejouer</button>
+          <button id="btn-retry" class="btn-primary btn--cta">↺ Rejouer</button>
           <button id="btn-replay" class="btn-secondary" style="display:none" onclick="showReplay()"><span data-icon="film"></span> Replay</button>
           <button id="btn-back-coaching" class="btn-primary" style="display:none"></button>
           <button id="btn-menu" class="btn-secondary">Menu</button>
@@ -670,18 +670,18 @@
             <button class="mode-card" data-mode="vox_ts2"><div class="mode-icon"><span data-icon="shuffle"></span></div><h3>Switch de cibles</h3><p>Plusieurs cibles actives en même temps — passe de l'une à l'autre sans perdre le rythme.</p><span class="mode-tag">Switch</span></button>
             <button class="mode-card" data-mode="whisphere"><div class="mode-icon"><span data-icon="refresh-cw"></span></div><h3>Tracking doux</h3><p>Garde ta mire sur une cible qui se déplace lentement et régulièrement.</p><span class="mode-tag">Tracking</span></button>
             <button class="mode-card" data-mode="air_angelic"><div class="mode-icon"><span data-icon="cloud-sun"></span></div><h3>Tracking aérien</h3><p>Suit une cible qui se déplace en l'air avec des changements de trajectoire.</p><span class="mode-tag">Tracking</span></button>
-            <button class="mode-card" data-mode="leaptrack"><div class="mode-icon">↑</div><h3>Tracking saccadé</h3><p>La cible fait des sauts brusques — réajuste ta mire à chaque déplacement.</p><span class="mode-tag">Tracking</span></button>
+            <button class="mode-card" data-mode="leaptrack"><div class="mode-icon"><span data-icon="trending-up"></span></div><h3>Tracking saccadé</h3><p>La cible fait des sauts brusques — réajuste ta mire à chaque déplacement.</p><span class="mode-tag">Tracking</span></button>
             <button class="mode-card" data-mode="crosshair_drill"><div class="mode-icon"><span data-icon="crosshair"></span></div><h3>Placement mire</h3><p>Entraîne-toi à garder ta mire à hauteur de tête, là où les ennemis apparaissent.</p><span class="mode-tag">Drill</span></button>
             <button class="mode-card" data-mode="reaction_drill"><div class="mode-icon"><span data-icon="mouse-pointer"></span></div><h3>Réactivité</h3><p>Des cibles apparaissent très brièvement — clique le plus vite possible avant qu'elles disparaissent.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon">↔</div><h3>Tracking latéral</h3><p>Suit une cible qui se déplace horizontalement, comme un ennemi qui strafe.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="micro_drill"><div class="mode-icon">◉</div><h3>Micro précision</h3><p>Des cibles très petites aux angles clés. Pour progresser sur les duels serrés.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="w1w6t_micro"><div class="mode-icon">⋰</div><h3>1w6ts Micro</h3><p>6 cibles statiques minuscules sur un mur. Hit instantané + respawn aléatoire. Précision pure, sans mouvement à compenser.</p><span class="mode-tag">Précision</span></button>
-            <button class="mode-card" data-mode="burst_drill"><div class="mode-icon">■</div><h3>Rafales</h3><p>Des groupes de cibles proches apparaissent ensemble — nettoie-les rapidement.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon">◎</div><h3>Zone morte</h3><p>Tracking avec une zone d'inertie — entraîne-toi à lisser tes mouvements de souris.</p><span class="mode-tag">Drill</span></button>
-            <button class="mode-card" data-mode="counterstrafe"><div class="mode-icon">⇄</div><h3>Counter-Strafe</h3><p>Cible qui alterne mouvement latéral et stops courts (ADAD peek). Casse le rythme du tracking.</p><span class="mode-tag">Training</span></button>
-            <button class="mode-card" data-mode="widepeek"><div class="mode-icon">⟶</div><h3>Wide Peek</h3><p>Cible à l'extrême bord de l'écran avec TTL court. Entraîne le swing et le pre-aim large.</p><span class="mode-tag">Training</span></button>
-            <button class="mode-card" data-mode="spraycontrol"><div class="mode-icon">↟</div><h3>Spray Control</h3><p>Enchaîne 15 tirs sur une cible en compensant un pattern de recul scripté type Vandal.</p><span class="mode-tag">Training</span></button>
-            <button class="mode-card" data-mode="flickdelay"><div class="mode-icon">⏱</div><h3>Flick + Délai</h3><p>Délai aléatoire avant spawn, puis cible avec TTL très court. Anticipation + réaction + flick.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="strafe_drill"><div class="mode-icon"><span data-icon="wind"></span></div><h3>Tracking latéral</h3><p>Suit une cible qui se déplace horizontalement, comme un ennemi qui strafe.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="micro_drill"><div class="mode-icon"><span data-icon="circle-dot"></span></div><h3>Micro précision</h3><p>Des cibles très petites aux angles clés. Pour progresser sur les duels serrés.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="w1w6t_micro"><div class="mode-icon"><span data-icon="target"></span></div><h3>1w6ts Micro</h3><p>6 cibles statiques minuscules sur un mur. Hit instantané + respawn aléatoire. Précision pure, sans mouvement à compenser.</p><span class="mode-tag">Précision</span></button>
+            <button class="mode-card" data-mode="burst_drill"><div class="mode-icon"><span data-icon="square"></span></div><h3>Rafales</h3><p>Des groupes de cibles proches apparaissent ensemble — nettoie-les rapidement.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="deadzone_drill"><div class="mode-icon"><span data-icon="waves"></span></div><h3>Zone morte</h3><p>Tracking avec une zone d'inertie — entraîne-toi à lisser tes mouvements de souris.</p><span class="mode-tag">Drill</span></button>
+            <button class="mode-card" data-mode="counterstrafe"><div class="mode-icon"><span data-icon="shuffle"></span></div><h3>Counter-Strafe</h3><p>Cible qui alterne mouvement latéral et stops courts (ADAD peek). Casse le rythme du tracking.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="widepeek"><div class="mode-icon"><span data-icon="eye"></span></div><h3>Wide Peek</h3><p>Cible à l'extrême bord de l'écran avec TTL court. Entraîne le swing et le pre-aim large.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="spraycontrol"><div class="mode-icon"><span data-icon="sword"></span></div><h3>Spray Control</h3><p>Enchaîne 15 tirs sur une cible en compensant un pattern de recul scripté type Vandal.</p><span class="mode-tag">Training</span></button>
+            <button class="mode-card" data-mode="flickdelay"><div class="mode-icon"><span data-icon="training"></span></div><h3>Flick + Délai</h3><p>Délai aléatoire avant spawn, puis cible avec TTL très court. Anticipation + réaction + flick.</p><span class="mode-tag">Training</span></button>
           </div>
         </div>
 
@@ -1454,7 +1454,7 @@
                 <textarea id="wu-intention" class="wu-intention-input" placeholder="Aujourd'hui je travaille sur : ..."></textarea>
                 <div class="wu-row" style="margin-top:6px;gap:10px">
                   <button onclick="wuSaveIntention()" class="wu-action-btn" style="padding:5px 14px;font-size:0.75rem">💾 Sauvegarder</button>
-                  <span id="wu-intention-ok" style="display:none;color:#4ade80;font-size:0.75rem;font-weight:600">✓ Sauvegardé</span>
+                  <span id="wu-intention-ok" style="display:none;color:var(--success);font-size:0.75rem;font-weight:600">✓ Sauvegardé</span>
                   <span id="wu-prev-intention" class="wu-prev-intention"></span>
                 </div>
 
@@ -1648,7 +1648,7 @@
 
         <!-- MESSAGES -->
         <div id="ch-messages" class="ch-panel">
-          <h2 class="ch-section-title">&#128172; Messages</h2>
+          <h2 class="ch-section-title"><span data-icon="message"></span> Messages</h2>
           <div class="msg-layout">
             <div id="msg-conversations" class="msg-conversations">
               <p class="ch-empty" style="padding:16px;font-size:0.82rem">Chargement…</p>
@@ -1666,7 +1666,7 @@
 
         <!-- ADMIN PANEL — admin only -->
         <div id="ch-admin" class="ch-panel">
-          <h2 class="ch-section-title">&#9881; Administration</h2>
+          <h2 class="ch-section-title"><span data-icon="admin"></span> Administration</h2>
 
           <div class="admin-stats-grid">
             <div class="admin-stat-card"><div class="admin-stat-val" id="astat-total">—</div><div class="admin-stat-lbl">Utilisateurs</div></div>
@@ -1843,7 +1843,7 @@
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
             <button class="btn-outline" style="font-size:0.78rem;padding:6px 14px;display:flex;align-items:center;gap:6px" onclick="pfShareProfile()">🔗 Partager mon profil</button>
             <button class="btn-outline" style="font-size:0.78rem;padding:6px 14px;display:flex;align-items:center;gap:6px" onclick="pfToggleEdit()">✏️ Modifier</button>
-            <span id="pf-share-copied" style="font-size:0.75rem;color:#10b981;display:none">✓ Lien copié !</span>
+            <span id="pf-share-copied" style="font-size:0.75rem;color:var(--success);display:none">✓ Lien copié !</span>
           </div>
 
           <!-- Formulaire d'édition (masqué par défaut) -->
@@ -1892,7 +1892,7 @@
 
           <!-- Benchmark local summary -->
           <div class="pf-section">
-            <div class="pf-section-title">📊 Viscose Benchmark</div>
+            <div class="pf-section-title"><span data-icon="chart"></span> Viscose Benchmark</div>
             <div id="pf-bench-row" class="pf-bench-row">
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-threads">—</span><span class="pf-bench-lbl">Threads</span></div>
               <div class="pf-bench-stat"><span class="pf-bench-val" id="pf-bench-energy">—</span><span class="pf-bench-lbl">Energy</span></div>
@@ -1902,7 +1902,7 @@
 
           <!-- Aim ↔ In-Game correlation -->
           <div class="pf-section pf-aimig-section">
-            <div class="pf-section-title">🎯 Aim ↔ Valorant <span style="color:var(--dim);font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0">— corrélation de tes stats</span></div>
+            <div class="pf-section-title"><span data-icon="link"></span> Aim ↔ Valorant <span style="color:var(--dim);font-size:0.72rem;font-weight:400;text-transform:none;letter-spacing:0">— corrélation de tes stats</span></div>
             <div id="pf-aimig-content" class="pf-aimig-content">
               <div class="pf-aimig-loading" style="color:var(--dim);font-size:0.84rem;text-align:center;padding:16px">Analyse en cours…</div>
             </div>
@@ -1910,7 +1910,7 @@
 
           <!-- Skill radar chart -->
           <div class="pf-section">
-            <div class="pf-section-title">🕸️ Profil de compétences</div>
+            <div class="pf-section-title"><span data-icon="target"></span> Profil de compétences</div>
             <div class="pf-radar-wrap">
               <canvas id="pf-radar-chart"></canvas>
             </div>
@@ -1918,13 +1918,13 @@
 
           <!-- Trophy showcase -->
           <div class="pf-section">
-            <div class="pf-section-title">🏆 Trophées <span id="pf-trophy-count" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div class="pf-section-title"><span data-icon="trophy"></span> Trophées <span id="pf-trophy-count" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
             <div id="pf-trophy-grid" class="pf-trophy-grid"></div>
           </div>
 
           <!-- 30-day activity chart -->
           <div class="pf-section">
-            <div class="pf-section-title">📈 Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
+            <div class="pf-section-title"><span data-icon="trending"></span> Activité — 30 derniers jours <span id="pf-activity-total" style="color:var(--dim);font-size:0.78rem;font-weight:400"></span></div>
             <div class="pf-chart-wrap">
               <canvas id="pf-activity-chart"></canvas>
             </div>
@@ -1935,13 +1935,13 @@
 
             <!-- Recent games -->
             <div class="pf-section">
-              <div class="pf-section-title">🕹️ Parties récentes</div>
+              <div class="pf-section-title"><span data-icon="gamepad"></span> Parties récentes</div>
               <div id="pf-recent-games" class="pf-recent-list"></div>
             </div>
 
             <!-- Best modes -->
             <div class="pf-section">
-              <div class="pf-section-title">🎯 Meilleurs modes</div>
+              <div class="pf-section-title"><span data-icon="target"></span> Meilleurs modes</div>
               <div id="pf-mode-breakdown" class="pf-mode-list"></div>
             </div>
 
@@ -2006,8 +2006,8 @@
 
           <!-- Toggle: Global vs Par Mode -->
           <div class="lb-toggle-row">
-            <button class="lb-toggle-btn active" id="lb-tab-global" onclick="switchLbTab('global')">🌍 Général</button>
-            <button class="lb-toggle-btn" id="lb-tab-mode" onclick="switchLbTab('mode')">🎯 Par mode</button>
+            <button class="lb-toggle-btn active" id="lb-tab-global" onclick="switchLbTab('global')"><span data-icon="globe"></span> Général</button>
+            <button class="lb-toggle-btn" id="lb-tab-mode" onclick="switchLbTab('mode')"><span data-icon="target"></span> Par mode</button>
           </div>
 
           <!-- Global leaderboard -->
@@ -2051,7 +2051,7 @@
         <div class="cp-modal-tabs">
           <button class="cp-modal-tab active" data-ptab="cp-pt-stats">&#128202; Stats</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-plan">&#128203; Plan</button>
-          <button class="cp-modal-tab" data-ptab="cp-pt-feedback">&#128172; Feedback</button>
+          <button class="cp-modal-tab" data-ptab="cp-pt-feedback"><span data-icon="feedback"></span> Feedback</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-messages">&#9993; Messages</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-progress">&#128200; Progression</button>
           <button class="cp-modal-tab" data-ptab="cp-pt-vods">&#127909; VODs</button>
@@ -2173,15 +2173,15 @@
           <button onclick="hideReplay()" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:var(--font);font-size:0.82rem">✕ Fermer</button>
         </div>
       </div>
-      <canvas id="rpl-canvas" style="width:100%;border-radius:10px;background:#0a0a0f;border:1px solid var(--border);display:block"></canvas>
+      <canvas id="rpl-canvas" style="width:100%;border-radius:10px;background:var(--bg);border:1px solid var(--border);display:block"></canvas>
       <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
         <button id="rpl-playpause" onclick="replayToggle()" style="background:var(--accent);border:none;color:#fff;border-radius:8px;padding:7px 18px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:0.85rem;min-width:80px">⏸ Pause</button>
         <input type="range" id="rpl-scrub" min="0" max="100" value="0" step="0.1" oninput="replayScrub(this.value)" style="flex:1;accent-color:var(--accent)">
         <span id="rpl-time" style="font-size:0.78rem;color:var(--dim);min-width:60px;text-align:right">0s / 0s</span>
       </div>
       <div style="margin-top:10px;display:flex;gap:16px;font-size:0.72rem;color:var(--dim)">
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px"></span>Hit</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px"></span>Miss</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--ch-up);margin-right:4px"></span>Hit</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--ch-down);margin-right:4px"></span>Miss</span>
         <span><span style="display:inline-block;width:30px;height:2px;background:#ffffff33;margin-right:4px;vertical-align:middle"></span>Trajectoire souris</span>
       </div>
     </div>

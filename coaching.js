@@ -1162,22 +1162,23 @@ function _renderDashSparkline(activity) {
   const games  = days.map(d => byDay[d]?.games || 0);
   const bests  = days.map(d => byDay[d]?.best  || 0);
 
+  const cc = window.chartColors();
   _dashSparkline = new Chart(canvas, {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Parties', data: games, backgroundColor: 'rgba(255,70,85,0.5)', borderColor: '#ff4655', borderWidth: 1, borderRadius: 3, yAxisID: 'y1' },
-        { label: 'Meilleur score', data: bests, type: 'line', borderColor: '#60a5fa', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#60a5fa', yAxisID: 'y2', tension: 0.3 }
+        { label: 'Parties', data: games, backgroundColor: window.withAlpha(cc.accent, 0.5), borderColor: cc.accent, borderWidth: 1, borderRadius: 3, yAxisID: 'y1' },
+        { label: 'Meilleur score', data: bests, type: 'line', borderColor: cc.info, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: cc.info, yAxisID: 'y2', tension: 0.3 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, labels: { color: '#8b949e', font: { size: 10 }, boxWidth: 10 } } },
+      plugins: { legend: { display: true, labels: { color: cc.text, font: { size: 10 }, boxWidth: 10 } } },
       scales: {
-        x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y1: { position: 'left', ticks: { color: '#8b949e', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
-        y2: { position: 'right', ticks: { color: '#60a5fa', font: { size: 9 } }, grid: { display: false }, beginAtZero: true }
+        x: { ticks: { color: cc.text, font: { size: 10 } }, grid: { color: cc.grid } },
+        y1: { position: 'left', ticks: { color: cc.text, font: { size: 9 }, stepSize: 1 }, grid: { color: cc.grid }, beginAtZero: true },
+        y2: { position: 'right', ticks: { color: cc.info, font: { size: 9 } }, grid: { display: false }, beginAtZero: true }
       }
     }
   });
@@ -2399,10 +2400,11 @@ function initWarmupPanel() {
 
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
+      const cc = window.chartColors();
 
       // Dashed guide path
       ctx.save();
-      ctx.strokeStyle = 'rgba(255,70,85,0.14)';
+      ctx.strokeStyle = window.withAlpha(cc.accent, 0.14);
       ctx.lineWidth = 1.5;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
@@ -2416,7 +2418,7 @@ function initWarmupPanel() {
       WP.forEach(([wx, wy]) => {
         ctx.beginPath();
         ctx.arc(wx/100*W, wy/100*H, 2.5, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,70,85,0.22)';
+        ctx.fillStyle = window.withAlpha(cc.accent, 0.22);
         ctx.fill();
       });
 
@@ -2426,14 +2428,14 @@ function initWarmupPanel() {
 
       // Glow
       const grad = ctx.createRadialGradient(bx, by, 0, bx, by, 24);
-      grad.addColorStop(0, 'rgba(255,70,85,0.4)');
-      grad.addColorStop(1, 'rgba(255,70,85,0)');
+      grad.addColorStop(0, window.withAlpha(cc.accent, 0.4));
+      grad.addColorStop(1, window.withAlpha(cc.accent, 0));
       ctx.beginPath(); ctx.arc(bx, by, 24, 0, Math.PI*2);
       ctx.fillStyle = grad; ctx.fill();
 
       // Core
       ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2);
-      ctx.fillStyle = '#ff4655'; ctx.fill();
+      ctx.fillStyle = cc.accent; ctx.fill();
 
       // Highlight
       ctx.beginPath(); ctx.arc(bx-2.5, by-2.5, 3.5, 0, Math.PI*2);
@@ -2547,7 +2549,7 @@ function initWarmupPanel() {
 
     const PHASES = [
       { text: 'Inspire',  scale: 1.45, color: '#60a5fa', dur: 4000 },
-      { text: 'Retiens',  scale: 1.45, color: '#e8c56d', dur: 4000 },
+      { text: 'Retiens',  scale: 1.45, color: '#fbbf24', dur: 4000 },
       { text: 'Expire',   scale: 1.0,  color: '#4ade80', dur: 4000 },
       { text: 'Retiens',  scale: 1.0,  color: '#a78bfa', dur: 4000 },
     ];
@@ -3103,14 +3105,14 @@ async function adminAnalyticsRenderChart() {
       // Affiche un placeholder si pas de data
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#8b949e';
+      ctx.fillStyle = window.chartColors().text;
       ctx.font = '0.85rem system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Pas de données pour ' + scenario + ' / ' + difficulty, canvas.width/2, 40);
       return;
     }
 
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff4655';
+    const cc = window.chartColors();
     _anaChart = new Chart(canvas, {
       data: {
         labels: trend.map(r => r.day.slice(5)),  // MM-DD
@@ -3118,24 +3120,24 @@ async function adminAnalyticsRenderChart() {
           {
             type: 'line', label: 'Score médian (p50)',
             data: trend.map(r => Number(r.p50) || 0),
-            borderColor: accent, backgroundColor: accent + '22',
+            borderColor: cc.accent, backgroundColor: window.withAlpha(cc.accent, 0.13),
             borderWidth: 2, tension: 0.25, yAxisID: 'y',
           },
           {
             type: 'bar', label: 'Runs / jour',
             data: trend.map(r => Number(r.run_count) || 0),
-            backgroundColor: '#60a5fa44', borderColor: '#60a5fa', borderWidth: 1,
+            backgroundColor: window.withAlpha(cc.info, 0.27), borderColor: cc.info, borderWidth: 1,
             yAxisID: 'y1',
           },
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#c9d1d9', font: { size: 11 } } } },
+        plugins: { legend: { labels: { color: cc.text, font: { size: 11 } } } },
         scales: {
-          x: { ticks: { color: '#666', maxTicksLimit: 10, font: { size: 9 } }, grid: { display: false } },
-          y:  { position: 'left', ticks: { color: accent, font: { size: 9 } }, grid: { color: '#ffffff11' } },
-          y1: { position: 'right', ticks: { color: '#60a5fa', font: { size: 9 } }, grid: { display: false }, beginAtZero: true },
+          x: { ticks: { color: cc.text, maxTicksLimit: 10, font: { size: 9 } }, grid: { display: false } },
+          y:  { position: 'left', ticks: { color: cc.accent, font: { size: 9 } }, grid: { color: cc.grid } },
+          y1: { position: 'right', ticks: { color: cc.info, font: { size: 9 } }, grid: { display: false }, beginAtZero: true },
         }
       }
     });
@@ -4646,7 +4648,7 @@ function renderHistoryChart(history) {
   if (!canvas || !window.Chart) return;
   if (window._historyChart) { window._historyChart.destroy(); window._historyChart = null; }
   if (!history.length) return;
-  const palette = ['#ff4655','#4ade80','#60a5fa','#fbbf24','#c084fc','#f87171','#34d399','#818cf8','#fb923c','#a3e635'];
+  const palette = window.CHART_CAT; // palette catégorielle Obsidian Signal (§13)
   const modes = [...new Set(history.map(h => h.mode))];
   const modeColor = {};
   modes.forEach((m, i) => modeColor[m] = palette[i % palette.length]);
@@ -4664,8 +4666,8 @@ function renderHistoryChart(history) {
         label: (item) => ` Score : ${item.raw.toLocaleString()}`
       }}},
       scales: {
-        x: { ticks:{ color:'#8b949e', font:{ size:10 }, maxRotation:45 }, grid:{ color:'rgba(255,255,255,0.04)' } },
-        y: { ticks:{ color:'#8b949e' }, grid:{ color:'rgba(255,255,255,0.04)' }, beginAtZero:true }
+        x: { ticks:{ color:window.chartColors().text, font:{ size:10 }, maxRotation:45 }, grid:{ color:window.chartColors().grid } },
+        y: { ticks:{ color:window.chartColors().text }, grid:{ color:window.chartColors().grid }, beginAtZero:true }
       }
     }
   });
@@ -5649,6 +5651,7 @@ function _trkDrawRRChart(canvasId, rrMatches) {
   canvas.width = W * dpr; canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
+  const cc = window.chartColors();
 
   // Cumul RR relatif au point de départ de la fenêtre affichée
   let cum = 0;
@@ -5670,7 +5673,7 @@ function _trkDrawRRChart(canvasId, rrMatches) {
   // Aire sous la courbe
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   const trendUp = pts[pts.length - 1] >= 0;
-  grad.addColorStop(0, trendUp ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)');
+  grad.addColorStop(0, window.withAlpha(trendUp ? cc.up : cc.down, 0.25));
   grad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.beginPath();
   ctx.moveTo(xAt(0), yAt(0));
@@ -5682,7 +5685,7 @@ function _trkDrawRRChart(canvasId, rrMatches) {
   // Courbe
   ctx.beginPath();
   pts.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAt(v)) : ctx.lineTo(xAt(i), yAt(v)));
-  ctx.strokeStyle = trendUp ? '#4ade80' : '#f87171';
+  ctx.strokeStyle = trendUp ? cc.up : cc.down;
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
   ctx.stroke();
@@ -5691,7 +5694,7 @@ function _trkDrawRRChart(canvasId, rrMatches) {
   rrMatches.forEach((m, i) => {
     ctx.beginPath();
     ctx.arc(xAt(i), yAt(pts[i]), 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = (m.rr_change || 0) >= 0 ? '#4ade80' : '#f87171';
+    ctx.fillStyle = (m.rr_change || 0) >= 0 ? cc.up : cc.down;
     ctx.fill();
   });
 }
@@ -5707,7 +5710,8 @@ function _trkTrend(matches, getter) {
   const delta = avgR - avgP;
   const eps = Math.abs(avgP) * 0.02;
   if (Math.abs(delta) <= eps) return { avg: avgR, arrow: '→', color: 'var(--dim)' };
-  return { avg: avgR, arrow: delta > 0 ? '▲' : '▼', color: delta > 0 ? '#4ade80' : '#f87171', delta };
+  const cc = window.chartColors();
+  return { avg: avgR, arrow: delta > 0 ? '▲' : '▼', color: delta > 0 ? cc.up : cc.down, delta };
 }
 
 function trackerRender(data, el) {
@@ -5717,10 +5721,11 @@ function trackerRender(data, el) {
   const maps    = data.top_maps   || [];
   const seasonGroups = data.season_groups || [];
 
-  // Colour helpers
-  const clrWR  = v => v >= 50 ? '#4ade80' : '#f87171';
-  const clrKD  = v => { const n = parseFloat(v); return n >= 1.5 ? '#4ade80' : n < 1.0 ? '#f87171' : 'var(--txt)'; };
-  const clrRR  = v => v == null ? 'var(--dim)' : v > 0 ? '#4ade80' : '#f87171';
+  // Colour helpers — palette charts (sémantiques invariants par thème)
+  const _cc = window.chartColors();
+  const clrWR  = v => v >= 50 ? _cc.up : _cc.down;
+  const clrKD  = v => { const n = parseFloat(v); return n >= 1.5 ? _cc.up : n < 1.0 ? _cc.down : 'var(--txt)'; };
+  const clrRR  = v => v == null ? 'var(--dim)' : v > 0 ? _cc.up : _cc.down;
   const fmtKDA = (k, d, a) => `${k}/<span class="trk-d-dim">${d}</span>/${a}`;
   const fmtRR   = v => v == null ? null : `${v > 0 ? '+' : ''}${v} RR`;
   const relTime = iso => {
@@ -5909,7 +5914,7 @@ function trackerRender(data, el) {
   const rrChartHtml = rrMatches.length >= 3 ? `
     <div class="trk-section trk-rr-section">
       <div class="trk-section-title">${icon('trending',14)} Progression RR
-        <span class="trk-rr-total" style="color:${rrTotal >= 0 ? '#4ade80' : '#f87171'}">${rrTotal >= 0 ? '+' : ''}${rrTotal} RR sur ${rrMatches.length} parties</span>
+        <span class="trk-rr-total" style="color:${rrTotal >= 0 ? _cc.up : _cc.down}">${rrTotal >= 0 ? '+' : ''}${rrTotal} RR sur ${rrMatches.length} parties</span>
       </div>
       <canvas id="${rrChartId}" class="trk-rr-canvas"></canvas>
     </div>` : '';
@@ -6367,8 +6372,7 @@ function _pfRenderRadar() {
 
   if (_pfRadarChart) { _pfRadarChart.destroy(); _pfRadarChart = null; }
 
-  const css = getComputedStyle(document.documentElement);
-  const accent = css.getPropertyValue('--accent').trim() || '#ff4655';
+  const cc = window.chartColors();
 
   _pfRadarChart = new Chart(canvas, {
     type: 'radar',
@@ -6376,10 +6380,10 @@ function _pfRenderRadar() {
       labels,
       datasets: [{
         data,
-        backgroundColor: accent + '33',
-        borderColor: accent,
+        backgroundColor: window.withAlpha(cc.accent, 0.08),
+        borderColor: cc.accent,
         borderWidth: 2,
-        pointBackgroundColor: accent,
+        pointBackgroundColor: cc.accent,
         pointRadius: 4,
         pointHoverRadius: 6,
       }]
@@ -6391,9 +6395,9 @@ function _pfRenderRadar() {
         r: {
           min: 0, max: 100,
           ticks: { display: false, stepSize: 25 },
-          grid: { color: 'rgba(255,255,255,0.06)' },
+          grid: { color: cc.grid },
           angleLines: { color: 'rgba(255,255,255,0.08)' },
-          pointLabels: { color: css.getPropertyValue('--dim').trim() || '#8b949e', font: { size: 11, weight: '600' } }
+          pointLabels: { color: cc.text, font: { size: 11, weight: '600' } }
         }
       }
     }
@@ -6715,13 +6719,14 @@ function _pfRenderActivityChart(activity30) {
   if (typeof Chart === 'undefined') return;
   if (_pfActivityChart) { _pfActivityChart.destroy(); _pfActivityChart = null; }
 
+  const cc = window.chartColors();
   _pfActivityChart = new Chart(canvas, {
     type: 'bar',
     data: {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: values.map(v => v > 0 ? 'rgba(255,70,85,0.7)' : 'rgba(255,255,255,0.05)'),
+        backgroundColor: values.map(v => v > 0 ? window.withAlpha(cc.accent, 0.7) : 'rgba(255,255,255,0.05)'),
         borderRadius: 3,
         borderSkipped: false,
       }]
@@ -6733,10 +6738,10 @@ function _pfRenderActivityChart(activity30) {
         callbacks: { label: ctx => ctx.parsed.y + ' partie' + (ctx.parsed.y !== 1 ? 's' : '') }
       }},
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#666', font: { size: 9 }, maxRotation: 0,
+        x: { grid: { display: false }, ticks: { color: cc.text, font: { size: 9 }, maxRotation: 0,
           callback: function(val, idx) { return idx % 5 === 0 ? this.getLabelForValue(val) : ''; }
         }},
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#666', stepSize: 1 }, beginAtZero: true }
+        y: { grid: { color: cc.grid }, ticks: { color: cc.text, stepSize: 1 }, beginAtZero: true }
       }
     }
   });
@@ -7165,14 +7170,15 @@ function renderPbChart() {
   const rows = _pbHistory.filter(r => r.mode === mode).sort((a, b) => a.day.localeCompare(b.day));
   if (_pbChart) { _pbChart.destroy(); _pbChart = null; }
   if (!window.Chart || !rows.length) return;
+  const cc = window.chartColors();
   _pbChart = new Chart(canvas, {
     type: 'line',
     data: {
       labels: rows.map(r => new Date(r.day + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
       datasets: [{
         label: 'Meilleur score', data: rows.map(r => r.best),
-        borderColor: '#ff4655', backgroundColor: 'rgba(255,70,85,0.08)',
-        borderWidth: 2, pointBackgroundColor: '#ff4655', pointRadius: 4, fill: true, tension: 0.3
+        borderColor: cc.accent, backgroundColor: window.withAlpha(cc.accent, 0.08),
+        borderWidth: 2, pointBackgroundColor: cc.accent, pointRadius: 4, fill: true, tension: 0.3
       }]
     },
     options: {
@@ -7181,8 +7187,8 @@ function renderPbChart() {
         label: item => ` Meilleur : ${item.raw.toLocaleString()}`
       }}},
       scales: {
-        x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#8b949e' }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: false }
+        x: { ticks: { color: cc.text, font: { size: 10 } }, grid: { color: cc.grid } },
+        y: { ticks: { color: cc.text }, grid: { color: cc.grid }, beginAtZero: false }
       }
     }
   });
@@ -7626,10 +7632,11 @@ function _renderHeatmap() {
   if (!isClick || log.length === 0) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   const ctx = canvas.getContext('2d');
+  const cc = window.chartColors();
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
   // Background
-  ctx.fillStyle = 'rgba(10,12,18,0.95)';
+  ctx.fillStyle = cc.bg;
   ctx.fillRect(0, 0, W, H);
   // Crosshair center
   ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -7642,23 +7649,23 @@ function _renderHeatmap() {
     if (p.hit) {
       // Green dot with glow for hits
       const grd = ctx.createRadialGradient(px, py, 0, px, py, 10);
-      grd.addColorStop(0, 'rgba(74,222,128,0.95)');
-      grd.addColorStop(1, 'rgba(74,222,128,0)');
+      grd.addColorStop(0, window.withAlpha(cc.up, 0.95));
+      grd.addColorStop(1, window.withAlpha(cc.up, 0));
       ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
-      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#4ade80'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fillStyle = cc.up; ctx.fill();
     } else {
       // Miss: show target position + error line from crosshair center → target
       const cx = W / 2, cy = H / 2;
       if (p.err > 0.02) {
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
-        ctx.strokeStyle = 'rgba(255,70,85,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = window.withAlpha(cc.down, 0.2); ctx.lineWidth = 1; ctx.stroke();
       }
       // ✕ marker at target position
       const grd = ctx.createRadialGradient(px, py, 0, px, py, 8);
-      grd.addColorStop(0, 'rgba(255,70,85,0.9)');
-      grd.addColorStop(1, 'rgba(255,70,85,0)');
+      grd.addColorStop(0, window.withAlpha(cc.down, 0.9));
+      grd.addColorStop(1, window.withAlpha(cc.down, 0));
       ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
-      ctx.strokeStyle = '#ff4655'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = cc.down; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(px-3, py-3); ctx.lineTo(px+3, py+3); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(px+3, py-3); ctx.lineTo(px-3, py+3); ctx.stroke();
     }
@@ -7666,7 +7673,7 @@ function _renderHeatmap() {
   // Stats overlay
   const hits = log.filter(p => p.hit).length;
   const misses = log.filter(p => !p.hit).length;
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillStyle = cc.text;
   ctx.font = '11px monospace';
   ctx.fillText(`${hits} hits · ${misses} misses`, 8, H - 8);
 
